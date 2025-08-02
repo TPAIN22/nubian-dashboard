@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { OrderStatusUpdateEmail } from '@/components/email-send';
+import { Product } from '@/app/products/productsTable';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     
     
-    const productsForEmail = products.map((p: any) => {
+    const productsForEmail = products.map((p: Product | any) => {
       
       if (p.name && p.price && typeof p.quantity !== 'undefined') {
         return {

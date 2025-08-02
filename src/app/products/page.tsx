@@ -1,15 +1,9 @@
-// page.tsx
-
-import Side from '@/components/ui/side-bar-provider'
 import { axiosInstance } from '@/lib/axiosInstance';
-import { Key } from 'lucide-react';
-import React from 'react'
-import { ProductsTable } from './productsTable'; // تأكد من استيراد Product
+import { ProductsTable } from './productsTable';
 import { Button } from '@/components/ui/button';
 import { IconPlus } from '@tabler/icons-react';
 import Link from 'next/link';
 
-// تعريف الـ Interface للمنتج
 interface Product {
   _id: string;
   name: string;
