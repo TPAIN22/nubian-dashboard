@@ -58,8 +58,8 @@ export default function BannersPage() {
         />
       )}
       <div className="overflow-x-auto rounded-lg border">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-gray-500">
+          <thead className="bg-gray-600">
             <tr>
               <th className="px-4 py-2">الصورة</th>
               <th className="px-4 py-2">العنوان</th>

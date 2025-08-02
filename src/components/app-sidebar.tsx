@@ -70,6 +70,11 @@ const data = {
       url: "/banners",
       icon: IconCamera,
     },
+    {
+      title: "كوبونات",
+      url: "/coupons",
+      icon: IconFileDescription,
+    },
   ],
   navClouds: [
     {

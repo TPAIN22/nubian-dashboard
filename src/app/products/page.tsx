@@ -24,12 +24,9 @@ interface Product {
   updatedAt: string;
 }
 
+export default async function Page() {
+  const { products } = await axiosInstance.get("/products").then(res => res.data);
 
-async function page() {
-  const { products, page, totalPages } = await axiosInstance.get("/products").then(res => res.data);
-  (products);
-
-  // نقوم بتمرير المنتجات إلى ProductsTable
   return (
     <div className='flex flex-col gap-4 h-full mx-15'>
       <div className='flex justify-between items-center'>
@@ -44,5 +41,3 @@ async function page() {
     </div>
   )
 }
-
-export default page

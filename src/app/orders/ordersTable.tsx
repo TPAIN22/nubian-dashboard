@@ -46,6 +46,8 @@ export type Order = {
     phone: string;
   };
   productsDetails: any[];
+  discountAmount?: number;
+  finalAmount?: number;
 };
 
 // Helper function to get status in Arabic
@@ -196,6 +198,24 @@ export const columns: ColumnDef<Order>[] = [
       const order = row.original;
       const fullAddress = `${order.address}, ${order.city}`;
       return <div className="max-w-[200px] truncate" title={fullAddress}>{fullAddress}</div>;
+    },
+  },
+  // خصم
+  {
+    header: 'الخصم',
+    accessorKey: 'discountAmount',
+    cell: ({ row }) => {
+      const value = row.original.discountAmount;
+      return value ? `${value} ج.س` : '-';
+    },
+  },
+  // المجموع بعد الخصم
+  {
+    header: 'المجموع النهائي',
+    accessorKey: 'finalAmount',
+    cell: ({ row }) => {
+      const value = row.original.finalAmount;
+      return value ? `${value} ج.س` : '-';
     },
   },
   {
