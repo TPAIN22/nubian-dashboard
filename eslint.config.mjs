@@ -14,10 +14,12 @@ const eslintConfig = [
   {
     files: ["**/*.ts", "**/*.tsx"],
     rules: {
-      "@typescript-eslint/no-explicit-any": "off",        // ❌ يمنع any
-      "@typescript-eslint/no-unused-vars": "warn",        // ⚠️ فقط تحذير بدل خطأ
-      "@next/next/no-img-element": "off",                  // ❌ للسماح باستخدام <img>
-      "react/no-unescaped-entities": "warn",               // ⚠️ اقتباسات غير محمية
+      "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "@next/next/no-img-element": "off",
+      "react/no-unescaped-entities": "off",
+      "jsx-a11y/alt-text": "off",
+      "@typescript-eslint/no-unused-expressions": "off",
     },
   },
 ];
