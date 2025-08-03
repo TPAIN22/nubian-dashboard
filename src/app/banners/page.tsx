@@ -6,7 +6,6 @@ import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
 import BannerForm from "./bannerForm"; 
 import type { BannerFormValues } from "./bannerForm";
-import Image from "next/image";
 
 type Banner = BannerFormValues & { _id: string };
 
@@ -81,7 +80,7 @@ export default function BannersPage() {
               <tr><td colSpan={6} className="text-center py-8">لا توجد عروض</td></tr>
             ) : banners.map((banner) => (
               <tr key={banner._id} className="border-b">
-                <td className="px-4 py-2"><Image src={banner.image} alt="banner" className="h-16 w-32 object-cover rounded" width={128} height={128} /></td>
+                <td className="px-4 py-2"><img src={banner.image} alt="banner" className="h-16 w-32 object-cover rounded" /></td>
                 <td className="px-4 py-2">{banner.title || "-"}</td>
                 <td className="px-4 py-2">{banner.description || "-"}</td>
                 <td className="px-4 py-2 text-center">{banner.order}</td>
