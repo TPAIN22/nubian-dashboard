@@ -34,16 +34,6 @@ function ErrorMessage({ message }: { message: string }) {
   );
 }
 
-// مكون للتحميل
-function LoadingSpinner() {
-  return (
-    <div className="flex items-center justify-center py-12">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      <span className="mr-3 text-lg">جاري تحميل التصنيفات...</span>
-    </div>
-  );
-}
-
 async function CategoriesPage() {
   let categories: Category[] = [];
   let error: string | null = null;
@@ -59,11 +49,9 @@ async function CategoriesPage() {
     }
 
     console.log("تم جلب التصنيفات بنجاح:", categories.length);
-  } catch (err: any) {
+  } catch (err) {
     console.error("خطأ في جلب التصنيفات:", err);
-    error = err.response?.data?.message || 
-            err.message || 
-            "فشل في تحميل التصنيفات. يرجى المحاولة مرة أخرى.";
+    error = err instanceof Error ? err.message : "فشل في تحميل التصنيفات. يرجى المحاولة مرة أخرى.";
   }
 
   // عرض رسالة الخطأ في حالة الفشل

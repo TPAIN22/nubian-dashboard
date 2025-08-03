@@ -1,16 +1,46 @@
 import { axiosInstance } from "@/lib/axiosInstance";
 
-export async function updateOrders(order: any, token: any) {
+// Define interfaces for type safety
+interface OrderRow {
+  _id: string;
+  status?: string;
+  paymentStatus?: string;
+}
+
+interface Order {
+  selectedRow?: OrderRow;
+  _id?: string;
+  status?: string;
+  paymentStatus?: string;
+}
+
+interface OrderUpdatePayload {
+  id: string;
+  status?: string;
+  paymentStatus?: string;
+}
+
+interface ApiResponse<T = any> {
+  data: T;
+  status: number;
+  message?: string;
+}
+
+export async function updateOrders(order: Order, token: string): Promise<ApiResponse> {
   try {
     // استخرج الـ ID من selectedRow
     const orderId = order.selectedRow?._id || order._id;
     
+    if (!orderId) {
+      throw new Error("Order ID is required");
+    }
+    
     // أضف الـ ID للـ payload إذا كان الـ backend يتوقعه في الـ body
-    const payload: any = { id: orderId };
+    const payload: OrderUpdatePayload = { id: orderId };
     if (order.status) payload.status = order.status;
     if (order.paymentStatus) payload.paymentStatus = order.paymentStatus;
 
-    const orders = await axiosInstance.patch(
+    const orders = await axiosInstance.patch<ApiResponse>(
       `/orders/${orderId}/status`,
       payload,
       {
@@ -19,9 +49,9 @@ export async function updateOrders(order: any, token: any) {
         },
       }
     );
-    return orders;
+    return orders.data;
   } catch (error) {
-    (error);
-    return error;
+    console.error("Error updating order:", error);
+    throw error;
   }
 }

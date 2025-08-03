@@ -77,6 +77,12 @@ function OrderDialog({
     setLoading(true);
     const token = await getToken();
 
+    if (!token) {
+      toast.error("فشل في الحصول على رمز المصادقة");
+      setLoading(false);
+      return;
+    }
+
     try {
       const updatedData: Partial<Order> = {}; // استخدم Partial لأننا نرسل جزءًا من الكائن
       const oldStatus = selectedRow.status;
@@ -146,17 +152,19 @@ function OrderDialog({
         } else {
           toast.success("تم إرسال إشعار البريد الإلكتروني بنجاح.");
         }
-      } catch (emailErr: any) {
+      } catch (emailErr) {
         console.error("Error sending email notification:", emailErr);
+        const errorMessage = emailErr instanceof Error ? emailErr.message : "خطأ غير معروف";
         toast.warning(
-          `تم تحديث الطلب، لكن حدث خطأ أثناء إرسال الإشعار بالبريد الإلكتروني: ${emailErr.message || "خطأ غير معروف"}`
+          `تم تحديث الطلب، لكن حدث خطأ أثناء إرسال الإشعار بالبريد الإلكتروني: ${errorMessage}`
         );
       }
 
       setIsModalOpen(false);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error during order update process:", err);
-      toast.error(`حدث خطأ أثناء التحديث: ${err.message || "خطأ غير معروف"}`);
+      const errorMessage = err instanceof Error ? err.message : "خطأ غير معروف";
+      toast.error(`حدث خطأ أثناء التحديث: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -288,7 +296,7 @@ function OrderDialog({
               {selectedRow.productsDetails &&
               selectedRow.productsDetails.length > 0 ? (
                 <ul className="space-y-2 pr-5">
-                  {selectedRow.productsDetails.map((p: any, i: number) => (
+                  {selectedRow.productsDetails.map((p, i: number) => (
                     <li
                       key={i}
                       className="flex justify-between items-center bg-gray-50 p-3 text-black rounded-md shadow-sm"
@@ -310,7 +318,7 @@ function OrderDialog({
               ) : selectedRow.products && selectedRow.products.length > 0 ? (
                 // Fallback if productsDetails is not available but products is
                 <ul className="space-y-2 pr-5">
-                  {selectedRow.products.map((p: any, i: number) => (
+                  {selectedRow.products.map((p, i: number) => (
                     <li
                       key={i}
                       className="flex justify-between items-center bg-gray-50 p-3 rounded-md shadow-sm"
@@ -323,7 +331,7 @@ function OrderDialog({
                         السعر:{" "}
                         {new Intl.NumberFormat("en-SD", {
                           minimumFractionDigits: 2,
-                        }).format(p.product?.price * p.quantity || 0)}{" "}
+                        }).format((p.product?.price || 0) * p.quantity)}{" "}
                         ج.س
                       </span>
                     </li>

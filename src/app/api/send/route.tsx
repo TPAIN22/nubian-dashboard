@@ -4,6 +4,23 @@ import { Resend } from 'resend';
 import { OrderStatusUpdateEmail } from '@/components/email-send';
 import { Product } from '@/app/products/productsTable';
 
+// Define interfaces for the product structures
+interface ProductWithNestedProduct {
+  product: {
+    name: string;
+    price: number;
+  };
+  quantity: number;
+}
+
+interface ProductDirect {
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+type ProductInput = ProductWithNestedProduct | ProductDirect;
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: NextRequest) {
@@ -36,9 +53,10 @@ export async function POST(request: NextRequest) {
 
     
     
-    const productsForEmail = products.map((p: Product | any) => {
+    const productsForEmail = products.map((p: ProductInput) => {
       
-      if (p.name && p.price && typeof p.quantity !== 'undefined') {
+      // Check if it's a direct product structure
+      if ('name' in p && 'price' in p && typeof p.quantity !== 'undefined') {
         return {
           name: p.name,
           quantity: p.quantity,
@@ -46,7 +64,8 @@ export async function POST(request: NextRequest) {
         };
       }
       
-      else if (p.product?.name && p.product?.price && typeof p.quantity !== 'undefined') {
+      // Check if it's a nested product structure
+      else if ('product' in p && p.product?.name && p.product?.price && typeof p.quantity !== 'undefined') {
         return {
           name: p.product.name,
           quantity: p.quantity,

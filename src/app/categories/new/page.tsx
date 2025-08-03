@@ -61,7 +61,9 @@ export default function NewCategoryPage() {
         const parentCategories = res.data.filter((cat: Category) => !cat.parent);
         setCategories(parentCategories);
       } catch (error) {
-        toast.error("فشل في جلب قائمة الفئات.");
+        toast.error("فشل في جلب قائمة الفئات." , {
+          description: error instanceof Error ? error.message : "خطأ غير معروف",
+        });
       }
     };
     fetchCategories();
@@ -91,10 +93,10 @@ export default function NewCategoryPage() {
       toast.success("تم إنشاء الفئة بنجاح!");
       router.push("/categories");
       router.refresh();
-    } catch (error: any) {
-      toast.error(
-        `فشل إنشاء الفئة: ${error.response?.data?.message || error.message || "خطأ غير معروف"}`
-      );
+    } catch (error) {
+      toast.error("فشل إنشاء الفئة" , {
+        description: error instanceof Error ? error.message : "خطأ غير معروف",
+      });
     }
   }
 
@@ -143,7 +145,7 @@ export default function NewCategoryPage() {
                 <FormItem>
                   <FormLabel>الفئة الرئيسية (اختياري)</FormLabel>
                   <span style={{fontSize: '0.9em', color: '#888', display: 'block', marginBottom: 4}}>
-                    إذا أردت إنشاء فئة رئيسية، اختر "بدون (فئة رئيسية)". إذا أردت إنشاء فئة فرعية، اختر الفئة الرئيسية المناسبة من القائمة.
+                    إذا أردت إنشاء فئة رئيسية، اختر &quot;بدون (فئة رئيسية)&quot;. إذا أردت إنشاء فئة فرعية، اختر الفئة الرئيسية المناسبة من القائمة.
                   </span>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>

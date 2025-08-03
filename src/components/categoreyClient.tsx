@@ -53,7 +53,7 @@ export default function CategoryListClient({ categories: initialCategories }: Ca
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
 
-  const organizedCategories = useMemo(() => {
+  const { organizedCategories, categoryMap } = useMemo(() => {
     const categoryMap: Record<string, Category & { children: Category[] }> = {};
     const topLevelCategories: (Category & { children: Category[] })[] = [];
 
@@ -80,7 +80,7 @@ export default function CategoryListClient({ categories: initialCategories }: Ca
     };
 
     topLevelCategories.forEach(cat => traverse(cat, 0));
-    return flatList;
+    return { organizedCategories: flatList, categoryMap };
   }, [initialCategories]);
 
   const handleAddNewCategory = () => {
@@ -151,7 +151,7 @@ export default function CategoryListClient({ categories: initialCategories }: Ca
                     </span>
                     {category.isParent && (
                       <span className="text-xs text-gray-500 ml-2">
-                        ({category.children?.length || 0} فئة فرعية)
+                        ({categoryMap[category._id]?.children?.length || 0} فئة فرعية)
                       </span>
                     )}
                   </div>

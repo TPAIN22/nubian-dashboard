@@ -134,7 +134,7 @@ export default function EditCategoryPage({ params }: EditCategoryPageProps) {
           image: categoryData.image || "",
           parent: parentValue,
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Error fetching data:", error);
         toast.error("فشل في جلب البيانات.");
         router.push("/categories");
@@ -176,12 +176,9 @@ export default function EditCategoryPage({ params }: EditCategoryPageProps) {
       toast.success("تم تحديث الفئة بنجاح!");
       router.push("/categories");
       router.refresh();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Update error:", error);
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.error || 
-                          error.message || 
-                          "خطأ غير معروف";
+      const errorMessage = error instanceof Error ? error.message : "خطأ غير معروف";
       toast.error(`فشل تحديث الفئة: ${errorMessage}`);
     }
   }
@@ -272,7 +269,7 @@ export default function EditCategoryPage({ params }: EditCategoryPageProps) {
                 <FormItem>
                   <FormLabel>الفئة الرئيسية (اختياري)</FormLabel>
                   <div className="text-sm text-muted-foreground mb-2">
-                    إذا أردت إنشاء فئة رئيسية، اختر "بدون (فئة رئيسية)". إذا أردت إنشاء فئة فرعية، اختر الفئة الرئيسية المناسبة من القائمة.
+                    إذا أردت إنشاء فئة رئيسية، اختر &quot;بدون (فئة رئيسية)&quot;. إذا أردت إنشاء فئة فرعية، اختر الفئة الرئيسية المناسبة من القائمة.
                   </div>
                   <Select 
                     onValueChange={field.onChange} 

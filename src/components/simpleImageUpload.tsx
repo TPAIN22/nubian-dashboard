@@ -8,7 +8,7 @@ import {
   upload,
 } from "@imagekit/next";
 import { useState, useRef, useEffect } from "react";
-import { Upload, X, Loader2, Image, Plus } from "lucide-react";
+import { Upload, X, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner"; // لاستخدام التنبيهات
 
 // Props interface for the component
@@ -106,7 +106,7 @@ export function SimpleImageUpload({ value, onChange }: SimpleImageUploadProps) {
         toast.error("فشل الرفع: لم يتم الحصول على رابط الصورة."); // Error if URL is missing
         onChange(undefined); // Clear URL in parent
       }
-    } catch (error: any) {
+    } catch (error) {
       // Detailed error handling for different ImageKit errors
       let errorMessage = "فشل رفع الصورة: خطأ غير معروف";
       if (error instanceof ImageKitAbortError) {
@@ -118,7 +118,7 @@ export function SimpleImageUpload({ value, onChange }: SimpleImageUploadProps) {
       } else if (error instanceof ImageKitServerError) {
         errorMessage = "خطأ في الخادم: " + error.message;
       } else {
-        errorMessage = "فشل الرفع: " + (error.message || "خطأ غير معروف");
+        errorMessage = "فشل الرفع: " + ((error as Error)?.message || "خطأ غير معروف");
       }
       toast.error(errorMessage); // Show specific error to user
       onChange(undefined); // Clear URL in parent on error

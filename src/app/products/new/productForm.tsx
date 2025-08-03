@@ -35,7 +35,6 @@ import {
 } from "@/components/ui/multi-select";
 import ImageUpload from "@/components/imageUpload";
 import { axiosInstance } from "@/lib/axiosInstance";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { Package, Store, FileText, DollarSign, Tag, Hash, Ruler } from "lucide-react";
 
@@ -43,7 +42,7 @@ import {
   Select,
   SelectContent,
   SelectItem,
-  SelectTrigger,
+  SelectTrigger,  
   SelectValue,
 } from "@/components/ui/select";
 
@@ -72,6 +71,11 @@ const formSchema = z.object({
   images: z.array(z.string()).min(1, "الصورة مطلوبة").max(5, "الحد الأقصى 5 صور"),
 });
 
+interface Category {
+  _id: string;
+  name: string;
+}
+
 export default function ProductForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -89,9 +93,7 @@ export default function ProductForm() {
   });
 
   const { getToken } = useAuth();
-  const router = useRouter();
-
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
 
@@ -110,7 +112,7 @@ export default function ProductForm() {
           },
         });
         setCategories(res.data);
-      } catch (err: any) {
+      } catch (err) {
         console.error("Failed to fetch categories:", err);
         setCategoriesError("فشل في تحميل التصنيفات. الرجاء المحاولة مرة أخرى.");
         toast.error("فشل في تحميل التصنيفات.");
@@ -151,11 +153,14 @@ export default function ProductForm() {
         },
       });
 
+      console.log(res.data.message);
+
       toast("تم إنشاء المنتج بنجاح");
       form.reset();
-    } catch (error: any) {
-      console.error("Form submission error", error.response?.data || error.message);
-      toast.error(`فشل إرسال النموذج: ${error.response?.data?.message || error.message || "خطأ غير معروف"}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "خطأ غير معروف";
+      console.error("Form submission error", errorMessage);
+      toast.error(`فشل إرسال النموذج: ${errorMessage}`);
     }
   }
 

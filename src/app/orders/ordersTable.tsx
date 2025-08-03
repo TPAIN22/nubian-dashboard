@@ -17,6 +17,21 @@ import {
 } from "@tanstack/react-table";
 import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
 
+// Product interfaces for type safety
+export interface ProductDetail {
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+export interface Product {
+  product?: {
+    name: string;
+    price: number;
+  };
+  quantity: number;
+}
+
 // Updated Order type to match API data
 export type Order = {
   _id: string;
@@ -26,7 +41,7 @@ export type Order = {
     fullName?: string; // أضف هذا إذا كان موديل المستخدم يستخدم fullName
     emailAddress?: string; // أضف هذا إذا كان موديل المستخدم يستخدم emailAddress
   };
-  products: any[];
+  products: Product[];
   totalAmount: number;
   status: "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
   phoneNumber: string;
@@ -45,7 +60,7 @@ export type Order = {
     email: string; // وهذا ما يتم إرجاعه من الـ Backend
     phone: string;
   };
-  productsDetails: any[];
+  productsDetails: ProductDetail[];
   discountAmount?: number;
   finalAmount?: number;
 };
@@ -483,7 +498,7 @@ export function DataTable({ orders }: { orders: Order[] }) {
 const sampleOrder: Order = {
   _id: '685d09019b2c3be0dce01fd5',
   user: { _id: '68343632f869e2caa87b51b2' },
-  products: [{}],
+  products: [{ quantity: 1, product: { name: 'منتج تجريبي', price: 240000 } }],
   totalAmount: 240000,
   status: 'pending',
   phoneNumber: '0931873492',
@@ -498,7 +513,7 @@ const sampleOrder: Order = {
   __v: 0,
   productsCount: 1,
   customerInfo: { name: 'اسم العميل', email: 'email@example.com', phone: '0931873492' }, // تم تحديث هنا ليعكس البيانات الحقيقية
-  productsDetails: [{}]
+  productsDetails: [{ name: 'منتج تجريبي', quantity: 1, price: 240000 }]
 };
 
 export default function App() {

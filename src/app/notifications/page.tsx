@@ -1,6 +1,5 @@
 import React from 'react'
 import {NotificationForm} from '@/components/NotificationForm'
-import Side from '@/components/ui/side-bar-provider'
 
 function page() {
   return (

@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Trash2, Edit, Plus, Percent, DollarSign, Calendar, Users, User } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 interface Coupon {
   _id: string;
@@ -72,14 +73,16 @@ export default function CouponsPage() {
       const res = await axiosInstance.get('/coupons');
       setCoupons(res.data);
       setError('');
-    } catch (err: any) {
-      setError('فشل في تحميل الكوبونات');
+    } catch (err) {
+      toast.error("فشل في تحميل الكوبونات" , {
+        description: err instanceof Error ? err.message : "خطأ غير معروف",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFormChange = (field: keyof CouponForm, value: any) => {
+  const handleFormChange = (field: keyof CouponForm, value: string | number | boolean) => {
     setForm((prev) => ({
       ...prev,
       [field]: value,
@@ -108,8 +111,10 @@ export default function CouponsPage() {
       });
       setShowAddForm(false);
       fetchCoupons();
-    } catch (err: any) {
-      setFormError(err.response?.data?.message || 'فشل في إضافة الكوبون');
+    } catch (err) {
+      toast.error("فشل في إضافة الكوبون" , {
+        description: err instanceof Error ? err.message : "خطأ غير معروف",
+      });
     } finally {
       setFormLoading(false);
     }
@@ -119,8 +124,10 @@ export default function CouponsPage() {
     try {
       await axiosInstance.delete(`/coupons/${id}`);
       fetchCoupons();
-    } catch {
-      alert('فشل في حذف الكوبون');
+    } catch (err) {
+      toast.error("فشل في حذف الكوبون" , {
+        description: err instanceof Error ? err.message : "خطأ غير معروف",
+      });
     }
   };
 
@@ -138,7 +145,7 @@ export default function CouponsPage() {
     setEditError('');
   };
 
-  const handleEditChange = (field: keyof CouponForm, value: any) => {
+  const handleEditChange = (field: keyof CouponForm, value: string | number | boolean) => {
     setEditForm((prev) => prev ? ({
       ...prev,
       [field]: value,
@@ -160,8 +167,10 @@ export default function CouponsPage() {
       setEditState({ open: false, coupon: null });
       setEditForm(null);
       fetchCoupons();
-    } catch (err: any) {
-      setEditError(err.response?.data?.message || 'فشل في تعديل الكوبون');
+    } catch (err) {
+      toast.error("فشل في تعديل الكوبون" , {
+        description: err instanceof Error ? err.message : "خطأ غير معروف",
+      });
     } finally {
       setEditLoading(false);
     }
@@ -388,7 +397,7 @@ export default function CouponsPage() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  سيتم حذف الكوبون "{coupon.code}" نهائياً. هذا الإجراء لا يمكن التراجع عنه.
+                                  سيتم حذف الكوبون &quot;{coupon.code}&quot; نهائياً. هذا الإجراء لا يمكن التراجع عنه.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>

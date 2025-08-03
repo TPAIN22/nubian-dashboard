@@ -6,6 +6,7 @@ import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
 import BannerForm from "./bannerForm"; 
 import type { BannerFormValues } from "./bannerForm";
+import Image from "next/image";
 
 type Banner = BannerFormValues & { _id: string };
 
@@ -21,7 +22,9 @@ export default function BannersPage() {
       const res = await axiosInstance.get("/banners");
       setBanners(res.data);
     } catch (e) {
-      toast.error("فشل في جلب العروض");
+      toast.error("فشل في جلب العروض" , {
+        description: e instanceof Error ? e.message : "حدث خطأ غير معروف",
+      });
     } finally {
       setLoading(false);
     }
@@ -31,14 +34,16 @@ export default function BannersPage() {
     fetchBanners();
   }, []);
 
-  const handleDelete = async (id:any) => {
+  const handleDelete = async (id:string) => {
     if (!window.confirm("هل أنت متأكد من حذف هذا العرض؟")) return;
     try {
       await axiosInstance.delete(`/banners/${id}`);
       toast.success("تم حذف العرض بنجاح");
       fetchBanners();
     } catch (e) {
-      toast.error("فشل حذف العرض");
+      toast.error("فشل حذف العرض" , {
+        description: e instanceof Error ? e.message : "حدث خطأ غير معروف",
+      });
     }
   };
 
@@ -76,7 +81,7 @@ export default function BannersPage() {
               <tr><td colSpan={6} className="text-center py-8">لا توجد عروض</td></tr>
             ) : banners.map((banner) => (
               <tr key={banner._id} className="border-b">
-                <td className="px-4 py-2"><img src={banner.image} alt="banner" className="h-16 w-32 object-cover rounded" /></td>
+                <td className="px-4 py-2"><Image src={banner.image} alt="banner" className="h-16 w-32 object-cover rounded" width={128} height={128} /></td>
                 <td className="px-4 py-2">{banner.title || "-"}</td>
                 <td className="px-4 py-2">{banner.description || "-"}</td>
                 <td className="px-4 py-2 text-center">{banner.order}</td>
