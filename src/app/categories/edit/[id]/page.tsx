@@ -59,13 +59,20 @@ interface Category {
 }
 
 interface EditCategoryPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export default function EditCategoryPage({ params }: EditCategoryPageProps) {
+export default async function EditCategoryPage({ params }: EditCategoryPageProps) {
+  const resolvedParams = await params;
+  const { id: categoryId } = resolvedParams;
+  
+  return <EditCategoryClient categoryId={categoryId} />;
+}
+
+// Client component to handle the actual form logic
+function EditCategoryClient({ categoryId }: { categoryId: string }) {
   const router = useRouter();
   const { getToken } = useAuth();
-  const { id: categoryId } = params;
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentCategory, setCurrentCategory] = useState<Category | null>(null);
