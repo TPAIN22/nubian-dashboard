@@ -35,7 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import OrderDialog from "./orderDialog";
+import OrderDialog from "@/app/orders/orderDialog";
 
 export type OrderProduct = {
   product: {
