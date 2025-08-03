@@ -3,8 +3,8 @@ import mongoose from 'mongoose'
 export const connect = async () => {
     try {
         await mongoose.connect(process.env.MONGODB_URI!)
-        ('Connected to MongoDB')
+        console.log('Connected to MongoDB')
     } catch (error) {
-        (error)
+        console.error('MongoDB connection error:', error)
     }
 } 
