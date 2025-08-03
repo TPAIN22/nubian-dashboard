@@ -48,7 +48,6 @@ export function SimpleImageUpload({ value, onChange }: SimpleImageUploadProps) {
       }
 
       const data: AuthParams = await response.json();
-      console.log("Received authentication data from API:", data); // For debugging: check what data is received
 
       const { signature, expire, token, publicKey } = data;
 

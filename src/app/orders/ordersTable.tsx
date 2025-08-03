@@ -322,7 +322,6 @@ export const columns: ColumnDef<Order>[] = [
                 // يمكنك استدعاء handleRowClick مباشرة إذا كانت متاحة في هذا النطاق
                 // أو تمرير دالة لفتح المودال من هنا
                 // حالياً، النقر على الصف يفتح المودال، لذا هذه قد تكون زائدة أو تحتاج لتعديل
-                console.log("عرض تفاصيل الطلب:", order);
             }}>عرض التفاصيل</DropdownMenuItem>
             <DropdownMenuItem>تعديل الطلب</DropdownMenuItem>
           </DropdownMenuContent>

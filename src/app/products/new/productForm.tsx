@@ -152,9 +152,6 @@ export default function ProductForm() {
           Authorization: `Bearer ${token}`,
         },
       });
-
-      console.log(res.data.message);
-
       toast("تم إنشاء المنتج بنجاح");
       form.reset();
     } catch (error) {

@@ -105,10 +105,6 @@ function OrderDialog({
       }
 
       // الخطوة 1: تحديث الطلب في قاعدة البيانات
-      console.log("Updating database with:", {
-        _id: selectedRow._id,
-        ...updatedData,
-      });
       await updateOrders(
         {
           _id: selectedRow._id,

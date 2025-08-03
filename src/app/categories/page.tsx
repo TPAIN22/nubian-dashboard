@@ -48,7 +48,6 @@ async function CategoriesPage() {
       throw new Error("تنسيق البيانات المُستلمة غير صحيح");
     }
 
-    console.log("تم جلب التصنيفات بنجاح:", categories.length);
   } catch (err) {
     console.error("خطأ في جلب التصنيفات:", err);
     error = err instanceof Error ? err.message : "فشل في تحميل التصنيفات. يرجى المحاولة مرة أخرى.";
@@ -97,12 +96,6 @@ async function CategoriesPage() {
         {/* زر إضافة تصنيف جديد */}
         <div className="mb-6 flex justify-between items-center">
           <h2 className="text-2xl font-semibold">قائمة التصنيفات</h2>
-          <Link href="/categories/add">
-            <Button size="lg">
-              <span className="ml-2">+</span>
-              إضافة تصنيف جديد
-            </Button>
-          </Link>
         </div>
 
         {/* قائمة التصنيفات */}
