@@ -29,7 +29,7 @@ export default function ModernNoubian({handleClick}:props) {
   const [isVisible, setIsVisible] = useState({}); // لم يتم استخدام isVisible حاليًا، يمكن إزالته إذا لم يكن له استخدام مستقبلي
 
   useEffect(() => {
-    //@ts-ignore
+    //@ts-expect-error
     const handleMouseMove = (e) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
     };
