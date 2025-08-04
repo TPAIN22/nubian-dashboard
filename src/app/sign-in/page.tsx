@@ -1,6 +1,6 @@
 'use client'
 
-import ModernNoubian from '@/components/Nubian'
+import ModernNoubian from '@/components/nubian'
 import { useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 import { useCallback } from 'react'
