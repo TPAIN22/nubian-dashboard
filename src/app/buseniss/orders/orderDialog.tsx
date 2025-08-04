@@ -8,7 +8,7 @@ import {
   DialogFooter, // أضفنا DialogFooter للأزرار
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button"; // نحتاج زر الحفظ
-import { updateOrders } from "@/app/orders/orderControler";
+import { updateOrders } from "@/app/buseniss/orders/orderControler";
 import { useAuth } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label"; // لاستخدام Label مع Select

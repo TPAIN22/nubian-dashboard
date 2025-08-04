@@ -13,8 +13,7 @@ import {
   Heart,
   Users,
   Award,
-  Sparkles,
-  ArrowLeft
+  Sparkles
 } from 'lucide-react';
 
 // استيراد مكون Header الجديد
@@ -209,7 +208,7 @@ export default function ModernNoubian({handleClick}:props) {
                   <p className="text-slate-600 leading-relaxed">{feature.desc}</p>
                   <div className="pt-2">
                     <Button variant="ghost" className="text-slate-700 hover:text-slate-900 group-hover:translate-x-1 transition-transform p-0">
-                      المزيد <ArrowLeft className="w-4 h-4 mr-1" /> {/* تم تغيير ml-1 إلى mr-1 */}
+                      Learn More <ArrowRight className="w-4 h-4 mr-1" /> {/* تم تغيير ml-1 إلى mr-1 */}
                     </Button>
                   </div>
                 </CardContent>

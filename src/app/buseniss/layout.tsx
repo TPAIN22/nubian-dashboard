@@ -7,6 +7,7 @@ import '../globals.css'
 import { ThemeProvider } from "@/components/theme-provider"
 import { dark } from '@clerk/themes'
 import { Toaster } from '@/components/ui/sonner'
+import Side from '@/components/ui/side-bar-provider'
 
 
 const geistSans = Geist({
@@ -43,7 +44,9 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >       
+          <Side>
             {children}
+            </Side>    
             <Toaster/>
           </ThemeProvider>
         </body>
