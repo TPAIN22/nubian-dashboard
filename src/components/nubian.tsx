@@ -14,18 +14,13 @@ import {
   Users,
   Award,
   Sparkles,
+  ArrowLeft,
 } from "lucide-react";
 
 // استيراد مكون Header الجديد
 import Header from "@/components/Header";
-
-type props = {
-  handleClick: () => void;
-};
-
-export default function ModernNoubian({ handleClick }: props) {
+export default function page() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [isVisible, setIsVisible] = useState({}); // لم يتم استخدام isVisible حاليًا، يمكن إزالته إذا لم يكن له استخدام مستقبلي
 
   useEffect(() => {
     const handleMouseMove = (e: Event) => {
@@ -271,7 +266,7 @@ export default function ModernNoubian({ handleClick }: props) {
                       variant="ghost"
                       className="text-slate-700 hover:text-slate-900 group-hover:translate-x-1 transition-transform p-0"
                     >
-                      Learn More <ArrowRight className="w-4 h-4 mr-1" />{" "}
+                      المزيد <ArrowLeft className="w-4 h-4 mr-1" />{" "}
                       {/* تم تغيير ml-1 إلى mr-1 */}
                     </Button>
                   </div>
