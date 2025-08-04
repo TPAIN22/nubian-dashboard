@@ -1,7 +1,7 @@
 import React from 'react'
 import ModernNoubian from '@/components/nubian'
 
-export const page = () => {
+export default function page() {
   return (
       <ModernNoubian />
   )
