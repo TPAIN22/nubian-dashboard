@@ -1,6 +1,6 @@
 'use client'
 
-import ModernNoubian from '@/components/nubian'
+import ModernNoubian from '@/components/Nubian'
 import { useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 import { useCallback } from 'react'
@@ -21,5 +21,6 @@ export default function GoToDashboardButton() {
     }
   }, [isLoaded, user, router])
   // ModernNoubian ظاهر للجميع
-  return <ModernNoubian handleClick={handleClick} />
+return <ModernNoubian />
+
 }

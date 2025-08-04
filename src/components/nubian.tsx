@@ -19,7 +19,7 @@ import {
 
 // استيراد مكون Header الجديد
 import Header from "@/components/Header";
-export default function page() {
+export default function ModernNoubian() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
