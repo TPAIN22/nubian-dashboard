@@ -19,14 +19,8 @@ import {
 
 // استيراد مكون Header الجديد
 import Header from "@/components/Header";
-
-type props = {
-  handleClick: () => void;
-};
-
-export default function ModernNoubian({ handleClick }: props) {
+export default function page() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [isVisible, setIsVisible] = useState({}); // لم يتم استخدام isVisible حاليًا، يمكن إزالته إذا لم يكن له استخدام مستقبلي
 
   useEffect(() => {
     const handleMouseMove = (e: Event) => {
