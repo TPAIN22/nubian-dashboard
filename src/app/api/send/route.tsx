@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { OrderStatusUpdateEmail } from '@/components/email-send';
-import { Product } from '@/app/products/productsTable';
 
 // Define interfaces for the product structures
 interface ProductWithNestedProduct {
