@@ -45,22 +45,22 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/products" className="hover:text-amber-500 transition-colors">
+                <Link href="/" className="hover:text-amber-500 transition-colors">
                   المنتجات
                 </Link>
               </li>
               <li>
-                <Link href="/stores" className="hover:text-amber-500 transition-colors">
+                <Link href="/" className="hover:text-amber-500 transition-colors">
                   المتاجر
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="hover:text-amber-500 transition-colors">
+                <Link href="/" className="hover:text-amber-500 transition-colors">
                   عن نوبيان
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="hover:text-amber-500 transition-colors">
+                <Link href="/" className="hover:text-amber-500 transition-colors">
                   اتصل بنا
                 </Link>
               </li>
@@ -72,27 +72,27 @@ export default function Footer() {
             <h3 className="text-xl font-semibold text-white mb-4">الدعم</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/faq" className="hover:text-amber-500 transition-colors">
+                <Link href="/" className="hover:text-amber-500 transition-colors">
                   الأسئلة الشائعة
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="hover:text-amber-500 transition-colors">
+                <Link href="/" className="hover:text-amber-500 transition-colors">
                   سياسة الخصوصية
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="hover:text-amber-500 transition-colors">
+                <Link href="/" className="hover:text-amber-500 transition-colors">
                   الشروط والأحكام
                 </Link>
               </li>
               <li>
-                <Link href="/shipping" className="hover:text-amber-500 transition-colors">
+                <Link href="/" className="hover:text-amber-500 transition-colors">
                   سياسة الشحن
                 </Link>
               </li>
               <li>
-                <Link href="/returns" className="hover:text-amber-500 transition-colors">
+                <Link href="/" className="hover:text-amber-500 transition-colors">
                   سياسة الإرجاع
                 </Link>
               </li>
