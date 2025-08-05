@@ -37,21 +37,21 @@ export default function ModernNoubian() {
     {
       icon: <ShoppingBag className="w-8 h-8" />,
       title: "Wide Product Range",
-      desc: "Browse thousands of authentic African products from fashion to home decor and electronics.",
+      desc: "تصفح آلاف المنتجات الأصلية من الأزياء إلى ديكور المنزل والإلكترونيات.",
       color: "from-amber-400 to-orange-500",
       accent: "#f0b745",
     },
     {
       icon: <Shield className="w-8 h-8" />,
       title: "Secure Shopping",
-      desc: "Safe payments with buyer protection and hassle-free returns on all purchases.",
+      desc: "طرق دفع آمنة مع حماية للمشتري وإرجاع جميع المشتريات.",
       color: "from-teal-400 to-cyan-500",
       accent: "#30a1a7",
     },
     {
       icon: <Globe className="w-8 h-8" />,
       title: "Fast Delivery",
-      desc: "Quick shipping across Africa and worldwide with real-time tracking for all orders.",
+      desc: "شحن سريع في جميع أنحاء السودان مع تتبع جميع الطلبات في الوقت الحقيقي.",
       color: "from-purple-400 to-pink-500",
       accent: "#8b5cf6",
     },
@@ -196,7 +196,7 @@ export default function ModernNoubian() {
               لـــمــاذا تــخــتــار نـوبـيــــــان
             </Badge>
             <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">
-              لـــمــاذا التـــســوق مــن نـوبـيــــــان
+              لـــمــاذا التـــســوق مــن 
               <span className="bg-gradient-to-r from-teal-500 to-cyan-500 bg-clip-text text-transparent">
                 {" "}
                 نـوبـيــــــان
