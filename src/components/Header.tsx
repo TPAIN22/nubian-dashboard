@@ -27,13 +27,7 @@ export default function Header() {
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8 text-slate-700 font-medium">
           <Link href="/" className="hover:text-amber-500 transition-colors">
-            الرئيسية
-          </Link>
-          <Link href="/buseniss/dashboard" className="hover:text-amber-500 transition-colors">
-            المنتجات
-          </Link>
-          <Link href="/buseniss/dashboard" className="hover:text-amber-500 transition-colors">
-            المتاجر
+            لوحة التحكم 
           </Link>
           <Link href="/buseniss/dashboard" className="hover:text-amber-500 transition-colors">
             عن نوبيان
