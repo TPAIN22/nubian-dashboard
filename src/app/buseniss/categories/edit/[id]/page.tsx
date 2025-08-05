@@ -144,7 +144,7 @@ function EditCategoryClient({ categoryId }: { categoryId: string }) {
       } catch (error: unknown) {
         console.error("Error fetching data:", error);
         toast.error("فشل في جلب البيانات.");
-        router.push("/categories");
+        router.push("/buseniss/categories");
       } finally {
         setLoading(false);
       }
@@ -181,7 +181,7 @@ function EditCategoryClient({ categoryId }: { categoryId: string }) {
       });
       
       toast.success("تم تحديث الفئة بنجاح!");
-      router.push("/categories");
+      router.push("/buseniss/categories");
       router.refresh();
     } catch (error: unknown) {
       console.error("Update error:", error);
@@ -192,7 +192,7 @@ function EditCategoryClient({ categoryId }: { categoryId: string }) {
 
   // دالة للعودة إلى قائمة الفئات
   const handleCancel = () => {
-    router.push("/categories");
+    router.push("/buseniss/categories");
   };
 
   if (loading) {

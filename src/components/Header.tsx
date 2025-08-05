@@ -39,15 +39,14 @@ export default function Header() {
 
         {/* Auth Buttons */}
         <div className="hidden md:flex items-center gap-4">
-          <Button variant="ghost" className="text-slate-700 hover:bg-slate-100">
-            تسجيل الدخول
-          </Button>
+         <Link href="/buseniss/dashboard">
           <Button
             size="sm"
             className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-md"
           >
-            إنشاء حساب
+           منــصـــة التاجــر
           </Button>
+          </Link>
         </div>
 
         {/* Mobile Navigation (Dropdown) */}
@@ -71,17 +70,18 @@ export default function Header() {
               <DropdownMenuItem asChild>
                 <Link href="/contact" className="block py-2 text-right hover:bg-slate-50 rounded-md">اتـصــل بـنـا</Link>
               </DropdownMenuItem>
-              {/* فواصل بين روابط التنقل وأزرار المصادقة لتحسين الوضوح */}
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+              <Link href="/buseniss/dashboard" className="block py-2 hover:bg-slate-50 rounded-md">
                 <Button
                   size="sm"
-                  className="w-full justify-end bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-md"
+                  className="w-full text-center justify-end bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-md"
                 >
                   منـــــصــــة التــاجـــر 
                 </Button>
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

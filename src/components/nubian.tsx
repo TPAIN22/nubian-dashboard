@@ -278,9 +278,9 @@ export default function ModernNoubian() {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="border-2 border-white/30 text-white hover:bg-white/10 hover:scale-105 transition-all duration-300"
+                  className="border-2 border-white/30 text-black bg-white hover:bg-white/10 hover:text-white hover:scale-105 transition-all duration-300"
                 >
-                  انضــم الــى اســرة نــوبــيــان
+                  انضم الى اسـرة نـوبـيـان
                 </Button>
               </div>
             </div>
