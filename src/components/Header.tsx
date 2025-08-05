@@ -26,13 +26,13 @@ export default function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8 text-slate-700 font-medium">
-          <Link href="/" className="hover:text-amber-500 transition-colors">
+          <Link href="/buseniss/dashboard" className="hover:text-amber-500 transition-colors">
             لوحة التحكم 
           </Link>
-          <Link href="/buseniss/dashboard" className="hover:text-amber-500 transition-colors">
+          <Link href="/about" className="hover:text-amber-500 transition-colors">
             عن نوبيان
           </Link>
-          <Link href="/buseniss/dashboard" className="hover:text-amber-500 transition-colors">
+          <Link href="/" className="hover:text-amber-500 transition-colors">
             اتصل بنا
           </Link>
         </nav>
@@ -63,33 +63,24 @@ export default function Header() {
             {/* محتوى القائمة المنسدلة للجوال */}
             <DropdownMenuContent align="end" className="w-56 p-2"> {/* إضافة padding للقائمة */}
               <DropdownMenuItem asChild>
-                <Link href="/" className="block py-2 text-right hover:bg-slate-50 rounded-md">الرئيسية</Link>
+                <Link href="/buseniss/dashboard" className="block py-2 text-right hover:bg-slate-50 rounded-md">لــوحــة التحــكــم</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/products" className="block py-2 text-right hover:bg-slate-50 rounded-md">المنتجات</Link>
+                <Link href="/about" className="block py-2 text-right hover:bg-slate-50 rounded-md">عــن نـوبـيـان</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/stores" className="block py-2 text-right hover:bg-slate-50 rounded-md">المتاجر</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/about" className="block py-2 text-right hover:bg-slate-50 rounded-md">عن نوبيان</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/contact" className="block py-2 text-right hover:bg-slate-50 rounded-md">اتصل بنا</Link>
+                <Link href="/contact" className="block py-2 text-right hover:bg-slate-50 rounded-md">اتـصــل بـنـا</Link>
               </DropdownMenuItem>
               {/* فواصل بين روابط التنقل وأزرار المصادقة لتحسين الوضوح */}
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Button variant="ghost" className="w-full justify-end text-slate-700 hover:bg-slate-100">
-                  تسجيل الدخول
-                </Button>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Button
                   size="sm"
                   className="w-full justify-end bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-md"
                 >
-                  إنشاء حساب
+                  منـــــصــــة التــاجـــر 
                 </Button>
               </DropdownMenuItem>
             </DropdownMenuContent>

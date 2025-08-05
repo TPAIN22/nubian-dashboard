@@ -11,7 +11,6 @@ import {
   ArrowRight,
   Play,
   Heart,
-  Users,
   Award,
   Sparkles,
   ArrowLeft,
@@ -19,6 +18,7 @@ import {
 
 // استيراد مكون Header الجديد
 import Header from "@/components/Header";
+import Image from "next/image";
 export default function ModernNoubian() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
@@ -123,15 +123,14 @@ export default function ModernNoubian() {
                   منـــــصــــة
                   <br />
                   <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
-                    نـوبـيــــــان
+                  نـوبـيــــــان
                   </span>
-                  <br />
-                  للتســـق الرقـــمــــي
+                 
                 </h1>
               </div>
               <p className="text-xl text-slate-600 max-w-xl leading-relaxed">
-                بوابتك إلى منتجات أصلية. تسوق مباشرةً من بائعين موثوقين واكتشف
-                منتجات فريدة مع توصيل سريع وآمن.
+                بوابتك إلى منتجات فريدة. تسوق مباشرةً من بائعين موثوقين احصل على
+                عروض وتخفيضات مع توصيل سريع وآمن.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-end">
                 {" "}
@@ -172,44 +171,17 @@ export default function ModernNoubian() {
               </div>
             </div>
 
-            <div className="relative">
-              <div className="relative z-10 bg-gradient-to-br from-white/80 to-white/40 backdrop-blur-sm rounded-3xl p-8 shadow-2xl border border-white/20">
-                <div className="aspect-square bg-gradient-to-br from-amber-100 to-orange-100 rounded-2xl flex items-center justify-center">
-                  <div className="text-6xl">📱</div>
-                </div>
-                <div className="mt-6 space-y-3 text-right">
-                  {" "}
-                  {/* تم إضافة text-right هنا */}
-                  <h3 className="text-xl font-semibold text-slate-900">
-                    أحــدث صــيــحــات الــمــوضــة
-                  </h3>
-                  <p className="text-slate-600">
-                    منتجات متميزة من أفضل التجار والعلامات التجارية المميزة
-                  </p>
-                  <div className="flex items-center gap-2 justify-end">
-                    {" "}
-                    {/* تم إضافة justify-end هنا */}
-                    <div className="flex text-amber-400">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-4 h-4 fill-current" />
-                      ))}
-                    </div>
-                    <span className="text-sm text-slate-600">(127 تقييم)</span>
-                  </div>
-                </div>
-              </div>
+            <div className="flex justify-center">
+                <Image
+                  src="/nubi.png"
+                  alt="Nubian" 
+                  width={500}
+                  height={500}
+                  
+                />  
 
               {/* Floating Elements */}
-              <div className="absolute top-6 right-6 bg-white z-20 rounded-full p-4 shadow-lg border border-slate-100 hover:scale-110 transition-transform cursor-pointer">
-                {" "}
-                {/* تم تغيير left-6 إلى right-6 */}
-                <Heart className="w-6 h-6 text-red-500" />
-              </div>
-              <div className="absolute bottom-20 left-4 z-20 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-full p-3 shadow-lg hover:scale-110 transition-transform cursor-pointer">
-                {" "}
-                {/* تم تغيير right-4 إلى left-4 */}
-                <Badge className="bg-white/20 text-white border-0">جديد</Badge>
-              </div>
+             
             </div>
           </div>
         </section>
