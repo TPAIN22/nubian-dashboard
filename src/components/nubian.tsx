@@ -6,19 +6,23 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   ShoppingBag,
   Shield,
-  Globe,
+  Globe, // حافظت على Globe لأنها تستخدم في الـ stats
   Star,
   ArrowRight,
   Play,
   Heart,
   Award,
   Sparkles,
-  ArrowLeft,
+  ArrowLeft, // تم استيرادها بالفعل
+  Car, // تم استيرادها بالفعل
+  Quote // أيقونة الاقتباس لقسم التعليقات
 } from "lucide-react";
 
 // استيراد مكون Header الجديد
 import Header from "@/components/Header";
 import Image from "next/image";
+import Footer from "./Footer"; // استيراد Footer بشكل نسبي كما في الكود الخاص بك
+
 export default function ModernNoubian() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
@@ -36,21 +40,21 @@ export default function ModernNoubian() {
   const features = [
     {
       icon: <ShoppingBag className="w-8 h-8" />,
-      title: "Wide Product Range",
+      title: " منتجات متنوعة",
       desc: "تصفح آلاف المنتجات الأصلية من الأزياء إلى ديكور المنزل والإلكترونيات.",
       color: "from-amber-400 to-orange-500",
       accent: "#f0b745",
     },
     {
       icon: <Shield className="w-8 h-8" />,
-      title: "Secure Shopping",
+      title: "حماية للعملاء ",
       desc: "طرق دفع آمنة مع حماية للمشتري وإرجاع جميع المشتريات.",
       color: "from-teal-400 to-cyan-500",
       accent: "#30a1a7",
     },
     {
-      icon: <Globe className="w-8 h-8" />,
-      title: "Fast Delivery",
+      icon: <Car className="w-8 h-8" />, // تم تغيير الأيقونة إلى Car
+      title: "شحن سريع",
       desc: "شحن سريع في جميع أنحاء السودان مع تتبع جميع الطلبات في الوقت الحقيقي.",
       color: "from-purple-400 to-pink-500",
       accent: "#8b5cf6",
@@ -73,6 +77,28 @@ export default function ModernNoubian() {
       number: "24/7",
       label: "خـــــدمة العـــــمــلاء",
       icon: <Award className="w-5 h-5" />,
+    },
+  ];
+
+  // بيانات تعليقات العملاء (يمكن استبدالها ببيانات حقيقية من API)
+  const testimonials = [
+    {
+      quote: "تجربة تسوق رائعة! المنتجات أصلية والتوصيل سريع جداً. أنصح بها بشدة لكل من يبحث عن جودة وثقة.",
+      name: "أحمد علي",
+      rating: 5,
+      avatar: "https://placehold.co/60x60/FFD700/000000?text=AA" // صورة رمزية افتراضية
+    },
+    {
+      quote: "كنت مترددًا في البداية، لكن نوبيان فاجأتني بجودة المنتجات وسهولة عملية الشراء. سأكون عميلاً دائمًا.",
+      name: "محمد خالد",
+      rating: 4,
+      avatar: "https://placehold.co/60x60/90EE90/000000?text=MK"
+    },
+    {
+      quote: "توصيل سريع وخدمة ممتازة. المنتجات وصلت كما في الوصف تمامًا. شكراً نوبيان!",
+      name: "ليلى حسن",
+      rating: 5,
+      avatar: "https://placehold.co/60x60/DDA0DD/000000?text=LH"
     },
   ];
 
@@ -123,9 +149,10 @@ export default function ModernNoubian() {
                   منـــــصــــة
                   <br />
                   <span className="bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
-                  نـوبـيــــــان
+                    نـوبـيــــــان
                   </span>
-                 
+                  <br />
+                  للتســـق الرقـــمــــي
                 </h1>
               </div>
               <p className="text-xl text-slate-600 max-w-xl leading-relaxed">
@@ -172,16 +199,13 @@ export default function ModernNoubian() {
             </div>
 
             <div className="flex justify-center">
-                <Image
-                  src="/nubi.png"
-                  alt="Nubian" 
-                  width={500}
-                  height={500}
-                  
-                />  
-
-              {/* Floating Elements */}
-             
+              <Image
+                src="/nubi.png"
+                alt="Nubian"
+                width={500}
+                height={500}
+              />
+              {/* Floating Elements - تم إزالتها بناءً على الكود الخاص بك */}
             </div>
           </div>
         </section>
@@ -196,7 +220,7 @@ export default function ModernNoubian() {
               لـــمــاذا تــخــتــار نـوبـيــــــان
             </Badge>
             <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">
-              لـــمــاذا التـــســوق مــن 
+              لـــمــاذا التـــســوق مــن
               <span className="bg-gradient-to-r from-teal-500 to-cyan-500 bg-clip-text text-transparent">
                 {" "}
                 نـوبـيــــــان
@@ -248,6 +272,75 @@ export default function ModernNoubian() {
           </div>
         </section>
 
+        {/* New Testimonials Section */}
+        <section className="py-24">
+          <div className="text-center mb-16">
+            <Badge
+              variant="secondary"
+              className="mb-4 bg-amber-100 text-amber-800 border-0"
+            >
+              مــاذا يــقــول عــمــلاؤنــا
+            </Badge>
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">
+              آراء عــمــلائــنــا الــســعــداء
+            </h2>
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+              نحن نفخر بتقديم أفضل تجربة تسوق لعملائنا الكرام.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, i) => (
+              <Card
+                key={i}
+                className="group border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white/80 backdrop-blur-sm"
+              >
+                <CardContent className="p-6 text-right space-y-4">
+                  <div className="flex items-start gap-4">
+                    {" "}
+                    {/* تم تغيير items-center إلى items-start */}
+                    <div className="flex-shrink-0">
+                      <img
+                        src={testimonial.avatar}
+                        alt={testimonial.name}
+                        className="w-12 h-12 rounded-full object-cover border-2 border-amber-400"
+                        onError={(e) => {
+                          e.currentTarget.src = `https://placehold.co/60x60/CCCCCC/000000?text=${testimonial.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}`;
+                        }}
+                      />
+                    </div>
+                    <div className="flex-grow">
+                      <p className="text-slate-700 leading-relaxed text-lg italic relative">
+                        <Quote className="absolute -top-4 -right-4 w-8 h-8 text-amber-200/50 -z-10 transform -scale-x-100" />{" "}
+                        {/* أيقونة اقتباس */}
+                        {testimonial.quote}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-slate-100 mt-4 flex justify-between items-center">
+                    <div>
+                      <h4 className="font-semibold text-slate-900">
+                        {testimonial.name}
+                      </h4>
+                      {/* عرض النجوم بناءً على التقييم */}
+                      <div className="flex text-amber-400 mt-1">
+                        {[...Array(testimonial.rating)].map((_, starIndex) => (
+                          <Star key={starIndex} className="w-4 h-4 fill-current" />
+                        ))}
+                        {[...Array(5 - testimonial.rating)].map((_, starIndex) => (
+                          <Star key={starIndex} className="w-4 h-4 text-slate-300" />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+
         {/* CTA Section */}
         <section className="py-24">
           <div className="relative">
@@ -287,6 +380,7 @@ export default function ModernNoubian() {
           </div>
         </section>
       </main>
+      <Footer />
     </div>
   );
 }
