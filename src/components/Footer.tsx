@@ -35,23 +35,12 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Section 2: Quick Links */}
           <div className="text-right space-y-3">
             <h3 className="text-xl font-semibold text-white mb-4">روابط سريعة</h3>
             <ul className="space-y-2">
               <li>
                 <Link href="/" className="hover:text-amber-500 transition-colors">
                   الرئيسية
-                </Link>
-              </li>
-              <li>
-                <Link href="/" className="hover:text-amber-500 transition-colors">
-                  المنتجات
-                </Link>
-              </li>
-              <li>
-                <Link href="/" className="hover:text-amber-500 transition-colors">
-                  المتاجر
                 </Link>
               </li>
               <li>
@@ -71,28 +60,19 @@ export default function Footer() {
           <div className="text-right space-y-3">
             <h3 className="text-xl font-semibold text-white mb-4">الدعم</h3>
             <ul className="space-y-2">
+              
               <li>
-                <Link href="/" className="hover:text-amber-500 transition-colors">
-                  الأسئلة الشائعة
-                </Link>
-              </li>
-              <li>
-                <Link href="/" className="hover:text-amber-500 transition-colors">
+                <Link href="/privacy-policy" className="hover:text-amber-500 transition-colors">
                   سياسة الخصوصية
                 </Link>
               </li>
               <li>
-                <Link href="/" className="hover:text-amber-500 transition-colors">
+                <Link href="/terms-conditions" className="hover:text-amber-500 transition-colors">
                   الشروط والأحكام
                 </Link>
               </li>
               <li>
-                <Link href="/" className="hover:text-amber-500 transition-colors">
-                  سياسة الشحن
-                </Link>
-              </li>
-              <li>
-                <Link href="/" className="hover:text-amber-500 transition-colors">
+                <Link href="/exchange-policy" className="hover:text-amber-500 transition-colors">
                   سياسة الإرجاع
                 </Link>
               </li>

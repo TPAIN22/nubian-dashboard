@@ -11,17 +11,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Menu } from 'lucide-react'; // أيقونة القائمة للجوال
 import { DropdownMenuSeparator } from '@radix-ui/react-dropdown-menu'; // تأكد من أن هذا الاستيراد صحيح
+import Image from 'next/image';
 
 export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full backdrop-blur-md shadow-sm border-b border-slate-100 py-4" dir="rtl">
-      <div className="container mx-auto flex items-center justify-between px-6 md:px-12">
+      <div className="container mx-auto flex items-center justify-around px-6 md:px-12">
         {/* Logo / Brand Name */}
         <Link href="/" className="flex items-center gap-2 group">
           {/* يمكنك استبدال هذا بشعار حقيقي إذا كان لديك */}
-          <span className="text-2xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
-            نـوبـيــــــان
-          </span>
+         <Image src="/logo.png" alt="Logo" width={50} height={50} />
         </Link>
 
         {/* Desktop Navigation */}
