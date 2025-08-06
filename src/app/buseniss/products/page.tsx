@@ -22,7 +22,7 @@ export default async function Page() {
   const { products } = await axiosInstance.get("/products").then(res => res.data);
 
   return (
-    <div className='flex flex-col gap-4 h-full mx-15'>
+    <div className='flex flex-col gap-4 h-full sm:mx-12 mx-2'>
       <div className='flex justify-between items-center'>
         <h1 className='text-2xl font-bold text-center'>المنتجات</h1>
         <Link href="/products/new" >

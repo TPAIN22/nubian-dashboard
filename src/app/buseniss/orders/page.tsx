@@ -14,8 +14,8 @@ export default async function Page() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mx-12">الطلبات</h1>
-      <div className="flex flex-col gap-4 h-full mx-12">
+      <h1 className="text-2xl font-bold sm:mx-12 mx-2">الطلبات</h1>
+      <div className="flex flex-col gap-4 h-full sm:mx-12 mx-2">
         <DataTable orders={orders} />
       </div>
     </div>
