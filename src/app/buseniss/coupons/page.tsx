@@ -15,6 +15,7 @@ import { Trash2, Edit, Plus, Percent, DollarSign, Calendar, Users, User } from '
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { auth } from '@clerk/nextjs/server';
 
 interface Coupon {
   _id: string;
@@ -42,7 +43,7 @@ interface EditState {
   coupon: Coupon | null;
 }
 
-export default function CouponsPage() {
+export default async function CouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -66,6 +67,7 @@ export default function CouponsPage() {
   useEffect(() => {
     fetchCoupons();
   }, []);
+  const {getToken} = await auth(); 
 
   const fetchCoupons = async () => {
     setLoading(true);
@@ -94,11 +96,16 @@ export default function CouponsPage() {
     setFormError('');
     setFormLoading(true);
     try {
-      await axiosInstance.post('/coupons', {
+      const token = await getToken();  // خذ التوكن من الـ auth provider أو context
+      await axiosInstance.post('/coupons',  {
         ...form,
         discountValue: Number(form.discountValue),
         usageLimit: Number(form.usageLimit),
         usageLimitPerUser: Number(form.usageLimitPerUser),
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       setForm({
         code: '',
@@ -119,21 +126,24 @@ export default function CouponsPage() {
       setFormLoading(false);
     }
   };
+  
 
   const handleDelete = async (id: string) => {
     try {
-      console.log("Deleting coupon with id:", id);
-      console.log(process.env.NEXT_PUBLIC_API_URL);
-      
-      
-      await axiosInstance.delete(`/coupons/${id}`);
+      const token = await getToken(); // أو خده من Zustand / context
+      await axiosInstance.delete(`coupons/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       fetchCoupons();
     } catch (err) {
-      toast.error("فشل في حذف الكوبون" , {
+      toast.error("فشل في حذف الكوبون", {
         description: err instanceof Error ? err.message : "خطأ غير معروف",
       });
     }
   };
+  
 
   const openEdit = (coupon: Coupon) => {
     setEditForm({
@@ -161,12 +171,17 @@ export default function CouponsPage() {
     if (!editState.coupon || !editForm) return;
     setEditLoading(true);
     setEditError('');
+    const token = await getToken(); // أو خده من Zustand / context
     try {
       await axiosInstance.put(`/coupons/${editState.coupon._id}`, {
         ...editForm,
         discountValue: Number(editForm.discountValue),
         usageLimit: Number(editForm.usageLimit),
         usageLimitPerUser: Number(editForm.usageLimitPerUser),
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       setEditState({ open: false, coupon: null });
       setEditForm(null);
