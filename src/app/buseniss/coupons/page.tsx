@@ -267,6 +267,7 @@ const handleDelete = async (id: string) => {
                   <Label htmlFor="expiresAt">تاريخ الانتهاء</Label>
                   <Input
                     id="expiresAt"
+                    
                     type="date"
                     value={form.expiresAt}
                     onChange={(e) => handleFormChange('expiresAt', e.target.value)}
