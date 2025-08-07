@@ -122,6 +122,7 @@ export default function CouponsPage() {
 
   const handleDelete = async (id: string) => {
     try {
+      console.log("Deleting coupon with id:", id);
       await axiosInstance.delete(`/coupons/${id}`);
       fetchCoupons();
     } catch (err) {
