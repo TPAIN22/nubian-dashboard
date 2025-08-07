@@ -123,6 +123,9 @@ export default function CouponsPage() {
   const handleDelete = async (id: string) => {
     try {
       console.log("Deleting coupon with id:", id);
+      console.log(process.env.NEXT_PUBLIC_API_URL);
+      
+      
       await axiosInstance.delete(`/coupons/${id}`);
       fetchCoupons();
     } catch (err) {
