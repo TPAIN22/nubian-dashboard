@@ -43,7 +43,7 @@ interface EditState {
   coupon: Coupon | null;
 }
 
-export default async function CouponsPage() {
+export default function CouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -67,7 +67,7 @@ export default async function CouponsPage() {
   useEffect(() => {
     fetchCoupons();
   }, []);
-  const {getToken} = await useAuth(); 
+  const {getToken} = useAuth(); 
 
   const fetchCoupons = async () => {
     setLoading(true);
