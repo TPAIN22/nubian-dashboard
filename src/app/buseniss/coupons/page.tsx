@@ -15,7 +15,7 @@ import { Trash2, Edit, Plus, Percent, DollarSign, Calendar, Users, User } from '
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { auth } from '@clerk/nextjs/server';
+import {useAuth } from '@clerk/nextjs';
 
 interface Coupon {
   _id: string;
@@ -67,7 +67,7 @@ export default async function CouponsPage() {
   useEffect(() => {
     fetchCoupons();
   }, []);
-  const {getToken} = await auth(); 
+  const {getToken} = await useAuth(); 
 
   const fetchCoupons = async () => {
     setLoading(true);
