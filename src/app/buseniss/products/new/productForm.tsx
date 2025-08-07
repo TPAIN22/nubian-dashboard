@@ -147,7 +147,7 @@ export default function ProductForm() {
         category: values.category,
       };
 
-      const res = await axiosInstance.post("/products", dataToSend, {
+       await axiosInstance.post("/products", dataToSend, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

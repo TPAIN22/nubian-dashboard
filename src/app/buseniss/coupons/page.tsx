@@ -96,8 +96,9 @@ export default function CouponsPage() {
     setFormError('');
     setFormLoading(true);
     try {
-      const token = await getToken();  // خذ التوكن من الـ auth provider أو context
-      await axiosInstance.post('/coupons',  {
+      const token = await getToken(); // جلب التوكن
+  
+      await axiosInstance.post('/coupons', {
         ...form,
         discountValue: Number(form.discountValue),
         usageLimit: Number(form.usageLimit),
@@ -128,21 +129,24 @@ export default function CouponsPage() {
   };
   
 
-  const handleDelete = async (id: string) => {
-    try {
-      const token = await getToken(); // أو خده من Zustand / context
-      await axiosInstance.delete(`coupons/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      fetchCoupons();
-    } catch (err) {
-      toast.error("فشل في حذف الكوبون", {
-        description: err instanceof Error ? err.message : "خطأ غير معروف",
-      });
-    }
-  };
+const handleDelete = async (id: string) => {
+  try {
+    const token = await getToken(); // جلب التوكن من Clerk
+
+    await axiosInstance.delete(`/coupons/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    fetchCoupons(); // تحديث القائمة
+  } catch (err) {
+    toast.error("فشل في حذف الكوبون", {
+      description: err instanceof Error ? err.message : "خطأ غير معروف",
+    });
+  }
+};
+
   
 
   const openEdit = (coupon: Coupon) => {
