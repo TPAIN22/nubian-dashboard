@@ -105,13 +105,13 @@ export const testimonials: Testimonial[] = [
   },
   {
     quote: "ما كعب شغل نضيف للتسوق. نوبيان دائماً موجودة في الوقت المناسب. شكراً لكم.",
-    name: "خالد عبدالله",
+    name: " عبدالله",
     rating: 2,
     avatar: "https://placehold.co/60x60/EAD9FF/000000?text=KA",
   },
   {
     quote: "توصيل سريع وخدمة ممتازة. المنتجات وصلت كما في الوصف تمامًا. شكراً نوبيان!",
-    name: "اسراء مجدي",
+    name: "اسراء",
     rating: 5,
     avatar: "https://placehold.co/60x60/AAFFEE/000000?text=AK",
   },
