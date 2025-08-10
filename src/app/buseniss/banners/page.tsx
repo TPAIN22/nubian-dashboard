@@ -6,6 +6,8 @@ import { axiosInstance } from "@/lib/axiosInstance";
 import { toast } from "sonner";
 import BannerForm from "./bannerForm"; 
 import type { BannerFormValues } from "./bannerForm";
+import { useAuth } from '@clerk/nextjs';
+
 
 type Banner = BannerFormValues & { _id: string };
 
@@ -32,11 +34,17 @@ export default function BannersPage() {
   useEffect(() => {
     fetchBanners();
   }, []);
+  const {getToken} = useAuth();
 
   const handleDelete = async (id:string) => {
+    const token = await getToken();
     if (!window.confirm("هل أنت متأكد من حذف هذا العرض؟")) return;
     try {
-      await axiosInstance.delete(`/banners/${id}`);
+      await axiosInstance.delete(`/banners/${id}` , {
+        headers: {
+      Authorization: `Bearer ${token}`,
+    },
+      });
       toast.success("تم حذف العرض بنجاح");
       fetchBanners();
     } catch (e) {
