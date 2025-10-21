@@ -69,7 +69,7 @@ export const stats: Stat[] = [
 export const testimonials: Testimonial[] = [
   {
     quote: "تجربة تسوق رائعة! المنتجات أصلية والتوصيل سريع جداً. أنصح بها بشدة لكل من يبحث عن جودة وثقة.",
-    name: "أحمد علي",
+    name: "وائل",
     rating: 5,
     avatar: "https://placehold.co/60x60/FF0038/000000?text=AA",
   },

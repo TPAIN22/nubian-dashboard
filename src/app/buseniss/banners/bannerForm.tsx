@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { SimpleImageUpload } from "@/components/simpleImageUpload";
 import { X, Loader2 } from "lucide-react";
+import { useAuth } from "@clerk/nextjs";
 
 const bannerFormSchema = z.object({
   image: z.string()
@@ -55,7 +56,7 @@ export default function BannerForm({ banner, onClose, onSuccess }: BannerFormPro
     defaultValues: banner ? { ...defaults, ...banner } : defaults,
     mode: "onChange",
   });
-
+  const { getToken } = useAuth();
   useEffect(() => {
     if (banner) {
       form.reset({ ...defaults, ...banner });
@@ -71,9 +72,13 @@ export default function BannerForm({ banner, onClose, onSuccess }: BannerFormPro
     
     try {
       const validatedData = bannerFormSchema.parse(values);
-      
+      const token = await getToken();
       if (isEditing) {
-        await axiosInstance.put(`/banners/${banner._id}`, validatedData);
+        await axiosInstance.put(`/banners/${banner._id}` , validatedData, {
+        headers: {
+      Authorization: `Bearer ${token}`,
+    },
+      } );
         toast.success("تم تحديث العرض بنجاح");
       } else {
         await axiosInstance.post(`/banners`, validatedData);

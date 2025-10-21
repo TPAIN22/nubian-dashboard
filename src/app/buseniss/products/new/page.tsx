@@ -2,10 +2,8 @@ import React from 'react'
 import ProductForm from './productForm'
 
 
-function page() {
+export default async function Page() {
   return (
     <ProductForm/>
   )
 }
-
-export default page

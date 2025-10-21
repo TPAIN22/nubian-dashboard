@@ -23,7 +23,7 @@ export default function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8 text-slate-700 font-medium">
-          <Link href="/buseniss/dashboard" className="hover:text-amber-500 transition-colors">
+          <Link href="#" className="hover:text-amber-500 transition-colors">
             لوحة التحكم 
           </Link>
           <Link href="/about" className="hover:text-amber-500 transition-colors">
@@ -36,7 +36,7 @@ export default function Header() {
 
         {/* Auth Buttons */}
         <div className="hidden md:flex items-center gap-4">
-         <Link href="/buseniss/dashboard">
+         <Link href="#">
           <Button
             size="sm"
             className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-md"
@@ -59,7 +59,7 @@ export default function Header() {
             {/* محتوى القائمة المنسدلة للجوال */}
             <DropdownMenuContent align="end" className="w-56 p-2"> {/* إضافة padding للقائمة */}
               <DropdownMenuItem asChild>
-                <Link href="/buseniss/dashboard" className="block py-2 text-right hover:bg-slate-50 rounded-md">لــوحــة التحــكــم</Link>
+                <Link href="#" className="block py-2 text-right hover:bg-slate-50 rounded-md">لــوحــة التحــكــم</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/about" className="block py-2 text-right hover:bg-slate-50 rounded-md">عــن نـوبـيـان</Link>
@@ -71,7 +71,7 @@ export default function Header() {
               <DropdownMenuItem asChild>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-              <Link href="/buseniss/dashboard" className="block py-2 hover:bg-slate-50 rounded-md">
+              <Link href="#" className="block py-2 hover:bg-slate-50 rounded-md">
                 <Button
                   size="sm"
                   className="w-full text-center justify-end bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-md"
