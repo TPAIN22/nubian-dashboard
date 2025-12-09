@@ -10,6 +10,8 @@ const isPublicRoute = createRouteMatcher([
   '/exchange-policy',
   '/terms-of-use',
   '/api/ping',
+  '/sitemap.xml',
+'/robots.txt',
   '/contact',
   '/terms-conditions',
   '/sign-up(.*)',])
