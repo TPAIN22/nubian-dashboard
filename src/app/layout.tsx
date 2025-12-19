@@ -20,12 +20,12 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata = {
-  title: "نوبيان | Noubian - متجر نوبيان للتسوق",
+  title: "نوبيان | Nubian - متجر نوبيان للتسوق",
   description: "نوبيان - Nubian، متجر إلكتروني يقدم منتجات متعددة من أفضل التجار. اكتشف أحدث المنتجات الآن.",
   keywords: ["نوبيان", "Nubian", "nubian sd", "nubian store", "nubian-sd.store", "nubian.com", "nubian-sd.com", "تسوق", "متجر إلكتروني"],
   openGraph: {
-    title: "Noubian | نوبيان",
-    description: "أفضل متجر إلكتروني في السودان.",
+    title: "Nubian | نوبيان",
+    description: "نوبيان أفضل متجر إلكتروني في السودان.",
     url: "https://nubian-sd.store",
     siteName: "Nubian",
     locale: "ar" ,
