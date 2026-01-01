@@ -8,16 +8,16 @@ export default function StructuredData() {
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "نوبيان | Nubian",
-    "alternateName": ["Nubian", "نوبيان", "Nubian Store", "متجر نوبيان"],
+    "name": "Nubian",
+    "alternateName": ["Nubian", "نوبيان", "Nubian Store", "متجر نوبيان", "Nubian Sudan" ,"nubian sd" ,"نوبيان | Nubian"],
     "url": baseUrl,
     "logo": `${baseUrl}/logo.png`,
-    "description": "نوبيان (Nubian) - أفضل متجر إلكتروني في السودان. تسوق آلاف المنتجات الأصلية من الأزياء والإلكترونيات والديكور.",
+    "description": "Nubian (Nubian) - أفضل متجر إلكتروني في السودان. تسوق آلاف المنتجات الأصلية من الأزياء والإلكترونيات والديكور.",
     "sameAs": [
       // Add social media links when available
-      // "https://www.facebook.com/nubian",
-      // "https://www.instagram.com/nubian",
-      // "https://twitter.com/nubian",
+      "https://www.facebook.com/profile.php?id=61577343351976",
+      "https://www.instagram.com/sd_nubian?igsh=dXBrY3FraWppMnox",
+      "https://x.com/nubian_sd",
     ],
     "contactPoint": {
       "@type": "ContactPoint",
