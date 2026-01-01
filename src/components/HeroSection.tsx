@@ -59,7 +59,14 @@ export default function HeroSection({ stats }: HeroSectionProps) {
           </div>
         </div>
         <div className="flex justify-center">
-          <Image src="/nubi.png" alt="Nubian" width={500} height={500} />
+          <Image 
+            src="/nubi.png" 
+            alt="نوبيان - Nubian متجر إلكتروني للتسوق في السودان" 
+            width={500} 
+            height={500}
+            priority
+            fetchPriority="high"
+          />
         </div>
       </div>
     </section>

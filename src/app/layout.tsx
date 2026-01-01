@@ -7,6 +7,7 @@ import '../globals.css'
 import { ThemeProvider } from "@/components/theme-provider"
 import { dark } from '@clerk/themes'
 import { Toaster } from '@/components/ui/sonner'
+import StructuredData from "@/components/StructuredData"
 
 
 const geistSans = Geist({
@@ -19,18 +20,92 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 })
 
-export const metadata = {
-  title: "نوبيان | Nubian - متجر نوبيان للتسوق",
-  description: "نوبيان - Nubian، متجر إلكتروني يقدم منتجات متعددة من أفضل التجار. اكتشف أحدث المنتجات الآن.",
-  keywords: ["نوبيان", "Nubian", "nubian sd", "nubian store", "nubian-sd.store", "nubian.com", "nubian-sd.com", "تسوق", "متجر إلكتروني"],
-  openGraph: {
-    title: "Nubian | نوبيان",
-    description: "نوبيان أفضل متجر إلكتروني في السودان.",
-    url: "https://nubian-sd.store",
-    siteName: "Nubian",
-    locale: "ar" ,
-    type: "website",
+const baseUrl = "https://nubian-sd.store";
+
+export const metadata: Metadata = {
+  metadataBase: new URL(baseUrl),
+  title: {
+    default: "نوبيان | Nubian - متجر نوبيان للتسوق الإلكتروني في السودان",
+    template: "%s | نوبيان Nubian"
   },
+  description: "نوبيان (Nubian) - أفضل متجر إلكتروني في السودان. تسوق آلاف المنتجات الأصلية من الأزياء والإلكترونيات والديكور. شحن سريع وآمن إلى جميع أنحاء السودان. اكتشف نوبيان الآن!",
+  keywords: [
+    "نوبيان", 
+    "Nubian", 
+    "نوبيان سودان", 
+    "Nubian Sudan",
+    "nubian sd", 
+    "nubian store", 
+    "nubian-sd.store", 
+    "nubian.com", 
+    "nubian-sd.com",
+    "متجر نوبيان",
+    "نوبيان للتسوق",
+    "تسوق إلكتروني السودان",
+    "متجر إلكتروني السودان",
+    "تسوق أونلاين السودان",
+    "منتجات سودانية",
+    "تسوق السودان",
+    "shopping Sudan",
+    "online store Sudan",
+    "ecommerce Sudan"
+  ],
+  authors: [{ name: "Nubian" }],
+  creator: "Nubian",
+  publisher: "Nubian",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  alternates: {
+    canonical: baseUrl,
+    languages: {
+      'ar': baseUrl,
+      'en': baseUrl,
+    },
+  },
+  openGraph: {
+    type: "website",
+    locale: "ar_SA",
+    url: baseUrl,
+    siteName: "نوبيان | Nubian",
+    title: "نوبيان | Nubian - متجر نوبيان للتسوق الإلكتروني في السودان",
+    description: "نوبيان (Nubian) - أفضل متجر إلكتروني في السودان. تسوق آلاف المنتجات الأصلية مع شحن سريع وآمن إلى جميع أنحاء السودان.",
+    images: [
+      {
+        url: `${baseUrl}/nubi.png`,
+        width: 1200,
+        height: 630,
+        alt: "نوبيان | Nubian - متجر إلكتروني",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "نوبيان | Nubian - متجر نوبيان للتسوق الإلكتروني",
+    description: "نوبيان (Nubian) - أفضل متجر إلكتروني في السودان. تسوق آلاف المنتجات الأصلية.",
+    images: [`${baseUrl}/nubi.png`],
+    creator: "@nubian",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    // Add your verification codes when available
+    // google: 'your-google-verification-code',
+    // yandex: 'your-yandex-verification-code',
+    // bing: 'your-bing-verification-code',
+  },
+  category: "ecommerce",
 };
 
 
@@ -45,8 +120,9 @@ export default function RootLayout({
         baseTheme: dark,
       }}
     >
-      <html lang="en" suppressHydrationWarning>
+      <html lang="ar" dir="rtl" suppressHydrationWarning>
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+          <StructuredData />
            <ThemeProvider
             attribute="class"
             defaultTheme="system"

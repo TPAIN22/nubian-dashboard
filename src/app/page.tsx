@@ -1,14 +1,45 @@
 import React from "react";
 import ModernNoubian from "@/components/nubian";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "نوبيان | Nubian - أفضل متجر إلكتروني في السودان",
+  description: "نوبيان (Nubian) - متجر إلكتروني رائد في السودان. تسوق آلاف المنتجات الأصلية من الأزياء، الإلكترونيات، ديكور المنزل والمزيد. شحن سريع وآمن إلى جميع أنحاء السودان. اكتشف منصة نوبيان للتسوق الرقمي الآن.",
+  keywords: ["نوبيان", "Nubian", "نوبيان سودان", "Nubian Sudan", "متجر نوبيان", "nubian store", "تسوق إلكتروني السودان", "online shopping Sudan"],
+  openGraph: {
+    title: "نوبيان | Nubian - أفضل متجر إلكتروني في السودان",
+    description: "نوبيان (Nubian) - متجر إلكتروني رائد في السودان. تسوق آلاف المنتجات الأصلية مع شحن سريع وآمن.",
+    url: "https://nubian-sd.store",
+    type: "website",
+  },
+};
 
 export default function page() {
   return (
     <>
       <ModernNoubian />
-      <h1 className="hidden">نوبيان - Nubian</h1>
-      <p className="hidden">
-        نوبيان هو متجر إلكتروني يوفر منتجات متعددة من أفضل التجار في السودان.
-      </p>
+      {/* SEO-Optimized Hidden Content for Search Engines */}
+      <div className="sr-only" aria-hidden="true">
+        <h1>نوبيان - Nubian: أفضل متجر إلكتروني في السودان</h1>
+        <h2>متجر نوبيان للتسوق الإلكتروني | Nubian Online Store Sudan</h2>
+        <p>
+          نوبيان (Nubian) هو متجر إلكتروني رائد في السودان يوفر آلاف المنتجات الأصلية من أفضل التجار. 
+          تسوق من نوبيان واحصل على الأزياء، الإلكترونيات، ديكور المنزل والمزيد مع شحن سريع وآمن إلى جميع أنحاء السودان. 
+          اكتشف منصة نوبيان للتسوق الرقمي الآن.
+        </p>
+        <p>
+          Nubian is a leading online store in Sudan offering thousands of authentic products from trusted sellers. 
+          Shop at Nubian for fashion, electronics, home decor and more with fast and secure shipping across Sudan. 
+          Discover the Nubian digital shopping platform now.
+        </p>
+        <ul>
+          <li>نوبيان سودان | Nubian Sudan</li>
+          <li>متجر نوبيان | Nubian Store</li>
+          <li>تسوق إلكتروني السودان | Online Shopping Sudan</li>
+          <li>نوبيان للتسوق | Nubian Shopping</li>
+          <li>منتجات سودانية | Sudanese Products</li>
+        </ul>
+      </div>
     </>
   );
 }

@@ -17,8 +17,8 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full backdrop-blur-md shadow-sm border-b border-slate-100 py-4" dir="rtl">
       <div className="container mx-auto flex items-center sm:justify-around justify-between px-6 md:px-12">
-        <Link href="/" className="flex items-center gap-2 group">
-         <Image src="/logo.png" alt="Logo" width={50} height={50} />
+        <Link href="/" className="flex items-center gap-2 group" aria-label="نوبيان - Nubian الصفحة الرئيسية">
+         <Image src="/logo.png" alt="نوبيان - Nubian Logo" width={50} height={50} priority />
         </Link>
 
         {/* Desktop Navigation */}
