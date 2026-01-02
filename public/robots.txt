@@ -1,8 +1,9 @@
 # Robots.txt for نوبيان | Nubian Store
 # https://nubian-sd.store
 
-# Allow all crawlers by default (everything is allowed unless disallowed)
+# Allow all crawlers to access all pages by default
 User-agent: *
+Allow: /
 
 # Block specific paths that shouldn't be indexed
 Disallow: /api/
@@ -18,6 +19,7 @@ Sitemap: https://nubian-sd.store/sitemap.xml
 
 # Explicit rules for Google (most important for indexing)
 User-agent: Googlebot
+Allow: /
 Disallow: /api/
 Disallow: /buseniss/
 Disallow: /sign-in
@@ -25,6 +27,7 @@ Disallow: /sign-up
 
 # Other major search engines
 User-agent: Bingbot
+Allow: /
 Disallow: /api/
 Disallow: /buseniss/
 Disallow: /sign-in
