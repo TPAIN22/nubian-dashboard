@@ -1,6 +1,8 @@
-export default function sitemap() {
+import { MetadataRoute } from 'next';
+
+export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://nubian-sd.store";
-  const now = new Date().toISOString();
+  const now = new Date();
 
   return [
     {
