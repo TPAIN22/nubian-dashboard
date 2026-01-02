@@ -45,17 +45,5 @@ export default function sitemap() {
       changeFrequency: "yearly",
       priority: 0.6,
     },
-    {
-      url: `${baseUrl}/sign-in`,
-      lastModified: now,
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
-    {
-      url: `${baseUrl}/sign-up`,
-      lastModified: now,
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
   ];
 }

@@ -2,15 +2,32 @@ import React from "react";
 import ModernNoubian from "@/components/nubian";
 import type { Metadata } from "next";
 
+const baseUrl = "https://nubian-sd.store";
+
 export const metadata: Metadata = {
   title: "نوبيان | Nubian - أفضل متجر إلكتروني في السودان",
   description: "نوبيان (Nubian) - متجر إلكتروني رائد في السودان. تسوق آلاف المنتجات الأصلية من الأزياء، الإلكترونيات، ديكور المنزل والمزيد. شحن سريع وآمن إلى جميع أنحاء السودان. اكتشف منصة نوبيان للتسوق الرقمي الآن.",
   keywords: ["نوبيان", "Nubian", "نوبيان سودان", "Nubian Sudan", "متجر نوبيان", "nubian store", "تسوق إلكتروني السودان", "online shopping Sudan"],
+  alternates: {
+    canonical: baseUrl,
+  },
   openGraph: {
     title: "نوبيان | Nubian - أفضل متجر إلكتروني في السودان",
     description: "نوبيان (Nubian) - متجر إلكتروني رائد في السودان. تسوق آلاف المنتجات الأصلية مع شحن سريع وآمن.",
-    url: "https://nubian-sd.store",
+    url: baseUrl,
     type: "website",
+    siteName: "نوبيان | Nubian",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 };
 
