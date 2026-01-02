@@ -21,7 +21,7 @@ export default function StructuredData() {
     ],
     "contactPoint": {
       "@type": "ContactPoint",
-      "telephone": "+249-912-345-678",
+      "telephone": "+966-583-104-518",
       "contactType": "customer service",
       "areaServed": "SD",
       "availableLanguage": ["Arabic", "English"]
