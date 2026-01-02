@@ -29,7 +29,7 @@ export default function Header() {
           <Link href="/about" className="hover:text-amber-500 transition-colors">
             عن نوبيان
           </Link>
-          <Link href="/" className="hover:text-amber-500 transition-colors">
+          <Link href="/contact" className="hover:text-amber-500 transition-colors">
             اتصل بنا
           </Link>
         </nav>
