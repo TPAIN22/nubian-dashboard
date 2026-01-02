@@ -21,6 +21,15 @@ export const metadata: Metadata = {
     description: "تعرف على نوبيان - متجر إلكتروني رائد في السودان. اكتشف رؤيتنا، مهمتنا، وقيمنا في تقديم أفضل تجربة تسوق إلكتروني.",
     url: `${baseUrl}/about`,
     type: "website",
+    siteName: "نوبيان | Nubian",
+    images: [
+      {
+        url: `${baseUrl}/nubi.png`,
+        width: 1200,
+        height: 630,
+        alt: "عن نوبيان | About Nubian",
+      },
+    ],
   },
 };
 

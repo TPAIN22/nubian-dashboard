@@ -21,6 +21,15 @@ export const metadata: Metadata = {
     description: "سياسة الخصوصية لمتجر نوبيان - تعرف على كيفية جمعنا واستخدامنا وحمايتنا لمعلوماتك الشخصية.",
     url: `${baseUrl}/privacy-policy`,
     type: "website",
+    siteName: "نوبيان | Nubian",
+    images: [
+      {
+        url: `${baseUrl}/nubi.png`,
+        width: 1200,
+        height: 630,
+        alt: "سياسة الخصوصية | Privacy Policy",
+      },
+    ],
   },
 };
 

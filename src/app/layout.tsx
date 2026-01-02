@@ -59,7 +59,6 @@ export const metadata: Metadata = {
     telephone: false,
   },
   alternates: {
-    canonical: baseUrl,
     languages: {
       'ar': baseUrl,
       'en': baseUrl,

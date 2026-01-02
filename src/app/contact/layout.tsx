@@ -21,6 +21,15 @@ export const metadata: Metadata = {
     description: "تواصل مع متجر نوبيان - نحن هنا لمساعدتك. اتصل بنا عبر البريد الإلكتروني، الهاتف، أو أرسل لنا رسالة مباشرة.",
     url: `${baseUrl}/contact`,
     type: "website",
+    siteName: "نوبيان | Nubian",
+    images: [
+      {
+        url: `${baseUrl}/nubi.png`,
+        width: 1200,
+        height: 630,
+        alt: "اتصل بنا | Contact Us",
+      },
+    ],
   },
 };
 

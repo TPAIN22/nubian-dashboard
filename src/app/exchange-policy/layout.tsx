@@ -21,6 +21,15 @@ export const metadata: Metadata = {
     description: "سياسة الاستبدال لمتجر نوبيان - تعرف على شروط وإجراءات استبدال المنتجات في متجر نوبيان.",
     url: `${baseUrl}/exchange-policy`,
     type: "website",
+    siteName: "نوبيان | Nubian",
+    images: [
+      {
+        url: `${baseUrl}/nubi.png`,
+        width: 1200,
+        height: 630,
+        alt: "سياسة الاستبدال | Exchange Policy",
+      },
+    ],
   },
 };
 
