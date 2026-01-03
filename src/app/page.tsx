@@ -17,6 +17,14 @@ export const metadata: Metadata = {
     url: baseUrl,
     type: "website",
     siteName: "نوبيان | Nubian",
+    images: [
+      {
+        url: `${baseUrl}/nubi.png`,
+        width: 1200,
+        height: 630,
+        alt: "نوبيان | Nubian - متجر إلكتروني",
+      },
+    ],
   },
   robots: {
     index: true,

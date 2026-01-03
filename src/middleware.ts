@@ -23,7 +23,20 @@ export default clerkMiddleware(async (auth, req) => {
 
 export const config = {
   matcher: [
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    '/(api|trpc)(.*)',
+    /*
+     * Match all request paths except for:
+     * - _next/* (all Next.js internal paths including static, image, data for ISR)
+     * - favicon.ico (favicon file)
+     * - sitemap.xml (sitemap)
+     * - robots.txt (robots file)
+     * - Static files (images, fonts, etc.)
+     * 
+     * NOTE: API routes ARE included so middleware can protect them.
+     * Public API routes like /api/ping are handled by isPublicRoute check.
+     * 
+     * _next/data paths are excluded to prevent authentication issues with ISR
+     * and client-side navigation.
+     */
+    '/((?!_next|favicon.ico|sitemap\\.xml|robots\\.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|eot|otf)).*)',
   ],
 }
