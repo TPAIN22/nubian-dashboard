@@ -1,5 +1,4 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
-import { NextResponse } from 'next/server'
 
 // 👇 حدد الصفحات العامة التي يمكن للجميع دخولها
 const isPublicRoute = createRouteMatcher([
@@ -29,16 +28,6 @@ export default clerkMiddleware(async (auth, req) => {
     /\.(svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|eot|otf)$/.test(pathname)
   ) {
     return;
-  }
-
-  // Handle www to non-www redirect (301 permanent redirect for SEO)
-  // This ensures consistent canonical URLs and prevents duplicate content
-  const hostname = req.headers.get('host') || '';
-  
-  if (hostname.startsWith('www.')) {
-    const url = req.nextUrl.clone();
-    url.hostname = hostname.replace('www.', '');
-    return NextResponse.redirect(url, 301);
   }
 
   // Check if route is public
