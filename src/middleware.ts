@@ -1,5 +1,4 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
-import { NextResponse } from 'next/server'
 
 // 👇 حدد الصفحات العامة التي يمكن للجميع دخولها
 const isPublicRoute = createRouteMatcher([
@@ -17,31 +16,10 @@ const isPublicRoute = createRouteMatcher([
 ])
 
 export default clerkMiddleware(async (auth, req) => {
-  const pathname = req.nextUrl.pathname;
-  const url = req.nextUrl.clone();
-  
-  // Skip middleware entirely for static files and Next.js internal paths
-  if (
-    pathname.startsWith('/_next/') ||
-    pathname === '/favicon.ico' ||
-    pathname === '/sitemap.xml' ||
-    pathname === '/robots.txt' ||
-    /\.(svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|eot|otf)$/.test(pathname)
-  ) {
-    return NextResponse.next();
-  }
-
-  // For public routes, allow access without any Clerk processing
-  // Explicitly return NextResponse to prevent any redirects
-  if (isPublicRoute(req)) {
-    const response = NextResponse.next();
-    // Ensure no redirect headers are set
-    response.headers.delete('Location');
-    return response;
-  }
-
   // Only protect non-public routes
-  await auth.protect();
+  if (!isPublicRoute(req)) {
+    await auth.protect()
+  }
 })
 
 export const config = {
