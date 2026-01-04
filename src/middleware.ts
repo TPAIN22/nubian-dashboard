@@ -30,10 +30,13 @@ export default clerkMiddleware(async (auth, req) => {
     return;
   }
 
-  // Check if route is public
-  if (!isPublicRoute(req)) {
-    await auth.protect()
+  // Check if route is public - if public, allow access without authentication
+  if (isPublicRoute(req)) {
+    return; // Allow public routes without authentication
   }
+
+  // Protect non-public routes
+  await auth.protect()
 })
 
 export const config = {
