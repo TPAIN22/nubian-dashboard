@@ -50,6 +50,11 @@ const data = {
       icon: IconUsers,
     },
     {
+      title: "طلبات التجار",
+      url: "/buseniss/merchants",
+      icon: IconUsers,
+    },
+    {
       title: "التصنيفات",
       url: "/buseniss/categories",
       icon: IconTooltip,

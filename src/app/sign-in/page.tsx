@@ -16,6 +16,8 @@ export default function GoToDashboardButton() {
 
     if (user && role === 'admin') {
       router.push('/buseniss/dashboard') // مسؤول عن التنقل للإدارة
+    } else if (user && role === 'merchant') {
+      router.push('/merchant/dashboard') // تاجر ينتقل إلى لوحة تحكم التاجر
     } else {
       router.push('/') // يرجع المستخدم العادي أو غير المسجل
     }
