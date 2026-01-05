@@ -1,8 +1,22 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import logger from "./logger";
 
+// Get API URL from environment variable
+// This should be set via NEXT_PUBLIC_API_URL in .env.local
+// Example: NEXT_PUBLIC_API_URL=http://localhost:5000/api (development)
+//          NEXT_PUBLIC_API_URL=https://nubian-lne4.onrender.com/api (production)
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+// Validate API URL is set (envValidator also checks this, but this provides immediate feedback)
+if (!apiUrl) {
+    const errorMessage = 'NEXT_PUBLIC_API_URL environment variable is not set. Please configure it in your .env.local file.';
+    logger.error('API Configuration Error', { error: errorMessage });
+    // Don't throw during module load to avoid breaking the build
+    // The envValidator will catch this during startup
+}
+
 export const axiosInstance = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL,
+    baseURL: apiUrl || '', // Fallback to empty string if not set (will cause requests to fail, which is expected)
     headers: {
         "Content-Type": "application/json",
     },
