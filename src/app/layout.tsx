@@ -11,11 +11,15 @@ import StructuredData from "@/components/StructuredData"
 import ErrorBoundary from "@/components/ErrorBoundary"
 import { validateEnv } from "@/lib/envValidator"
 
-// Validate environment variables on server startup
+// Validate environment variables at runtime (not during build)
+// The validateEnv function now handles build-time detection internally
+// It will skip validation during build and only validate when serving requests
 if (typeof window === 'undefined') {
   try {
-    validateEnv();
+    validateEnv({ throwOnError: true, skipBuildTime: true });
   } catch (error) {
+    // If validation fails at runtime (not during build), throw to fail fast
+    // This ensures the app doesn't start with missing critical environment variables
     if (process.env.NODE_ENV === 'production') {
       throw error;
     }
@@ -136,16 +140,16 @@ export default function RootLayout({
       <html lang="ar" dir="rtl" suppressHydrationWarning>
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
           <ErrorBoundary>
-            <StructuredData />
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >       
-              {children}
-              <Toaster/>
-            </ThemeProvider>
+          <StructuredData />
+           <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >       
+            {children}
+            <Toaster/>
+          </ThemeProvider>
           </ErrorBoundary>
         </body>
       </html>
