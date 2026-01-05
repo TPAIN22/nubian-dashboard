@@ -75,7 +75,7 @@ export default function DebugRolePage() {
                 <strong>Client Role Check:</strong> {user?.publicMetadata?.role === 'admin' ? '✅ ADMIN' : '❌ NOT ADMIN'}
                 <br />
                 <span className="text-sm text-muted-foreground">
-                  Role value: "{String(user?.publicMetadata?.role ?? 'undefined')}" (type: {String(typeof user?.publicMetadata?.role)})
+                  Role value: &quot;{String(user?.publicMetadata?.role ?? 'undefined')}&quot; (type: {String(typeof user?.publicMetadata?.role)})
                 </span>
               </div>
               
@@ -83,7 +83,7 @@ export default function DebugRolePage() {
                 <strong>Server Role Check:</strong> {apiData?.isAdmin ? '✅ ADMIN' : '❌ NOT ADMIN'}
                 <br />
                 <span className="text-sm text-muted-foreground">
-                  Role value: "{String(apiData?.role ?? 'undefined')}" (type: {String(typeof apiData?.role)})
+                  Role value: &quot;{String(apiData?.role ?? 'undefined')}&quot; (type: {String(typeof apiData?.role)})
                 </span>
               </div>
 
@@ -91,10 +91,10 @@ export default function DebugRolePage() {
                 <div className="p-4 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg">
                   <strong>⚠️ Issue Detected:</strong>
                   <ul className="list-disc list-inside mt-2 space-y-1">
-                    <li>Your role is not set to "admin" (lowercase)</li>
+                    <li>Your role is not set to &quot;admin&quot; (lowercase)</li>
                     <li>Go to Clerk Dashboard → Users → Your User → Metadata</li>
-                    <li>In Public Metadata, set: <code>{"{ \"role\": \"admin\" }"}</code></li>
-                    <li>Make sure it's lowercase "admin" with no spaces</li>
+                    <li>In Public Metadata, set: <code>{'{ "role": "admin" }'}</code></li>
+                    <li>Make sure it&apos;s lowercase &quot;admin&quot; with no spaces</li>
                     <li>Wait 10-30 seconds after saving, then refresh this page</li>
                   </ul>
                 </div>
@@ -103,7 +103,7 @@ export default function DebugRolePage() {
               {user?.publicMetadata?.role === 'admin' && apiData?.isAdmin && (
                 <div className="p-4 bg-green-100 dark:bg-green-900/20 rounded-lg">
                   <strong>✅ Role is correctly set!</strong>
-                  <p className="mt-2">If you're still being redirected, check:</p>
+                  <p className="mt-2">If you&apos;re still being redirected, check:</p>
                   <ul className="list-disc list-inside mt-2 space-y-1">
                     <li>Browser cache - try hard refresh (Ctrl+Shift+R)</li>
                     <li>Next.js cache - delete .next folder and restart</li>

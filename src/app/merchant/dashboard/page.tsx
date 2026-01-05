@@ -117,6 +117,7 @@ export default function MerchantDashboard() {
     }
 
     loadDashboardData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, router])
 
   if (!isLoaded || loading) {

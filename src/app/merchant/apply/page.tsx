@@ -87,6 +87,7 @@ export default function MerchantApply() {
     }
 
     checkExistingApplication()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
