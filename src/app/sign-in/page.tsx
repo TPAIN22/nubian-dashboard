@@ -16,7 +16,7 @@ export default function SignInPage() {
     // Only run this effect once when user loads and we're on sign-in page
     if (!isLoaded || hasRedirected.current || pathname !== '/sign-in') return
     
-    // If usx er is signed in, redirect based on role
+    // If user is signed in, redirect based on role
     if (user) {
       hasRedirected.current = true
       const role = user.publicMetadata?.role as string | undefined
