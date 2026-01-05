@@ -41,9 +41,18 @@ export const validateEnv = () => {
     }
   }
 
-  // Warn if ImageKit public key is set but private key is missing (they should be used together)
+  // Fail-fast validation: If ImageKit public key is set, private key is REQUIRED
+  // This ensures that if ImageKit is configured, both keys must be present
+  // The /api/upload-auth endpoint requires both keys to function
   if (optionalEnvVars.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY && !optionalEnvVars.IMAGEKIT_PRIVATE_KEY) {
-    console.warn('Warning: NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY is set but IMAGEKIT_PRIVATE_KEY is missing. Image upload functionality may not work.');
+    missing.push('IMAGEKIT_PRIVATE_KEY');
+    console.error('IMAGEKIT_PRIVATE_KEY is required when NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY is set. The /api/upload-auth endpoint requires both keys.');
+  }
+
+  // Also validate that if private key is set, public key should be set (for consistency)
+  if (optionalEnvVars.IMAGEKIT_PRIVATE_KEY && !optionalEnvVars.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY) {
+    missing.push('NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY');
+    console.error('NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY is required when IMAGEKIT_PRIVATE_KEY is set. Both keys must be configured together.');
   }
 
   if (missing.length > 0) {

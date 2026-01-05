@@ -264,26 +264,32 @@ export const OrderStatusUpdateEmail = ({
               <span style={{width:'20%', textAlign:'center'}}>{t.quantity}</span>
               <span style={{width:'20%', textAlign:language==='ar'?'left':'right'}}>{t.price}</span>
             </Section>
-            {products.map((product, index) => (
-              <Section key={index} style={productItem}>
-                <Row>
-                  <Column style={{width: '60%', textAlign:align}} className="mobile-column">
-                    <Text style={productName}>{product.name}</Text>
-                  </Column>
-                  <Column style={{width: '20%', textAlign: 'center'}} className="mobile-column">
-                    <Text style={productQuantity}>× {product.quantity}</Text>
-                  </Column>
-                  <Column style={{width: '20%', textAlign:language==='ar'?'left':'right'}} className="mobile-column">
-                    <Text style={productPrice}>
-                      {product.price.toLocaleString(language==='ar'?'ar-EG':'en-US', { 
-                        minimumFractionDigits: 2 
-                      })} {t.currency}
-                    </Text>
-                  </Column>
-                </Row>
-                {index < products.length - 1 && <div style={productDivider} />}
-              </Section>
-            ))}
+            {products.map((product, index) => {
+              // Use a stable key based on product content, not index
+              // This prevents unnecessary re-renders when list order changes
+              // Combine name, quantity, and price for uniqueness (fallback to index if needed)
+              const stableKey = `${product.name}-${product.quantity}-${product.price}`;
+              return (
+                <Section key={stableKey} style={productItem}>
+                  <Row>
+                    <Column style={{width: '60%', textAlign:align}} className="mobile-column">
+                      <Text style={productName}>{product.name}</Text>
+                    </Column>
+                    <Column style={{width: '20%', textAlign: 'center'}} className="mobile-column">
+                      <Text style={productQuantity}>× {product.quantity}</Text>
+                    </Column>
+                    <Column style={{width: '20%', textAlign:language==='ar'?'left':'right'}} className="mobile-column">
+                      <Text style={productPrice}>
+                        {product.price.toLocaleString(language==='ar'?'ar-EG':'en-US', { 
+                          minimumFractionDigits: 2 
+                        })} {t.currency}
+                      </Text>
+                    </Column>
+                  </Row>
+                  {index < products.length - 1 && <div style={productDivider} />}
+                </Section>
+              );
+            })}
           </Section>
 
           {/* زر تتبع الشحنة */}
