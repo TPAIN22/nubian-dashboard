@@ -1,4 +1,5 @@
 import { axiosInstance } from "@/lib/axiosInstance";
+import logger from "@/lib/logger";
 
 // Define interfaces for type safety
 interface OrderRow {
@@ -51,7 +52,9 @@ export async function updateOrders(order: Order, token: string): Promise<ApiResp
     );
     return orders.data;
   } catch (error) {
-    console.error("Error updating order:", error);
+    logger.error("Error updating order", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
     throw error;
   }
 }

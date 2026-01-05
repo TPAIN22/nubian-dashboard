@@ -8,6 +8,20 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { dark } from '@clerk/themes'
 import { Toaster } from '@/components/ui/sonner'
 import StructuredData from "@/components/StructuredData"
+import ErrorBoundary from "@/components/ErrorBoundary"
+import { validateEnv } from "@/lib/envValidator"
+
+// Validate environment variables on server startup
+if (typeof window === 'undefined') {
+  try {
+    validateEnv();
+  } catch (error) {
+    if (process.env.NODE_ENV === 'production') {
+      throw error;
+    }
+    console.warn('Environment validation warning:', error);
+  }
+}
 
 
 const geistSans = Geist({
@@ -121,16 +135,18 @@ export default function RootLayout({
     >
       <html lang="ar" dir="rtl" suppressHydrationWarning>
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-          <StructuredData />
-           <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >       
-            {children}
-            <Toaster/>
-          </ThemeProvider>
+          <ErrorBoundary>
+            <StructuredData />
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >       
+              {children}
+              <Toaster/>
+            </ThemeProvider>
+          </ErrorBoundary>
         </body>
       </html>
     </ClerkProvider>

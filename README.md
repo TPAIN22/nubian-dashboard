@@ -1,36 +1,150 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docsapi-reference/cli/create-next-app).
+# Nubian Dashboard
+
+A modern e-commerce dashboard and storefront built with Next.js 15, React 19, TypeScript, and Tailwind CSS.
+
+## Features
+
+- 🛍️ Complete e-commerce functionality
+- 👤 User authentication with Clerk
+- 📊 Admin dashboard for managing products, orders, and customers
+- 🎨 Modern UI with shadcn/ui components
+- 🌙 Dark mode support
+- 📱 Responsive design
+- 🖼️ Image management with ImageKit
+- 📧 Email notifications with Resend
+
+## Tech Stack
+
+- **Framework**: Next.js 15 with App Router
+- **Language**: TypeScript
+- **UI Library**: React 19
+- **Styling**: Tailwind CSS
+- **UI Components**: Radix UI, shadcn/ui
+- **Authentication**: Clerk
+- **Image Management**: ImageKit
+- **Email**: Resend
+- **State Management**: Zustand
+- **Forms**: React Hook Form + Zod validation
+- **Database**: MongoDB (via API)
+
+## Prerequisites
+
+- Node.js 18+ and npm
+- MongoDB database
+- Clerk account (for authentication)
+- ImageKit account (for image management)
+- Resend account (for email)
 
 ## Getting Started
 
-First, run the development server:
+### 1. Clone the repository
+
+```bash
+git clone <repository-url>
+cd nubian-dashboard
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Set up environment variables
+
+Create a `.env.local` file in the root directory:
+
+```env
+# API Configuration
+NEXT_PUBLIC_API_URL=http://localhost:5000
+
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_your_key_here
+CLERK_SECRET_KEY=sk_test_your_key_here
+
+# ImageKit
+NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY=your_public_key_here
+IMAGEKIT_PRIVATE_KEY=your_private_key_here
+
+# Email (Resend)
+RESEND_API_KEY=re_your_key_here
+
+# Environment
+NODE_ENV=development
+```
+
+**Important**: The `IMAGEKIT_PRIVATE_KEY` should NOT have the `NEXT_PUBLIC_` prefix as it's server-side only.
+
+### 4. Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 5. Build for production
 
-This project uses [`next/font`](https://nextjs.org/docsbuilding-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+nubian-dashboard/
+├── src/
+│   ├── app/              # Next.js app router pages
+│   │   ├── api/          # API routes
+│   │   ├── buseniss/     # Business/dashboard pages
+│   │   └── ...
+│   ├── components/       # React components
+│   │   ├── ui/           # UI components (shadcn/ui)
+│   │   └── ...
+│   ├── lib/              # Utilities and configurations
+│   ├── hooks/            # Custom React hooks
+│   └── store/            # Zustand state management
+├── public/               # Static assets
+└── ...
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm start` - Start production server
+- `npm run lint` - Run ESLint
 
-## Deploy on Vercel
+## Security Features
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Content Security Policy (CSP) headers
+- HTTPS enforcement in production
+- Secure authentication with Clerk
+- Input validation with Zod
+- Rate limiting (via API)
+- Request size limits
+- Security headers (X-Frame-Options, X-Content-Type-Options, etc.)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docsbuilding-your-application/deploying) for more details.
+## Deployment
+
+The application can be deployed to:
+
+- **Vercel** (recommended for Next.js)
+- **Netlify**
+- **AWS Amplify**
+- Any Node.js hosting platform
+
+Make sure to set all environment variables in your hosting platform.
+
+## API Integration
+
+This frontend connects to the Nubian API backend. Make sure the API server is running and accessible at the URL specified in `NEXT_PUBLIC_API_URL`.
+
+## License
+
+ISC
+
+## Support
+
+For issues and questions, please contact the development team.

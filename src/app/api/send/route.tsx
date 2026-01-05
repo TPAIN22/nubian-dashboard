@@ -101,7 +101,16 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('Error sending email notification:', error);
+    // Log error without exposing sensitive details
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // In production, log to error tracking service instead of console
+    if (process.env.NODE_ENV === 'production') {
+      // errorTrackingService.captureException(error);
+    } else {
+      console.error('Error sending email notification:', errorMessage);
+    }
+    
     return NextResponse.json(
       { message: 'Error sending email notification.' },
       { status: 500 }

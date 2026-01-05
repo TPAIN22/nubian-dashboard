@@ -12,6 +12,7 @@ import { updateOrders } from "@/app/buseniss/orders/orderControler";
 import { useAuth } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label"; // لاستخدام Label مع Select
+import logger from "@/lib/logger";
 import {
   Select,
   SelectContent,
@@ -149,7 +150,9 @@ function OrderDialog({
           toast.success("تم إرسال إشعار البريد الإلكتروني بنجاح.");
         }
       } catch (emailErr) {
-        console.error("Error sending email notification:", emailErr);
+        logger.error("Error sending email notification", {
+          error: emailErr instanceof Error ? emailErr.message : "Unknown error",
+        });
         const errorMessage = emailErr instanceof Error ? emailErr.message : "خطأ غير معروف";
         toast.warning(
           `تم تحديث الطلب، لكن حدث خطأ أثناء إرسال الإشعار بالبريد الإلكتروني: ${errorMessage}`
@@ -158,7 +161,9 @@ function OrderDialog({
 
       setIsModalOpen(false);
     } catch (err) {
-      console.error("Error during order update process:", err);
+      logger.error("Error during order update process", {
+        error: err instanceof Error ? err.message : "Unknown error",
+      });
       const errorMessage = err instanceof Error ? err.message : "خطأ غير معروف";
       toast.error(`حدث خطأ أثناء التحديث: ${errorMessage}`);
     } finally {
