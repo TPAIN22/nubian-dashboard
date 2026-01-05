@@ -60,7 +60,7 @@ class ErrorBoundary extends Component<Props, State> {
           <div className="max-w-md w-full space-y-4 text-center">
             <h1 className="text-2xl font-bold text-destructive">Something went wrong</h1>
             <p className="text-muted-foreground">
-              We're sorry, but something unexpected happened. Please try refreshing the page.
+              We&apos;re sorry, but something unexpected happened. Please try refreshing the page.
             </p>
             {process.env.NODE_ENV === 'development' && this.state.error && (
               <details className="mt-4 text-left">
