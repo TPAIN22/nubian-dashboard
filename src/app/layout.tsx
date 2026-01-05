@@ -10,6 +10,7 @@ import { Toaster } from '@/components/ui/sonner'
 import StructuredData from "@/components/StructuredData"
 import ErrorBoundary from "@/components/ErrorBoundary"
 import { validateEnv } from "@/lib/envValidator"
+import logger from "@/lib/logger"
 
 // Validate environment variables at runtime (not during build)
 // The validateEnv function now handles build-time detection internally
@@ -23,7 +24,7 @@ if (typeof window === 'undefined') {
     if (process.env.NODE_ENV === 'production') {
       throw error;
     }
-    console.warn('Environment validation warning:', error);
+    logger.warn('Environment validation warning', { error: error instanceof Error ? error.message : String(error) });
   }
 }
 

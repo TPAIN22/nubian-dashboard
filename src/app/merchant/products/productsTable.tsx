@@ -67,10 +67,11 @@ export type Product = {
 
 interface ProductsTableProps {
   productsData: Product[]
-  onProductUpdate?: () => void
+  getToken: () => Promise<string | null>
+  onProductUpdate?: () => void | Promise<void>
 }
 
-export function ProductsTable({ productsData, onProductUpdate }: ProductsTableProps) {
+export function ProductsTable({ productsData, getToken, onProductUpdate }: ProductsTableProps) {
   const router = useRouter()
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -81,13 +82,25 @@ export function ProductsTable({ productsData, onProductUpdate }: ProductsTablePr
   const handleDelete = async (productId: string) => {
     setDeletingId(productId)
     try {
-      await axiosInstance.delete(`/products/${productId}`)
-      toast.success('Product deleted successfully')
+      const token = await getToken()
+      
+      if (!token) {
+        toast.error('فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.')
+        setDeletingId(null)
+        return
+      }
+      
+      await axiosInstance.delete(`/products/${productId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      toast.success('تم حذف المنتج بنجاح')
       if (onProductUpdate) {
-        onProductUpdate()
+        await onProductUpdate()
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to delete product')
+      toast.error(error.response?.data?.message || 'فشل حذف المنتج')
     } finally {
       setDeletingId(null)
     }
@@ -124,7 +137,7 @@ export function ProductsTable({ productsData, onProductUpdate }: ProductsTablePr
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            Product Name
+            اسم المنتج
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         )
@@ -133,19 +146,19 @@ export function ProductsTable({ productsData, onProductUpdate }: ProductsTablePr
     },
     {
       accessorKey: "price",
-      header: () => <div className="text-right">Price</div>,
+      header: () => <div className="text-right">السعر</div>,
       cell: ({ row }) => {
         const price = parseFloat(row.getValue("price"))
-        const formatted = new Intl.NumberFormat("en-US", {
+        const formatted = new Intl.NumberFormat("ar-SD", {
           style: "currency",
-          currency: "USD",
+          currency: "SDG",
         }).format(price)
         return <div className="text-right font-medium">{formatted}</div>
       },
     },
     {
       accessorKey: "stock",
-      header: () => <div className="text-right">Stock</div>,
+      header: () => <div className="text-right">المخزون</div>,
       cell: ({ row }) => {
         const stock = row.getValue("stock") as number
         return (
@@ -157,7 +170,7 @@ export function ProductsTable({ productsData, onProductUpdate }: ProductsTablePr
     },
     {
       accessorKey: "isActive",
-      header: "Status",
+      header: "الحالة",
       cell: ({ row }) => (
         <div className="capitalize">
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -165,7 +178,7 @@ export function ProductsTable({ productsData, onProductUpdate }: ProductsTablePr
               ? "bg-green-100 text-green-800" 
               : "bg-gray-100 text-gray-800"
           }`}>
-            {row.getValue("isActive") ? "Active" : "Inactive"}
+            {row.getValue("isActive") ? "نشط" : "غير نشط"}
           </span>
         </div>
       ),
@@ -185,16 +198,16 @@ export function ProductsTable({ productsData, onProductUpdate }: ProductsTablePr
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
               <DropdownMenuItem
                 onClick={() => navigator.clipboard.writeText(product._id)}
               >
-                Copy product ID
+                نسخ معرف المنتج
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => router.push(`/merchant/products/${product._id}/edit`)}>
                 <Edit className="mr-2 h-4 w-4" />
-                Edit Product
+                تعديل المنتج
               </DropdownMenuItem>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -203,24 +216,24 @@ export function ProductsTable({ productsData, onProductUpdate }: ProductsTablePr
                     className="text-red-600"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    Delete Product
+                    حذف المنتج
                   </DropdownMenuItem>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will permanently delete the product "{product.name}". This action cannot be undone.
+                      سيتم حذف المنتج &quot;{product.name}&quot; نهائياً. لا يمكن التراجع عن هذا الإجراء.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={() => handleDelete(product._id)}
                       disabled={deletingId === product._id}
                       className="bg-red-600 hover:bg-red-700"
                     >
-                      {deletingId === product._id ? 'Deleting...' : 'Delete'}
+                      {deletingId === product._id ? 'جاري الحذف...' : 'حذف'}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -255,7 +268,7 @@ export function ProductsTable({ productsData, onProductUpdate }: ProductsTablePr
     <div className="w-full">
       <div className="flex items-center py-4">
         <Input
-          placeholder="Search products..."
+          placeholder="البحث عن المنتجات..."
           value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("name")?.setFilterValue(event.target.value)
@@ -265,7 +278,7 @@ export function ProductsTable({ productsData, onProductUpdate }: ProductsTablePr
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
-              Columns <ChevronDown className="ml-2 h-4 w-4" />
+              الأعمدة <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

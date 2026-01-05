@@ -1,12 +1,14 @@
 'use client'
 
-import { useUser } from '@clerk/nextjs'
+import { useUser, useAuth } from '@clerk/nextjs'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { axiosInstance } from '@/lib/axiosInstance'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { toast } from 'sonner'
+import logger from '@/lib/logger'
 
 interface Merchant {
   _id: string
@@ -35,6 +37,7 @@ interface Stats {
 
 export default function MerchantDashboard() {
   const { user, isLoaded } = useUser()
+  const { getToken } = useAuth()
   const router = useRouter()
   const [merchant, setMerchant] = useState<Merchant | null>(null)
   const [stats, setStats] = useState<Stats | null>(null)
@@ -46,8 +49,21 @@ export default function MerchantDashboard() {
 
     const loadDashboardData = async () => {
       try {
+        const token = await getToken()
+        
+        if (!token) {
+          logger.error('Authentication token is null', {})
+          toast.error('فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.')
+          router.push('/sign-in')
+          return
+        }
+        
         // Check merchant status
-        const statusResponse = await axiosInstance.get('/merchants/my-status')
+        const statusResponse = await axiosInstance.get('/merchants/my-status', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
         if (statusResponse.data.hasApplication) {
           const merchantData = statusResponse.data.merchant
           setMerchant(merchantData)
@@ -59,25 +75,38 @@ export default function MerchantDashboard() {
 
           // Load stats
           try {
-            const statsResponse = await axiosInstance.get('/orders/merchant/stats')
+            const statsResponse = await axiosInstance.get('/orders/merchant/stats', {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            })
             setStats(statsResponse.data)
           } catch (error) {
-            console.error('Error loading stats:', error)
+            logger.error('Error loading stats', { error: error instanceof Error ? error.message : String(error) })
           }
 
           // Load products count
           try {
-            const productsResponse = await axiosInstance.get('/products/merchant/my-products')
-            setProductsCount(productsResponse.data.totalProducts || 0)
+            const productsResponse = await axiosInstance.get('/products/merchant/my-products', {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            })
+            // Backend returns standardized paginated response: { success, data: [...], meta: { pagination: { total, ... } } }
+            const totalCount = productsResponse.data.meta?.pagination?.total ?? productsResponse.data.data?.length ?? 0
+            setProductsCount(totalCount)
           } catch (error) {
-            console.error('Error loading products:', error)
+            logger.error('Error loading products', { error: error instanceof Error ? error.message : String(error) })
           }
         } else {
           router.push('/merchant/apply')
           return
         }
       } catch (error: any) {
-        console.error('Error loading dashboard:', error)
+        logger.error('Error loading dashboard', { 
+          error: error instanceof Error ? error.message : String(error),
+          status: error.response?.status 
+        })
         if (error.response?.status === 404) {
           router.push('/merchant/apply')
           return
@@ -93,7 +122,7 @@ export default function MerchantDashboard() {
   if (!isLoaded || loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-lg">Loading...</div>
+        <div className="text-lg">جاري التحميل...</div>
       </div>
     )
   }
@@ -103,99 +132,99 @@ export default function MerchantDashboard() {
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('ar-SD', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'SDG',
     }).format(amount)
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-4 h-full sm:mx-12 mx-2 py-4">
       <div>
-        <h1 className="text-3xl font-bold">Merchant Dashboard</h1>
+        <h1 className="text-2xl font-bold">لوحة تحكم التاجر</h1>
         <p className="text-muted-foreground mt-2">
-          Welcome back, {merchant.businessName}
+          أهلاً بعودتك، {merchant.businessName}
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">إجمالي الطلبات</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.totalOrders || 0}</div>
             <p className="text-xs text-muted-foreground">
-              All time orders
+              جميع الطلبات
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">إجمالي الإيرادات</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {stats ? formatCurrency(stats.totalRevenue) : '$0.00'}
+              {stats ? formatCurrency(stats.totalRevenue) : '0.00 ج.س'}
             </div>
             <p className="text-xs text-muted-foreground">
-              From all orders
+              من جميع الطلبات
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Products</CardTitle>
+            <CardTitle className="text-sm font-medium">المنتجات</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{productsCount}</div>
             <p className="text-xs text-muted-foreground">
-              Active products
+              منتجات نشطة
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Status</CardTitle>
+            <CardTitle className="text-sm font-medium">الحالة</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">Active</div>
+            <div className="text-2xl font-bold text-green-600">نشط</div>
             <p className="text-xs text-muted-foreground">
-              Merchant approved
+              التاجر معتمد
             </p>
           </CardContent>
         </Card>
       </div>
 
       {stats && (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>Orders by Status</CardTitle>
+              <CardTitle>الطلبات حسب الحالة</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span>Pending:</span>
+                  <span>قيد الانتظار:</span>
                   <span className="font-medium">{stats.statusStats.pending}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Confirmed:</span>
+                  <span>مؤكد:</span>
                   <span className="font-medium">{stats.statusStats.confirmed}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Shipped:</span>
+                  <span>تم الشحن:</span>
                   <span className="font-medium">{stats.statusStats.shipped}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Delivered:</span>
+                  <span>تم التسليم:</span>
                   <span className="font-medium text-green-600">{stats.statusStats.delivered}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Cancelled:</span>
+                  <span>ملغي:</span>
                   <span className="font-medium text-red-600">{stats.statusStats.cancelled}</span>
                 </div>
               </div>
@@ -204,30 +233,30 @@ export default function MerchantDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Revenue by Status</CardTitle>
+              <CardTitle>الإيرادات حسب الحالة</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span>Delivered:</span>
+                  <span>تم التسليم:</span>
                   <span className="font-medium text-green-600">
                     {formatCurrency(stats.revenueByStatus.delivered)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Shipped:</span>
+                  <span>تم الشحن:</span>
                   <span className="font-medium">
                     {formatCurrency(stats.revenueByStatus.shipped)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Confirmed:</span>
+                  <span>مؤكد:</span>
                   <span className="font-medium">
                     {formatCurrency(stats.revenueByStatus.confirmed)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Pending:</span>
+                  <span>قيد الانتظار:</span>
                   <span className="font-medium">
                     {formatCurrency(stats.revenueByStatus.pending)}
                   </span>
@@ -238,25 +267,25 @@ export default function MerchantDashboard() {
         </div>
       )}
 
-      <Card>
+      <Card className="mt-4">
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
+          <CardTitle>إجراءات سريعة</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
             <Link href="/merchant/products">
               <Button variant="outline" className="w-full">
-                Manage Products
+                إدارة المنتجات
               </Button>
             </Link>
             <Link href="/merchant/orders">
               <Button variant="outline" className="w-full">
-                View Orders
+                عرض الطلبات
               </Button>
             </Link>
             <Link href="/merchant/settings">
               <Button variant="outline" className="w-full">
-                Store Settings
+                إعدادات المتجر
               </Button>
             </Link>
           </div>

@@ -1,15 +1,17 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
-import { NextResponse } from 'next/server'
 import { clerkClient } from '@clerk/nextjs/server'
+import { NextResponse } from 'next/server'
 
 const isPublicRoute = createRouteMatcher([
-  '/',
+  '/', // Home page - public for SEO
   '/sign-in(.*)',
   '/about',
   '/contact',
   '/privacy-policy',
   '/exchange-policy',
   '/api/ping',
+  '/api/user-check',
+  '/debug-role',
   '/sitemap.xml',
   '/robots.txt',
   '/terms-conditions',
@@ -38,30 +40,61 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next()
   }
   
-  // Handle public routes (including root route)
+  // Handle public routes (including root route) - no auth needed
   if (isPublicRoute(req)) {
     return NextResponse.next()
   }
   
-  // Protect all other routes - require authentication
-  const { userId } = await auth.protect()
+  // Get auth data - use the correct Clerk middleware API
+  const { userId, sessionClaims } = await auth()
   
   if (!userId) {
-    return NextResponse.redirect(new URL('/sign-in', req.url))
+    // Only redirect to sign-in if not already there to prevent loops
+    if (pathname !== '/sign-in') {
+      return NextResponse.redirect(new URL('/sign-in', req.url))
+    }
+    return NextResponse.next()
+  }
+
+  // Helper function to get user role (only called when needed)
+  const getUserRole = async (): Promise<string | undefined> => {
+    // Try sessionClaims first (faster, if available)
+    let role = (sessionClaims?.publicMetadata as any)?.role as string | undefined
+    
+    // If role not in sessionClaims, fetch from Clerk API
+    if (role === undefined) {
+      try {
+        const client = await clerkClient()
+        const user = await client.users.getUser(userId)
+        role = user.publicMetadata?.role as string | undefined
+        // Role fetched successfully
+      } catch (error: any) {
+        // Error fetching user role - will be handled by redirect
+        return undefined
+      }
+    }
+    return role
   }
 
   // Check admin routes
+  // Match backend logic exactly: src/middleware/auth.middleware.js
+  // Backend uses: user.publicMetadata.role !== 'admin' (strict check)
   if (isAdminRoute(req)) {
     try {
-      const user = await clerkClient.users.getUser(userId)
-      const role = user.publicMetadata?.role as string | undefined
+      const role = await getUserRole()
       
+      // Match backend check exactly: user.publicMetadata.role !== 'admin'
+      // Backend uses strict !== (not case-insensitive)
       if (role !== 'admin') {
         // Redirect non-admins away from admin routes
-        return NextResponse.redirect(new URL('/', req.url))
+        const response = NextResponse.redirect(new URL('/', req.url))
+        response.headers.set('x-redirect-reason', 'not-admin')
+        return response
       }
-    } catch (error) {
-      console.error('Error checking admin role:', error)
+      
+      // Admin access granted
+    } catch (error: any) {
+      // Error checking admin role - redirect to sign in
       return NextResponse.redirect(new URL('/sign-in', req.url))
     }
   }
@@ -74,9 +107,9 @@ export default clerkMiddleware(async (auth, req) => {
     }
     
     try {
-      const user = await clerkClient.users.getUser(userId)
-      const role = user.publicMetadata?.role as string | undefined
+      const role = await getUserRole()
       
+      // Match backend logic: user.publicMetadata?.role !== 'merchant'
       if (role !== 'merchant') {
         // Redirect non-merchants away from merchant routes (except apply)
         return NextResponse.redirect(new URL('/merchant/apply', req.url))
@@ -89,7 +122,7 @@ export default clerkMiddleware(async (auth, req) => {
         return NextResponse.next()
       }
     } catch (error) {
-      console.error('Error checking merchant role:', error)
+      // Error checking merchant role - redirect to sign in
       return NextResponse.redirect(new URL('/sign-in', req.url))
     }
   }

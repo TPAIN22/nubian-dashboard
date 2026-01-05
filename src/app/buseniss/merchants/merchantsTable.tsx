@@ -35,6 +35,134 @@ export type Merchant = {
   updatedAt: string;
 };
 
+// Separate component for merchant actions to fix React hooks rules
+function MerchantActions({ merchant }: { merchant: Merchant }) {
+  const [rejectionReason, setRejectionReason] = React.useState("");
+  const [isApproving, setIsApproving] = React.useState(false);
+  const [isRejecting, setIsRejecting] = React.useState(false);
+  const router = useRouter();
+
+  const handleApprove = async () => {
+    setIsApproving(true);
+    try {
+      const response = await fetch(`/api/merchants/${merchant._id}/approve`, {
+        method: 'PATCH',
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to approve');
+      }
+      toast.success("تم الموافقة على التاجر بنجاح");
+      router.refresh();
+    } catch (error: any) {
+      toast.error(error.message || "فشل في الموافقة على التاجر");
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectionReason.trim()) {
+      toast.error("يرجى إدخال سبب الرفض");
+      return;
+    }
+    setIsRejecting(true);
+    try {
+      const response = await fetch(`/api/merchants/${merchant._id}/reject`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ rejectionReason }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to reject');
+      }
+      toast.success("تم رفض التاجر بنجاح");
+      router.refresh();
+    } catch (error: any) {
+      toast.error(error.message || "فشل في رفض التاجر");
+    } finally {
+      setIsRejecting(false);
+      setRejectionReason("");
+    }
+  };
+
+  if (merchant.status === "APPROVED") {
+    return (
+      <div className="text-sm text-muted-foreground">موافق عليه</div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      {merchant.status === "PENDING" && (
+        <>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="sm" variant="default" className="h-8">
+                <Check className="h-4 w-4 mr-1" />
+                موافقة
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>تأكيد الموافقة</AlertDialogTitle>
+                <AlertDialogDescription>
+                  هل أنت متأكد من الموافقة على طلب التاجر <strong>{merchant.businessName}</strong>؟
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                <AlertDialogAction onClick={handleApprove} disabled={isApproving}>
+                  {isApproving ? "جاري المعالجة..." : "موافقة"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="sm" variant="destructive" className="h-8">
+                <X className="h-4 w-4 mr-1" />
+                رفض
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>رفض الطلب</AlertDialogTitle>
+                <AlertDialogDescription>
+                  يرجى إدخال سبب رفض طلب التاجر <strong>{merchant.businessName}</strong>.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="py-4">
+                <Textarea
+                  placeholder="سبب الرفض..."
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  rows={3}
+                />
+              </div>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setRejectionReason("")}>إلغاء</AlertDialogCancel>
+                <AlertDialogAction onClick={handleReject} disabled={isRejecting || !rejectionReason.trim()}>
+                  {isRejecting ? "جاري المعالجة..." : "رفض"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
+      )}
+      {merchant.status === "REJECTED" && merchant.rejectionReason && (
+        <div className="text-xs text-muted-foreground max-w-[200px]">
+          سبب الرفض: {merchant.rejectionReason}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const formatDate = (dateString: string) => {
   const date = new Date(dateString);
   return date.toLocaleDateString('ar-SD', {
@@ -165,130 +293,7 @@ export const columns: ColumnDef<Merchant>[] = [
     enableHiding: false,
     cell: ({ row }) => {
       const merchant = row.original;
-      const [rejectionReason, setRejectionReason] = React.useState("");
-      const [isApproving, setIsApproving] = React.useState(false);
-      const [isRejecting, setIsRejecting] = React.useState(false);
-      const router = useRouter();
-
-      const handleApprove = async () => {
-        setIsApproving(true);
-        try {
-          const response = await fetch(`/api/merchants/${merchant._id}/approve`, {
-            method: 'PATCH',
-          });
-          const data = await response.json();
-          if (!response.ok) {
-            throw new Error(data.message || 'Failed to approve');
-          }
-          toast.success("تم الموافقة على التاجر بنجاح");
-          router.refresh();
-        } catch (error: any) {
-          toast.error(error.message || "فشل في الموافقة على التاجر");
-        } finally {
-          setIsApproving(false);
-        }
-      };
-
-      const handleReject = async () => {
-        if (!rejectionReason.trim()) {
-          toast.error("يرجى إدخال سبب الرفض");
-          return;
-        }
-        setIsRejecting(true);
-        try {
-          const response = await fetch(`/api/merchants/${merchant._id}/reject`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ rejectionReason }),
-          });
-          const data = await response.json();
-          if (!response.ok) {
-            throw new Error(data.message || 'Failed to reject');
-          }
-          toast.success("تم رفض التاجر بنجاح");
-          router.refresh();
-        } catch (error: any) {
-          toast.error(error.message || "فشل في رفض التاجر");
-        } finally {
-          setIsRejecting(false);
-          setRejectionReason("");
-        }
-      };
-
-      if (merchant.status === "APPROVED") {
-        return (
-          <div className="text-sm text-muted-foreground">موافق عليه</div>
-        );
-      }
-
-      return (
-        <div className="flex items-center gap-2">
-          {merchant.status === "PENDING" && (
-            <>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button size="sm" variant="default" className="h-8">
-                    <Check className="h-4 w-4 mr-1" />
-                    موافقة
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>تأكيد الموافقة</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      هل أنت متأكد من الموافقة على طلب التاجر <strong>{merchant.businessName}</strong>؟
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleApprove} disabled={isApproving}>
-                      {isApproving ? "جاري المعالجة..." : "موافقة"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button size="sm" variant="destructive" className="h-8">
-                    <X className="h-4 w-4 mr-1" />
-                    رفض
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>رفض الطلب</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      يرجى إدخال سبب رفض طلب التاجر <strong>{merchant.businessName}</strong>.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <div className="py-4">
-                    <Textarea
-                      placeholder="سبب الرفض..."
-                      value={rejectionReason}
-                      onChange={(e) => setRejectionReason(e.target.value)}
-                      rows={3}
-                    />
-                  </div>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => setRejectionReason("")}>إلغاء</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleReject} disabled={isRejecting || !rejectionReason.trim()}>
-                      {isRejecting ? "جاري المعالجة..." : "رفض"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </>
-          )}
-          {merchant.status === "REJECTED" && merchant.rejectionReason && (
-            <div className="text-xs text-muted-foreground max-w-[200px]">
-              سبب الرفض: {merchant.rejectionReason}
-            </div>
-          )}
-        </div>
-      );
+      return <MerchantActions merchant={merchant} />;
     },
   },
 ];

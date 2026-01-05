@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { toast } from 'sonner'
 import { axiosInstance } from '@/lib/axiosInstance'
+import logger from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -73,8 +74,8 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
         const res = await axiosInstance.get('/categories')
         setCategories(res.data || [])
       } catch (error) {
-        console.error('Failed to fetch categories:', error)
-        toast.error('Failed to load categories')
+        logger.error('Failed to fetch categories', { error: error instanceof Error ? error.message : String(error) })
+        toast.error('فشل تحميل الفئات')
       }
     }
     fetchCategories()
@@ -96,8 +97,8 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
             isActive: product.isActive !== false,
           })
         } catch (error) {
-          console.error('Failed to fetch product:', error)
-          toast.error('Failed to load product')
+          logger.error('Failed to fetch product', { error: error instanceof Error ? error.message : String(error) })
+          toast.error('فشل تحميل المنتج')
         }
       }
       fetchProduct()
@@ -106,7 +107,7 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!values.images || values.images.length < 1) {
-      toast.error('Please upload at least one image')
+      toast.error('يرجى رفع صورة واحدة على الأقل')
       return
     }
 
@@ -127,8 +128,11 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
 
       router.push('/merchant/products')
     } catch (error: any) {
-      console.error('Error saving product:', error)
-      toast.error(error.response?.data?.message || 'Failed to save product')
+      logger.error('Error saving product', { 
+        error: error instanceof Error ? error.message : String(error),
+        status: error.response?.status 
+      })
+      toast.error(error.response?.data?.message || 'فشل حفظ المنتج')
     } finally {
       setLoading(false)
     }
@@ -137,7 +141,7 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{isEdit ? 'Edit Product' : 'Create Product'}</CardTitle>
+        <CardTitle>{isEdit ? 'تعديل المنتج' : 'إنشاء منتج'}</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -147,9 +151,9 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Product Name *</FormLabel>
+                  <FormLabel>اسم المنتج *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter product name" {...field} />
+                    <Input placeholder="أدخل اسم المنتج" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -161,10 +165,10 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>الوصف</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Enter product description"
+                      placeholder="أدخل وصف المنتج"
                       rows={4}
                       {...field}
                     />
@@ -180,7 +184,7 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                 name="price"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Price *</FormLabel>
+                    <FormLabel>السعر *</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -200,7 +204,7 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                 name="discountPrice"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Original Price (optional)</FormLabel>
+                    <FormLabel>السعر الأصلي (اختياري)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -223,11 +227,11 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Category *</FormLabel>
+                    <FormLabel>الفئة *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a category" />
+                          <SelectValue placeholder="اختر فئة" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -248,7 +252,7 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                 name="stock"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Stock *</FormLabel>
+                    <FormLabel>المخزون *</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -268,7 +272,7 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
               name="images"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Product Images *</FormLabel>
+                  <FormLabel>صور المنتج *</FormLabel>
                   <FormControl>
                     <ImageUpload
                       value={field.value}
@@ -283,14 +287,14 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
 
             <div className="flex gap-4">
               <Button type="submit" disabled={loading}>
-                {loading ? 'Saving...' : isEdit ? 'Update Product' : 'Create Product'}
+                {loading ? 'جاري الحفظ...' : isEdit ? 'تحديث المنتج' : 'إنشاء المنتج'}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => router.push('/merchant/products')}
               >
-                Cancel
+                إلغاء
               </Button>
             </div>
           </form>

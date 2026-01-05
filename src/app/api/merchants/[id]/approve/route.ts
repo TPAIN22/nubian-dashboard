@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { axiosInstance } from '@/lib/axiosInstance';
+import logger from '@/lib/logger';
 
 export async function PATCH(
   request: Request,
@@ -29,7 +30,11 @@ export async function PATCH(
 
     return NextResponse.json(response.data);
   } catch (error: any) {
-    console.error('Error approving merchant:', error);
+    logger.error('Error approving merchant', { 
+      merchantId: params.id,
+      error: error instanceof Error ? error.message : String(error),
+      status: error.response?.status 
+    });
     return NextResponse.json(
       { message: error.response?.data?.message || 'Failed to approve merchant' },
       { status: error.response?.status || 500 }

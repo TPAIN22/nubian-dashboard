@@ -82,47 +82,47 @@ const data = {
   ],
   navClouds: [
     {
-      title: "Capture",
+      title: "التقاط",
       icon: IconCamera,
       isActive: true,
       url: "#",
       items: [
         {
-          title: "Active Proposals",
+          title: "الاقتراحات النشطة",
           url: "#",
         },
         {
-          title: "Archived",
+          title: "المؤرشفة",
           url: "#",
         },
       ],
     },
     {
-      title: "Proposal",
+      title: "اقتراح",
       icon: IconFileDescription,
       url: "#",
       items: [
         {
-          title: "Active Proposals",
+          title: "الاقتراحات النشطة",
           url: "#",
         },
         {
-          title: "Archived",
+          title: "المؤرشفة",
           url: "#",
         },
       ],
     },
     {
-      title: "Prompts",
+      title: "الموجهات",
       icon: IconFileAi,
       url: "#",
       items: [
         {
-          title: "Active Proposals",
+          title: "الاقتراحات النشطة",
           url: "#",
         },
         {
-          title: "Archived",
+          title: "المؤرشفة",
           url: "#",
         },
       ],
@@ -144,7 +144,7 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
+    <Sidebar collapsible="offcanvas" side="right" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>

@@ -19,11 +19,12 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import logger from '@/lib/logger'
 
 const formSchema = z.object({
-  businessName: z.string().min(1, 'Business name is required'),
+  businessName: z.string().min(1, 'اسم العمل مطلوب'),
   businessDescription: z.string().optional(),
-  businessEmail: z.string().email('Invalid email address'),
+  businessEmail: z.string().email('عنوان بريد إلكتروني غير صحيح'),
   businessPhone: z.string().optional(),
   businessAddress: z.string().optional(),
 })
@@ -57,12 +58,15 @@ export default function MerchantSettingsPage() {
           businessAddress: merchant.businessAddress || '',
         })
       } catch (error: any) {
-        console.error('Error fetching profile:', error)
+        logger.error('Error fetching profile', { 
+          error: error instanceof Error ? error.message : String(error),
+          status: error.response?.status 
+        })
         if (error.response?.status === 404) {
           router.push('/merchant/apply')
           return
         }
-        toast.error('Failed to load profile')
+        toast.error('فشل تحميل الملف الشخصي')
       } finally {
         setLoading(false)
       }
@@ -75,10 +79,13 @@ export default function MerchantSettingsPage() {
     setSaving(true)
     try {
       await axiosInstance.put('/merchants/my-profile', values)
-      toast.success('Profile updated successfully')
+      toast.success('تم تحديث الملف الشخصي بنجاح')
     } catch (error: any) {
-      console.error('Error updating profile:', error)
-      toast.error(error.response?.data?.message || 'Failed to update profile')
+      logger.error('Error updating profile', { 
+        error: error instanceof Error ? error.message : String(error),
+        status: error.response?.status 
+      })
+      toast.error(error.response?.data?.message || 'فشل تحديث الملف الشخصي')
     } finally {
       setSaving(false)
     }
@@ -87,18 +94,18 @@ export default function MerchantSettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-lg">Loading...</div>
+        <div className="text-lg">جاري التحميل...</div>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-4 h-full sm:mx-12 mx-2">
-      <h1 className="text-2xl font-bold">Store Settings</h1>
+    <div className="flex flex-col gap-4 h-full sm:mx-12 mx-2 py-4">
+      <h1 className="text-2xl font-bold">إعدادات المتجر</h1>
       
       <Card>
         <CardHeader>
-          <CardTitle>Business Information</CardTitle>
+          <CardTitle>معلومات العمل</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -108,9 +115,9 @@ export default function MerchantSettingsPage() {
                 name="businessName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Business Name *</FormLabel>
+                    <FormLabel>اسم العمل *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter business name" {...field} />
+                      <Input placeholder="أدخل اسم العمل" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -122,7 +129,7 @@ export default function MerchantSettingsPage() {
                 name="businessEmail"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Business Email *</FormLabel>
+                    <FormLabel>البريد الإلكتروني للعمل *</FormLabel>
                     <FormControl>
                       <Input type="email" placeholder="business@example.com" {...field} />
                     </FormControl>
@@ -136,9 +143,9 @@ export default function MerchantSettingsPage() {
                 name="businessPhone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Business Phone</FormLabel>
+                    <FormLabel>هاتف العمل</FormLabel>
                     <FormControl>
-                      <Input type="tel" placeholder="+1234567890" {...field} />
+                      <Input type="tel" placeholder="+249123456789" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -150,10 +157,10 @@ export default function MerchantSettingsPage() {
                 name="businessDescription"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Business Description</FormLabel>
+                    <FormLabel>وصف العمل</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Tell us about your business..."
+                        placeholder="أخبرنا عن عملك..."
                         rows={4}
                         {...field}
                       />
@@ -168,10 +175,10 @@ export default function MerchantSettingsPage() {
                 name="businessAddress"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Business Address</FormLabel>
+                    <FormLabel>عنوان العمل</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Enter your business address"
+                        placeholder="أدخل عنوان عملك"
                         rows={2}
                         {...field}
                       />
@@ -183,14 +190,14 @@ export default function MerchantSettingsPage() {
 
               <div className="flex gap-4">
                 <Button type="submit" disabled={saving}>
-                  {saving ? 'Saving...' : 'Save Changes'}
+                  {saving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => router.back()}
                 >
-                  Cancel
+                  إلغاء
                 </Button>
               </div>
             </form>

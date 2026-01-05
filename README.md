@@ -145,6 +145,20 @@ This frontend connects to the Nubian API backend. Make sure the API server is ru
 
 ISC
 
+## Dashboard Access
+
+### Admin Dashboard
+- **URL**: `/buseniss/dashboard`
+- **Requirements**: Clerk user with `publicMetadata.role = "admin"`
+- **Setup**: See [ADMIN_DASHBOARD_ACCESS.md](./ADMIN_DASHBOARD_ACCESS.md) for detailed instructions
+
+### Merchant Dashboard
+- **URL**: `/merchant/dashboard`
+- **Requirements**: 
+  - Clerk user with `publicMetadata.role = "merchant"`
+  - Merchant application approved in the system
+- **Application**: `/merchant/apply`
+
 ## Support
 
 For issues and questions, please contact the development team.

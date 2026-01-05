@@ -5,7 +5,17 @@ import logger from "./logger";
 // This should be set via NEXT_PUBLIC_API_URL in .env.local
 // Example: NEXT_PUBLIC_API_URL=http://localhost:5000/api (development)
 //          NEXT_PUBLIC_API_URL=https://nubian-lne4.onrender.com/api (production)
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+let apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+// Normalize API URL - ensure it ends with /api
+if (apiUrl) {
+  // Remove trailing slash if present
+  apiUrl = apiUrl.replace(/\/$/, '');
+  // Add /api if not already present
+  if (!apiUrl.endsWith('/api')) {
+    apiUrl = `${apiUrl}/api`;
+  }
+}
 
 // Validate API URL is set (envValidator also checks this, but this provides immediate feedback)
 if (!apiUrl) {
@@ -29,10 +39,12 @@ axiosInstance.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
         // Log request in development
         if (process.env.NODE_ENV === 'development') {
+            const fullUrl = `${config.baseURL}${config.url}`;
             logger.debug('API Request', {
                 method: config.method?.toUpperCase(),
                 url: config.url,
                 baseURL: config.baseURL,
+                fullUrl: fullUrl,
             });
         }
         return config;
@@ -83,8 +95,15 @@ axiosInstance.interceptors.response.use(
             }
         } else if (error.request) {
             // Request was made but no response received
+            const fullUrl = error.config ? `${error.config.baseURL}${error.config.url}` : 'unknown';
             logger.error('Network error - No response received', {
                 url: error.config?.url,
+                baseURL: error.config?.baseURL,
+                fullUrl: fullUrl,
+                code: error.code,
+                suggestion: !apiUrl 
+                    ? 'NEXT_PUBLIC_API_URL is not set in .env.local'
+                    : 'Check if the backend server is running and accessible',
             });
         } else {
             // Something else happened

@@ -1,9 +1,11 @@
 'use client'
 
-import { useUser } from '@clerk/nextjs'
+import { useUser, useAuth } from '@clerk/nextjs'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { axiosInstance } from '@/lib/axiosInstance'
+import { Button } from '@/components/ui/button'
+import logger from '@/lib/logger'
 
 interface Merchant {
   _id: string
@@ -15,6 +17,7 @@ interface Merchant {
 
 export default function MerchantPending() {
   const { user, isLoaded } = useUser()
+  const { getToken } = useAuth()
   const router = useRouter()
   const [merchant, setMerchant] = useState<Merchant | null>(null)
   const [loading, setLoading] = useState(true)
@@ -24,7 +27,12 @@ export default function MerchantPending() {
 
     const checkMerchantStatus = async () => {
       try {
-        const response = await axiosInstance.get('/merchants/my-status')
+        const token = await getToken()
+        const response = await axiosInstance.get('/merchants/my-status', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
         if (response.data.hasApplication) {
           const merchantData = response.data.merchant
           setMerchant(merchantData)
@@ -40,7 +48,10 @@ export default function MerchantPending() {
           return
         }
       } catch (error: any) {
-        console.error('Error checking merchant status:', error)
+        logger.error('Error checking merchant status', { 
+          error: error instanceof Error ? error.message : String(error),
+          status: error.response?.status 
+        })
         if (error.response?.status === 404) {
           router.push('/merchant/apply')
           return
@@ -56,7 +67,7 @@ export default function MerchantPending() {
   if (!isLoaded || loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-lg">Loading...</div>
+        <div className="text-lg">جاري التحميل...</div>
       </div>
     )
   }
@@ -67,7 +78,7 @@ export default function MerchantPending() {
 
   return (
     <div className="flex items-center justify-center min-h-screen p-6">
-      <div className="max-w-md w-full rounded-lg border bg-card p-8 text-center">
+      <div className="max-w-md w-full rounded-lg border bg-card p-8 text-center shadow-sm">
         {merchant.status === 'PENDING' && (
           <>
             <div className="mb-4">
@@ -87,15 +98,15 @@ export default function MerchantPending() {
                 </svg>
               </div>
             </div>
-            <h1 className="text-2xl font-bold mb-2">Application Under Review</h1>
+            <h1 className="text-2xl font-bold mb-2">الطلب قيد المراجعة</h1>
             <p className="text-muted-foreground mb-4">
-              Your merchant application for <strong>{merchant.businessName}</strong> is currently being reviewed by our team.
+              طلب التاجر الخاص بك لـ <strong>{merchant.businessName}</strong> قيد المراجعة حالياً من قبل فريقنا.
             </p>
             <p className="text-sm text-muted-foreground">
-              We'll notify you once your application has been processed. This usually takes 1-2 business days.
+              سنخطرك بمجرد معالجة طلبك. عادة ما يستغرق هذا 1-2 يوم عمل.
             </p>
             <p className="text-xs text-muted-foreground mt-4">
-              Applied on: {new Date(merchant.appliedAt).toLocaleDateString()}
+              تاريخ التقديم: {new Date(merchant.appliedAt).toLocaleDateString('ar-SA')}
             </p>
           </>
         )}
@@ -119,22 +130,22 @@ export default function MerchantPending() {
                 </svg>
               </div>
             </div>
-            <h1 className="text-2xl font-bold mb-2">Application Rejected</h1>
+            <h1 className="text-2xl font-bold mb-2">تم رفض الطلب</h1>
             <p className="text-muted-foreground mb-4">
-              Unfortunately, your merchant application for <strong>{merchant.businessName}</strong> has been rejected.
+              للأسف، تم رفض طلب التاجر الخاص بك لـ <strong>{merchant.businessName}</strong>.
             </p>
             {merchant.rejectionReason && (
-              <div className="bg-muted p-4 rounded-lg mb-4 text-left">
-                <p className="text-sm font-medium mb-2">Reason:</p>
+              <div className="bg-muted p-4 rounded-lg mb-4 text-right">
+                <p className="text-sm font-medium mb-2">السبب:</p>
                 <p className="text-sm text-muted-foreground">{merchant.rejectionReason}</p>
               </div>
             )}
-            <button
+            <Button
               onClick={() => router.push('/merchant/apply')}
-              className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+              className="mt-4"
             >
-              Apply Again
-            </button>
+              التقديم مرة أخرى
+            </Button>
           </>
         )}
       </div>

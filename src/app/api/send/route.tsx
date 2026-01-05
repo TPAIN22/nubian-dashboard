@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { OrderStatusUpdateEmail } from '@/components/email-send';
+import logger from '@/lib/logger';
 
 // Define interfaces for the product structures
 interface ProductWithNestedProduct {
@@ -23,16 +24,23 @@ type ProductInput = ProductWithNestedProduct | ProductDirect;
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: NextRequest) {
+  // Capture orderNumber early for error logging (request body can only be read once)
+  let orderNumber: string | undefined;
+  let requestData: any = null;
+  
   try {
+    requestData = await request.json();
     const {
       user,
-      orderNumber,
+      orderNumber: orderNum,
       totalAmount,
       products, 
       oldStatus,
       newStatus,
       paymentStatus,
-    } = await request.json();
+    } = requestData;
+    
+    orderNumber = orderNum;
 
     if (
       !user?.emailAddress ||
@@ -104,12 +112,12 @@ export async function POST(request: NextRequest) {
     // Log error without exposing sensitive details
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     
-    // In production, log to error tracking service instead of console
-    if (process.env.NODE_ENV === 'production') {
-      // errorTrackingService.captureException(error);
-    } else {
-      console.error('Error sending email notification:', errorMessage);
-    }
+    // Log error using proper logger
+    // Use captured orderNumber from requestData (request body can only be read once)
+    logger.error('Error sending email notification', { 
+      error: errorMessage,
+      orderNumber: orderNumber || requestData?.orderNumber || 'unknown'
+    });
     
     return NextResponse.json(
       { message: 'Error sending email notification.' },

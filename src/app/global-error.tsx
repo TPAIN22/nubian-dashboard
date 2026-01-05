@@ -24,15 +24,15 @@ export default function GlobalError({
       <body>
         <div className="flex min-h-screen flex-col items-center justify-center p-4">
           <div className="max-w-md w-full space-y-4 text-center">
-            <h1 className="text-2xl font-bold">Application Error</h1>
+            <h1 className="text-2xl font-bold">خطأ في التطبيق</h1>
             <p className="text-muted-foreground">
-              A critical error occurred. Please refresh the page or contact support.
+              حدث خطأ حرج. يرجى تحديث الصفحة أو الاتصال بالدعم.
             </p>
             <button
               onClick={reset}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
             >
-              Try again
+              حاول مرة أخرى
             </button>
           </div>
         </div>

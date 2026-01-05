@@ -1,20 +1,45 @@
 'use client'
 
-import { useUser } from '@clerk/nextjs'
+import { useUser, useAuth } from '@clerk/nextjs'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { axiosInstance } from '@/lib/axiosInstance'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
+import logger from '@/lib/logger'
+import { 
+  Building2, 
+  Mail, 
+  Phone, 
+  FileText, 
+  MapPin, 
+  CheckCircle2,
+  Store,
+  TrendingUp,
+  Shield,
+  Clock
+} from 'lucide-react'
+
+interface Merchant {
+  _id: string
+  businessName: string
+  status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  rejectionReason?: string
+  appliedAt: string
+}
 
 export default function MerchantApply() {
   const { user, isLoaded } = useUser()
+  const { getToken } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [checking, setChecking] = useState(true)
+  const [submitted, setSubmitted] = useState(false)
+  const [merchant, setMerchant] = useState<Merchant | null>(null)
   const [formData, setFormData] = useState({
     businessName: '',
     businessDescription: '',
@@ -28,19 +53,33 @@ export default function MerchantApply() {
 
     const checkExistingApplication = async () => {
       try {
-        const response = await axiosInstance.get('/merchants/my-status')
+        const token = await getToken()
+        if (!token) {
+          setChecking(false)
+          return
+        }
+        
+        const response = await axiosInstance.get('/merchants/my-status', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
         if (response.data.hasApplication) {
-          const merchant = response.data.merchant
-          if (merchant.status === 'APPROVED') {
+          const merchantData = response.data.merchant
+          setMerchant(merchantData)
+          if (merchantData.status === 'APPROVED') {
             router.push('/merchant/dashboard')
           } else {
-            router.push('/merchant/pending')
+            setSubmitted(true)
           }
           return
         }
       } catch (error: any) {
         if (error.response?.status !== 404) {
-          console.error('Error checking merchant status:', error)
+          logger.error('Error checking merchant status', { 
+            error: error instanceof Error ? error.message : String(error),
+            status: error.response?.status 
+          })
         }
       } finally {
         setChecking(false)
@@ -55,12 +94,106 @@ export default function MerchantApply() {
     setLoading(true)
 
     try {
-      const response = await axiosInstance.post('/merchants/apply', formData)
-      toast.success('Application submitted successfully!')
-      router.push('/merchant/pending')
+      // Validate required fields
+      if (!formData.businessName || !formData.businessEmail) {
+        toast.error('يرجى ملء جميع الحقول المطلوبة')
+        setLoading(false)
+        return
+      }
+
+      const token = await getToken()
+      
+      if (!token) {
+        toast.error('فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.')
+        setLoading(false)
+        return
+      }
+
+      logger.debug('Submitting application', { 
+        businessName: formData.businessName,
+        apiUrl: process.env.NEXT_PUBLIC_API_URL || 'Not configured'
+      })
+      
+      const response = await axiosInstance.post('/merchants/apply', formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      
+      logger.info('Application submitted successfully', { merchantId: response.data?._id })
+      toast.success('تم إرسال الطلب بنجاح!')
+      
+      // Fetch the merchant status to display
+      try {
+        const statusResponse = await axiosInstance.get('/merchants/my-status', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        if (statusResponse.data.hasApplication) {
+          setMerchant(statusResponse.data.merchant)
+          setSubmitted(true)
+        } else {
+          // Application was submitted but status endpoint doesn't return it yet
+          // Set submitted to true to show success state
+          setSubmitted(true)
+        }
+      } catch (statusError) {
+        logger.error('Error fetching status after submission', { 
+          error: statusError instanceof Error ? statusError.message : String(statusError) 
+        })
+        // Application was successfully submitted, show success state even if status fetch fails
+        // Create a minimal merchant object from the POST response if available
+        if (response.data?._id) {
+          setMerchant({
+            _id: response.data._id,
+            businessName: formData.businessName,
+            status: 'PENDING',
+            appliedAt: new Date().toISOString(),
+          })
+        }
+        setSubmitted(true)
+      }
     } catch (error: any) {
-      console.error('Error submitting application:', error)
-      toast.error(error.response?.data?.message || 'Failed to submit application')
+      logger.error('Error submitting application', { 
+        error: error instanceof Error ? error.message : String(error),
+        status: error.response?.status,
+        responseData: error.response?.data
+      })
+      
+      // More detailed error messages
+      if (error.response?.status === 401) {
+        toast.error('فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.')
+      } else if (error.response?.status === 400) {
+        toast.error(error.response?.data?.message || 'بيانات الطلب غير صحيحة. يرجى التحقق من معلوماتك.')
+      } else if (error.response?.status === 409 || error.response?.data?.message?.includes('already')) {
+        toast.error('لديك بالفعل طلب تاجر. يرجى التحقق من حالة طلبك.')
+        router.push('/merchant/pending')
+      } else if (error.response?.data?.message) {
+        toast.error(error.response.data.message)
+      } else if (error.request) {
+        // Network error - no response received
+        logger.error('Network error details', {
+          message: error.message,
+          code: error.code,
+          url: error.config?.url,
+          baseURL: error.config?.baseURL,
+          method: error.config?.method,
+        })
+        
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL
+        if (!apiUrl) {
+          toast.error('خادم API غير مُكوّن. يرجى تعيين NEXT_PUBLIC_API_URL في ملف .env.local')
+        } else {
+          const fullUrl = `${apiUrl}/merchants/apply`
+          toast.error(
+            `خطأ في الشبكة: لا يمكن الاتصال بخادم API على ${fullUrl}. ` +
+            `يرجى التأكد من: 1) تشغيل الخادم الخلفي، 2) صحة عنوان API في .env.local`
+          )
+        }
+      } else {
+        toast.error('فشل إرسال الطلب. يرجى المحاولة مرة أخرى.')
+      }
     } finally {
       setLoading(false)
     }
@@ -68,83 +201,431 @@ export default function MerchantApply() {
 
   if (!isLoaded || checking) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-lg">Loading...</div>
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-50 via-white to-amber-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
+          <div className="text-lg text-slate-600">جاري التحميل...</div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show status if application was submitted (even if merchant data fetch failed)
+  if (submitted) {
+    // If merchant data is not available, show a generic success message
+    if (!merchant) {
+      return (
+        <div className="w-full bg-gradient-to-br from-slate-50 via-white to-amber-50 py-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-8">
+              <div className="flex justify-center mb-6">
+                <div className="relative w-24 h-24 bg-white rounded-full p-3 shadow-lg ring-4 ring-amber-100">
+                  <Image 
+                    src="/logo.png" 
+                    alt="Nubian Logo" 
+                    width={80} 
+                    height={80} 
+                    className="object-contain"
+                    priority
+                  />
+                </div>
+              </div>
+              <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
+                تم إرسال الطلب بنجاح!
+              </h1>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-xl border border-slate-200 p-8 md:p-10">
+              <div className="text-center mb-6">
+                <div className="mx-auto w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center mb-4">
+                  <CheckCircle2 className="w-10 h-10 text-green-600 dark:text-green-400" />
+                </div>
+                <h2 className="text-3xl font-bold text-slate-900 mb-2">تم استلام طلبك</h2>
+                <p className="text-slate-600 text-lg">
+                  تم إرسال طلب التاجر الخاص بك بنجاح. سيقوم فريقنا بمراجعته خلال 1-2 يوم عمل.
+                </p>
+              </div>
+              
+              <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg p-6 mb-6">
+                <div className="flex items-start gap-4">
+                  <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-slate-900 mb-2">ماذا يحدث بعد ذلك؟</h3>
+                    <ul className="space-y-2 text-slate-600 text-sm">
+                      <li>• سيقوم فريقنا بمراجعة طلبك خلال 1-2 يوم عمل</li>
+                      <li>• سنخطرك عبر البريد الإلكتروني بمجرد معالجة طلبك</li>
+                      <li>• يمكنك التحقق من حالة طلبك من خلال زيارة هذه الصفحة مرة أخرى</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-4 justify-center">
+                <Button
+                  onClick={() => router.push('/')}
+                  variant="outline"
+                  className="px-6"
+                >
+                  العودة للرئيسية
+                </Button>
+                <Button
+                  onClick={() => {
+                    setSubmitted(false)
+                    setMerchant(null)
+                    // Reload the page to check status
+                    window.location.reload()
+                  }}
+                  className="px-6 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                >
+                  التحقق من الحالة
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Show detailed status if merchant data is available
+    return (
+      <div className="w-full bg-gradient-to-br from-slate-50 via-white to-amber-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Header Section with Logo */}
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-6">
+              <div className="relative w-24 h-24 bg-white rounded-full p-3 shadow-lg ring-4 ring-amber-100">
+                <Image 
+                  src="/logo.png" 
+                  alt="Nubian Logo" 
+                  width={80} 
+                  height={80} 
+                  className="object-contain"
+                  priority
+                />
+              </div>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
+              حالة الطلب
+            </h1>
+          </div>
+
+          {/* Status Display */}
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200 p-8 md:p-10">
+            {merchant.status === 'PENDING' && (
+              <>
+                <div className="text-center mb-6">
+                  <div className="mx-auto w-20 h-20 rounded-full bg-yellow-100 dark:bg-yellow-900/20 flex items-center justify-center mb-4">
+                    <Clock className="w-10 h-10 text-yellow-600 dark:text-yellow-400" />
+                  </div>
+                  <h2 className="text-3xl font-bold text-slate-900 mb-2">الطلب قيد المراجعة</h2>
+                  <p className="text-slate-600 text-lg">
+                    طلب التاجر الخاص بك لـ <strong className="text-slate-900">{merchant.businessName}</strong> قيد المراجعة حالياً من قبل فريقنا.
+                  </p>
+                </div>
+                
+                <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg p-6 mb-6">
+                  <div className="flex items-start gap-4">
+                    <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400 mt-0.5" />
+                    <div>
+                      <h3 className="font-semibold text-slate-900 mb-2">ماذا يحدث بعد ذلك؟</h3>
+                      <ul className="space-y-2 text-slate-600 text-sm">
+                        <li>• سيقوم فريقنا بمراجعة طلبك خلال 1-2 يوم عمل</li>
+                        <li>• سنخطرك عبر البريد الإلكتروني بمجرد معالجة طلبك</li>
+                        <li>• يمكنك التحقق من حالة طلبك هنا في أي وقت</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-200 pt-6">
+                  <div className="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-slate-500 mb-1">اسم العمل</p>
+                      <p className="font-medium text-slate-900">{merchant.businessName}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 mb-1">تاريخ التقديم</p>
+                      <p className="font-medium text-slate-900">
+                        {new Date(merchant.appliedAt).toLocaleDateString('ar-SA', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {merchant.status === 'REJECTED' && (
+              <>
+                <div className="text-center mb-6">
+                  <div className="mx-auto w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-4">
+                    <svg
+                      className="w-10 h-10 text-red-600 dark:text-red-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </div>
+                  <h2 className="text-3xl font-bold text-slate-900 mb-2">تم رفض الطلب</h2>
+                  <p className="text-slate-600 text-lg">
+                    للأسف، تم رفض طلب التاجر الخاص بك لـ <strong className="text-slate-900">{merchant.businessName}</strong>.
+                  </p>
+                </div>
+
+                {merchant.rejectionReason && (
+                  <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-6 mb-6">
+                    <h3 className="font-semibold text-slate-900 mb-2 flex items-center gap-2">
+                      <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      سبب الرفض
+                    </h3>
+                    <p className="text-slate-700 dark:text-slate-300">{merchant.rejectionReason}</p>
+                  </div>
+                )}
+
+                <div className="flex gap-4 justify-center">
+                  <Button
+                    onClick={() => {
+                      setSubmitted(false)
+                      setMerchant(null)
+                      setFormData({
+                        businessName: '',
+                        businessDescription: '',
+                        businessEmail: user?.primaryEmailAddress?.emailAddress || '',
+                        businessPhone: '',
+                        businessAddress: '',
+                      })
+                    }}
+                    variant="outline"
+                    className="px-6"
+                  >
+                    تعديل الطلب
+                  </Button>
+                  <Button
+                    onClick={() => router.push('/merchant/apply')}
+                    className="px-6 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                  >
+                    التقديم مرة أخرى
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-6">
-      <div className="max-w-2xl w-full">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Become a Merchant</h1>
-          <p className="text-muted-foreground">
-            Fill out the form below to apply for a merchant account. Our team will review your application.
+    <div className="w-full bg-gradient-to-br from-slate-50 via-white to-amber-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Header Section with Logo */}
+        <div className="text-center mb-12">
+          <div className="flex justify-center mb-6">
+            <div className="relative w-24 h-24 bg-white rounded-full p-3 shadow-lg ring-4 ring-amber-100">
+              <Image 
+                src="/logo.png" 
+                alt="Nubian Logo" 
+                width={80} 
+                height={80} 
+                className="object-contain"
+                priority
+              />
+            </div>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
+            كن تاجراً في نوبيان
+          </h1>
+          <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+            انضم إلى آلاف التجار الناجحين الذين يبيعون على نوبيان. نمّي عملك ووصل إلى ملايين العملاء.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 rounded-lg border bg-card p-8">
-          <div className="space-y-2">
-            <Label htmlFor="businessName">Business Name *</Label>
-            <Input
-              id="businessName"
-              value={formData.businessName}
-              onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-              required
-              placeholder="Enter your business name"
-            />
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Benefits Section */}
+          <div className="lg:col-span-1 space-y-6">
+            <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+              <h2 className="text-2xl font-bold text-slate-900 mb-6">لماذا تنضم إلى نوبيان؟</h2>
+              <div className="space-y-5">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center">
+                    <Store className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 mb-1">متجرك الخاص</h3>
+                    <p className="text-sm text-slate-600">أنشئ واجهة متجرك وعرض منتجاتك</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 mb-1">نمّي مبيعاتك</h3>
+                    <p className="text-sm text-slate-600">وصل إلى ملايين العملاء وزد إيراداتك</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center">
+                    <Shield className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 mb-1">منصة آمنة</h3>
+                    <p className="text-sm text-slate-600">معالجة دفع آمنة وموثوقة</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center">
+                    <Clock className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900 mb-1">موافقة سريعة</h3>
+                    <p className="text-sm text-slate-600">احصل على الموافقة خلال 1-2 يوم عمل</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl shadow-lg p-6 text-white">
+              <h3 className="font-bold text-lg mb-2">جاهز للبدء؟</h3>
+              <p className="text-sm opacity-90 mb-4">
+                املأ نموذج الطلب وسيقوم فريقنا بمراجعته بسرعة. نحن هنا لمساعدتك على النجاح!
+              </p>
+              <div className="flex items-center gap-2 text-sm">
+                <CheckCircle2 className="w-5 h-5" />
+                <span>التقديم مجاني</span>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="businessEmail">Business Email *</Label>
-            <Input
-              id="businessEmail"
-              type="email"
-              value={formData.businessEmail}
-              onChange={(e) => setFormData({ ...formData, businessEmail: e.target.value })}
-              required
-              placeholder="business@example.com"
-            />
-          </div>
+          {/* Application Form */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl shadow-xl border border-slate-200 p-8 md:p-10">
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold text-slate-900 mb-2">نموذج الطلب</h2>
+                <p className="text-slate-600">
+                  يرجى تقديم معلومات دقيقة عن عملك. جميع الحقول المميزة بـ * مطلوبة.
+                </p>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="businessPhone">Business Phone</Label>
-            <Input
-              id="businessPhone"
-              type="tel"
-              value={formData.businessPhone}
-              onChange={(e) => setFormData({ ...formData, businessPhone: e.target.value })}
-              placeholder="+1234567890"
-            />
-          </div>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="businessName" className="text-slate-700 font-medium flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-amber-500" />
+                    اسم العمل *
+                  </Label>
+                  <Input
+                    id="businessName"
+                    value={formData.businessName}
+                    onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                    required
+                    placeholder="أدخل اسم عملك"
+                    className="h-11 border-slate-300 focus:border-amber-500 focus:ring-amber-500"
+                  />
+                </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="businessDescription">Business Description</Label>
-            <Textarea
-              id="businessDescription"
-              value={formData.businessDescription}
-              onChange={(e) => setFormData({ ...formData, businessDescription: e.target.value })}
-              placeholder="Tell us about your business..."
-              rows={4}
-            />
-          </div>
+                <div className="space-y-2">
+                  <Label htmlFor="businessEmail" className="text-slate-700 font-medium flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-amber-500" />
+                    البريد الإلكتروني للعمل *
+                  </Label>
+                  <Input
+                    id="businessEmail"
+                    type="email"
+                    value={formData.businessEmail}
+                    onChange={(e) => setFormData({ ...formData, businessEmail: e.target.value })}
+                    required
+                    placeholder="business@example.com"
+                    className="h-11 border-slate-300 focus:border-amber-500 focus:ring-amber-500"
+                  />
+                </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="businessAddress">Business Address</Label>
-            <Textarea
-              id="businessAddress"
-              value={formData.businessAddress}
-              onChange={(e) => setFormData({ ...formData, businessAddress: e.target.value })}
-              placeholder="Enter your business address"
-              rows={2}
-            />
-          </div>
+                <div className="space-y-2">
+                  <Label htmlFor="businessPhone" className="text-slate-700 font-medium flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-amber-500" />
+                    هاتف العمل
+                  </Label>
+                  <Input
+                    id="businessPhone"
+                    type="tel"
+                    value={formData.businessPhone}
+                    onChange={(e) => setFormData({ ...formData, businessPhone: e.target.value })}
+                    placeholder="+249123456789"
+                    className="h-11 border-slate-300 focus:border-amber-500 focus:ring-amber-500"
+                  />
+                </div>
 
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? 'Submitting...' : 'Submit Application'}
-          </Button>
-        </form>
+                <div className="space-y-2">
+                  <Label htmlFor="businessDescription" className="text-slate-700 font-medium flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-amber-500" />
+                    وصف العمل
+                  </Label>
+                  <Textarea
+                    id="businessDescription"
+                    value={formData.businessDescription}
+                    onChange={(e) => setFormData({ ...formData, businessDescription: e.target.value })}
+                    placeholder="أخبرنا عن عملك ومنتجاتك وما يميزك..."
+                    rows={4}
+                    className="border-slate-300 focus:border-amber-500 focus:ring-amber-500 resize-none"
+                  />
+                  <p className="text-xs text-slate-500">ساعدنا على فهم عملك بشكل أفضل</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="businessAddress" className="text-slate-700 font-medium flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-amber-500" />
+                    عنوان العمل
+                  </Label>
+                  <Textarea
+                    id="businessAddress"
+                    value={formData.businessAddress}
+                    onChange={(e) => setFormData({ ...formData, businessAddress: e.target.value })}
+                    placeholder="أدخل عنوان عملك"
+                    rows={2}
+                    className="border-slate-300 focus:border-amber-500 focus:ring-amber-500 resize-none"
+                  />
+                </div>
+
+                <div className="pt-4">
+                  <Button 
+                    type="submit" 
+                    disabled={loading} 
+                    className="w-full h-12 text-base font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                  >
+                    {loading ? (
+                      <span className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        جاري الإرسال...
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <CheckCircle2 className="w-5 h-5" />
+                        إرسال الطلب
+                      </span>
+                    )}
+                  </Button>
+                  <p className="text-xs text-center text-slate-500 mt-4">
+                    بالتقديم، أنت توافق على الشروط والأحكام. سنراجع طلبك خلال 1-2 يوم عمل.
+                  </p>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

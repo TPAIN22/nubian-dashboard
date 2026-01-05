@@ -2,6 +2,7 @@
 import { getUploadAuthParams } from "@imagekit/next/server"
 import { auth } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
+import logger from "@/lib/logger"
 
 export async function GET() {
     try {
@@ -20,6 +21,10 @@ export async function GET() {
         const publicKey = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY
 
         if (!privateKey || !publicKey) {
+            logger.error("ImageKit configuration missing", { 
+                hasPrivateKey: !!privateKey, 
+                hasPublicKey: !!publicKey 
+            })
             return NextResponse.json(
                 { error: "ImageKit configuration missing" },
                 { status: 500 }
@@ -40,7 +45,10 @@ export async function GET() {
             publicKey: publicKey 
         })
     } catch (error) {
-        console.error("Error generating upload auth:", error)
+        logger.error("Error generating upload auth", { 
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined
+        })
         return NextResponse.json(
             { error: "Internal server error" },
             { status: 500 }

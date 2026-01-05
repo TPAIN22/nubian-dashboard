@@ -4,6 +4,17 @@ const nextConfig: NextConfig = {
   // Enable compression for better performance
   compress: true,
   
+  // Webpack configuration for better chunk handling
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+      };
+    }
+    return config;
+  },
+  
   // Optimize images
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -14,6 +25,28 @@ const nextConfig: NextConfig = {
 
   // Headers for SEO and security
   async headers() {
+    // Build CSP based on environment
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const cspDirectives = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.accounts.dev https://*.clerk.com blob:",
+      "worker-src 'self' blob: https://*.clerk.accounts.dev https://*.clerk.com",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https: blob:",
+      "font-src 'self' data:",
+      "connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.clerk.accounts.dev https://*.clerk.com https://*.imagekit.io",
+      "frame-src 'self' https://*.clerk.accounts.dev",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'self'",
+    ];
+    
+    // Only add upgrade-insecure-requests in production (allows HTTP localhost in dev)
+    if (!isDevelopment) {
+      cspDirectives.push("upgrade-insecure-requests");
+    }
+
     return [
       {
         source: '/:path*',
@@ -48,20 +81,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.accounts.dev",
-              "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: https: blob:",
-              "font-src 'self' data:",
-              "connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://*.imagekit.io",
-              "frame-src 'self' https://*.clerk.accounts.dev",
-              "object-src 'none'",
-              "base-uri 'self'",
-              "form-action 'self'",
-              "frame-ancestors 'self'",
-              "upgrade-insecure-requests",
-            ].join('; ')
+            value: cspDirectives.join('; ')
           },
         ],
       },

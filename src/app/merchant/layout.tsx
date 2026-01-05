@@ -1,10 +1,9 @@
 import type { Metadata } from 'next'
-import { Toaster } from '@/components/ui/sonner'
-import { MerchantSidebarProvider } from '@/components/merchant-sidebar-provider'
+import { MerchantSidebarWrapper } from '@/components/merchant-sidebar-wrapper'
 
 export const metadata: Metadata = {
-  title: 'Merchant Dashboard - Nubian',
-  description: 'Merchant dashboard for managing your store',
+  title: 'لوحة تحكم التاجر - نوبيان',
+  description: 'لوحة تحكم التاجر لإدارة متجرك',
 }
 
 export default function MerchantLayout({
@@ -13,10 +12,9 @@ export default function MerchantLayout({
   children: React.ReactNode
 }>) {
   return (
-    <MerchantSidebarProvider>
+    <MerchantSidebarWrapper>
       {children}
-      <Toaster/>
-    </MerchantSidebarProvider>
+    </MerchantSidebarWrapper>
   )
 }
 

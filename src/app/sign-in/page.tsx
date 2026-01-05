@@ -2,27 +2,74 @@
 
 import ModernNoubian from '@/components/nubian'
 import { useUser } from '@clerk/nextjs'
-import { useRouter } from 'next/navigation'
-import { useCallback } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
+import { useEffect, useRef } from 'react'
+import { SignIn } from '@clerk/nextjs'
 
-export default function GoToDashboardButton() {
+export default function SignInPage() {
   const { user, isLoaded } = useUser()
   const router = useRouter()
+  const pathname = usePathname()
+  const hasRedirected = useRef(false)
 
-  const handleClick = useCallback(() => {
-    if (!isLoaded) return // انتظر تحميل بيانات المستخدم
+  useEffect(() => {
+    // Only run this effect once when user loads and we're on sign-in page
+    if (!isLoaded || hasRedirected.current || pathname !== '/sign-in') return
+    
+    // If user is signed in, redirect based on role
+    if (user) {
+      hasRedirected.current = true
+      const role = user.publicMetadata?.role as string | undefined
 
-    const role = user?.publicMetadata?.role
-
-    if (user && role === 'admin') {
-      router.push('/buseniss/dashboard') // مسؤول عن التنقل للإدارة
-    } else if (user && role === 'merchant') {
-      router.push('/merchant/dashboard') // تاجر ينتقل إلى لوحة تحكم التاجر
-    } else {
-      router.push('/') // يرجع المستخدم العادي أو غير المسجل
+      // Use window.location for a hard redirect to prevent loops
+      if (role === 'admin') {
+        window.location.href = '/buseniss/dashboard'
+        return // Exit early to show redirecting state
+      } else if (role === 'merchant') {
+        window.location.href = '/merchant/dashboard'
+        return // Exit early to show redirecting state
+      } else {
+        // Regular users without special roles - redirect to home
+        window.location.href = '/'
+        return // Exit early to show redirecting state
+      }
     }
-  }, [isLoaded, user, router])
-  // ModernNoubian ظاهر للجميع
-return <ModernNoubian />
+  }, [isLoaded, user, pathname])
 
+  // Show loading while checking auth status
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Loading...</div>
+      </div>
+    )
+  }
+
+  // If user is signed in, show loading while redirecting
+  // This covers all authenticated users (admin, merchant, or regular)
+  if (user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Redirecting...</div>
+      </div>
+    )
+  }
+
+  // Not signed in - show sign-in page
+  return (
+    <div className="flex items-center justify-center min-h-screen p-4">
+      <SignIn 
+        routing="path"
+        path="/sign-in"
+        afterSignInUrl="/"
+        afterSignUpUrl="/"
+        appearance={{
+          elements: {
+            rootBox: "mx-auto",
+            card: "shadow-lg"
+          }
+        }}
+      />
+    </div>
+  )
 }
