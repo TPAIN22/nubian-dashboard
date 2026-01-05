@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -39,7 +39,7 @@ const formSchema = z.object({
   stock: z.number().min(0, 'Stock cannot be negative'),
   sizes: z.array(z.string()).optional(),
   images: z.array(z.string()).min(1, 'At least one image is required'),
-  isActive: z.boolean().default(true),
+  isActive: z.boolean().optional(),
 })
 
 interface Category {
@@ -104,6 +104,10 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       fetchProduct()
     }
   }, [productId, form])
+
+  const handleUploadDone = useCallback((urls: string[]) => {
+    form.setValue('images', urls, { shouldValidate: true })
+  }, [form])
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!values.images || values.images.length < 1) {
@@ -267,23 +271,15 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="images"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>صور المنتج *</FormLabel>
-                  <FormControl>
-                    <ImageUpload
-                      value={field.value}
-                      onChange={field.onChange}
-                      maxImages={5}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+            <div>
+              <Label className="mb-2 block">صور المنتج *</Label>
+              <ImageUpload onUploadComplete={handleUploadDone} />
+              {form.formState.errors.images && (
+                <p className="text-sm font-medium text-destructive mt-1">
+                  {form.formState.errors.images.message}
+                </p>
               )}
-            />
+            </div>
 
             <div className="flex gap-4">
               <Button type="submit" disabled={loading}>
