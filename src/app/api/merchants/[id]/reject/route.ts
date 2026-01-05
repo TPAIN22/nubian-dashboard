@@ -5,7 +5,7 @@ import logger from '@/lib/logger';
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { getToken } = await auth();
@@ -18,11 +18,12 @@ export async function PATCH(
       );
     }
 
+    const { id } = await params;
     const body = await request.json();
     const { rejectionReason } = body;
 
     const response = await axiosInstance.patch(
-      `/merchants/${params.id}/reject`,
+      `/merchants/${id}/reject`,
       { rejectionReason },
       {
         headers: {
@@ -33,8 +34,9 @@ export async function PATCH(
 
     return NextResponse.json(response.data);
   } catch (error: any) {
+    const { id } = await params;
     logger.error('Error rejecting merchant', { 
-      merchantId: params.id,
+      merchantId: id,
       error: error instanceof Error ? error.message : String(error),
       status: error.response?.status 
     });
