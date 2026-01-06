@@ -44,13 +44,21 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/" className="hover:text-amber-500 transition-colors">
+                <Link href="/about" className="hover:text-amber-500 transition-colors">
                   عن نوبيان
                 </Link>
               </li>
               <li>
-                <Link href="/" className="hover:text-amber-500 transition-colors">
+                <Link href="/contact" className="hover:text-amber-500 transition-colors">
                   اتصل بنا
+                </Link>
+              </li>
+              <li>
+                <Link href="/dashboards" className="hover:text-amber-500 transition-colors font-medium flex items-center gap-2">
+                  <span>لوحة التحكم</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </Link>
               </li>
             </ul>

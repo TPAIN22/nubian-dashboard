@@ -13,11 +13,11 @@ import { features, stats, testimonials, Stat, Feature, Testimonial } from "./dat
 
 export default function ModernNoubian() {
   return (
-    <div dir="rtl" className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 overflow-hidden">
+    <div dir="rtl" className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
       <Header />
       <AnimatedBackground />
 
-      <main className="relative z-10 px-6 md:px-12 max-w-7xl mx-auto">
+      <main className="relative z-10">
         <HeroSection stats={stats} />
         <FeaturesSection features={features} />
         <TestimonialsSection testimonials={testimonials} />

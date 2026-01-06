@@ -4,8 +4,9 @@ import { ArrowRight } from "lucide-react";
 
 export default function CtaSection() {
   return (
-    <section className="py-24">
-      <div className="relative">
+    <section className="py-24 px-6 md:px-12">
+      <div className="max-w-7xl mx-auto">
+        <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl" />
         <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-3xl" />
         <div className="relative z-10 text-center py-16 px-8 text-white">
@@ -30,6 +31,7 @@ export default function CtaSection() {
             </Button>
           </div>
         </div>
+      </div>
       </div>
     </section>
   );

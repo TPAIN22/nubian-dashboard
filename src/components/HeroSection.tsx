@@ -13,8 +13,9 @@ interface HeroSectionProps {
 // استخدام الـ props في المكون
 export default function HeroSection({ stats }: HeroSectionProps) {
   return (
-    <section className="min-h-screen flex flex-col justify-center py-20">
-      <div className="grid lg:grid-cols-2 gap-16 items-center">
+    <section className="min-h-screen flex flex-col justify-center py-20 pt-32">
+      <div className="container mx-auto px-6 md:px-12">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
         <div className="space-y-8 text-right">
           <div className="space-y-2">
             <Badge variant="secondary" className="bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 border-0 hover:scale-105 transition-transform">
@@ -68,6 +69,7 @@ export default function HeroSection({ stats }: HeroSectionProps) {
             fetchPriority="high"
           />
         </div>
+      </div>
       </div>
     </section>
   );

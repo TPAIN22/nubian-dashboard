@@ -11,8 +11,9 @@ interface TestimonialsSectionProps {
 
 export default function TestimonialsSection({ testimonials }: TestimonialsSectionProps) {
   return (
-    <section className="py-24">
-      <div className="text-center mb-16">
+    <section className="py-24 px-6 md:px-12">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-16">
         <Badge variant="secondary" className="mb-4 bg-amber-100 text-amber-800 border-0">
           مــاذا يــقــول عــمــلاؤنــا
         </Badge>
@@ -56,6 +57,7 @@ export default function TestimonialsSection({ testimonials }: TestimonialsSectio
             </CardContent>
           </Card>
         ))}
+      </div>
       </div>
     </section>
   );

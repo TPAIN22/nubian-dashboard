@@ -12,8 +12,9 @@ interface FeaturesSectionProps {
 
 export default function FeaturesSection({ features }: FeaturesSectionProps) {
   return (
-    <section className="py-24">
-      <div className="text-center mb-16">
+    <section className="py-24 px-6 md:px-12">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-16">
         <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800 border-0">
           لـــمــاذا تــخــتــار نـوبـيــــــان
         </Badge>
@@ -54,6 +55,7 @@ export default function FeaturesSection({ features }: FeaturesSectionProps) {
             </CardContent>
           </Card>
         ))}
+      </div>
       </div>
     </section>
   );
