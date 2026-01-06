@@ -35,24 +35,47 @@ const nextConfig: NextConfig = {
   async headers() {
     // Build CSP based on environment
     const isDevelopment = process.env.NODE_ENV === 'development';
+    
+    // Clerk domains - comprehensive list for custom domain support
+    const clerkDomains = [
+      'https://*.clerk.accounts.dev',
+      'https://*.clerk.com',
+      'https://*.clerk.dev',
+      'https://clerk.com',
+      'https://*.clerkstage.dev',
+      'https://clerk.nubian-sd.store',
+      'https://*.nubian-sd.store'
+    ];
+    const clerkDomainsString = clerkDomains.join(' ');
+    const clerkWSSDomains = [
+      'wss://*.clerk.accounts.dev',
+      'wss://*.clerk.com',
+      'wss://clerk.nubian-sd.store',
+      'wss://*.nubian-sd.store'
+    ].join(' ');
+    
     const cspDirectives = [
-      "default-src 'self'",
+      // Default source - allow self and Clerk domains for fallback
+      `default-src 'self' ${clerkDomainsString}`,
       // Clerk script sources - allow all Clerk domains, CDNs, and custom domains
       // script-src-elem is more specific and takes precedence for <script> elements
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.accounts.dev https://*.clerk.com https://*.clerk.dev https://clerk.com https://*.clerkstage.dev https://clerk.nubian-sd.store https://*.nubian-sd.store blob:",
-      "script-src-elem 'self' 'unsafe-inline' https://*.clerk.accounts.dev https://*.clerk.com https://*.clerk.dev https://clerk.com https://*.clerkstage.dev https://clerk.nubian-sd.store https://*.nubian-sd.store blob:",
-      "worker-src 'self' blob: https://*.clerk.accounts.dev https://*.clerk.com https://*.clerk.dev https://clerk.com https://clerk.nubian-sd.store https://*.nubian-sd.store",
-      "style-src 'self' 'unsafe-inline' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.nubian-sd.store https://*.nubian-sd.store",
+      `script-src 'self' 'unsafe-eval' 'unsafe-inline' ${clerkDomainsString} blob:`,
+      `script-src-elem 'self' 'unsafe-inline' ${clerkDomainsString} blob:`,
+      `worker-src 'self' blob: ${clerkDomainsString}`,
+      `style-src 'self' 'unsafe-inline' ${clerkDomainsString}`,
       "img-src 'self' data: https: blob:",
-      "font-src 'self' data: https://*.clerk.accounts.dev https://*.clerk.com https://clerk.nubian-sd.store https://*.nubian-sd.store",
+      `font-src 'self' data: ${clerkDomainsString}`,
       // Clerk API connections - allow all Clerk API endpoints and custom domains
       // Include both with and without wildcard to ensure coverage
-      "connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.clerk.accounts.dev https://*.clerk.com https://*.clerk.dev https://clerk.com https://clerk.nubian-sd.store https://*.nubian-sd.store https://*.imagekit.io wss://*.clerk.accounts.dev wss://*.clerk.com wss://clerk.nubian-sd.store wss://*.nubian-sd.store",
-      "frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://*.clerk.dev https://clerk.nubian-sd.store https://*.nubian-sd.store",
+      `connect-src 'self' http://localhost:* http://127.0.0.1:* ${clerkDomainsString} https://*.imagekit.io ${clerkWSSDomains}`,
+      `frame-src 'self' ${clerkDomainsString}`,
       "object-src 'none'",
       "base-uri 'self'",
-      "form-action 'self' https://*.clerk.accounts.dev https://*.clerk.com https://clerk.nubian-sd.store https://*.nubian-sd.store",
+      `form-action 'self' ${clerkDomainsString}`,
       "frame-ancestors 'self'",
+      // Additional directives for Clerk
+      "manifest-src 'self'",
+      "media-src 'self'",
     ];
     
     // Only add upgrade-insecure-requests in production (allows HTTP localhost in dev)
