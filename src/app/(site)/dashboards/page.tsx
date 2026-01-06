@@ -3,27 +3,24 @@
 import { useUser, useAuth } from '@clerk/nextjs'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import Link from 'next/link'
 import { axiosInstance } from '@/lib/axiosInstance'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { 
-  LayoutDashboard, 
-  Store, 
-  Shield, 
-  TrendingUp, 
-  Users, 
-  Package, 
+import {
+  LayoutDashboard,
+  Store,
+  Shield,
+  TrendingUp,
+  Users,
+  Package,
   BarChart3,
   ArrowLeft,
   CheckCircle2,
   Sparkles,
   Zap,
-  Globe
+  Globe,
 } from 'lucide-react'
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
 
 export default function DashboardsPage() {
   const { user, isLoaded } = useUser()
@@ -48,7 +45,7 @@ export default function DashboardsPage() {
         }
 
         const role = user.publicMetadata?.role as string | undefined
-        
+
         if (role === 'merchant') {
           const token = await getToken()
           if (token) {
@@ -76,12 +73,14 @@ export default function DashboardsPage() {
 
   if (!isLoaded || checking) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <div className="text-lg text-muted-foreground">جاري التحميل...</div>
+      <main className="relative z-10 pt-28 pb-20">
+        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex items-center justify-center min-h-[50vh]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <div className="text-lg text-muted-foreground">جاري التحميل...</div>
+          </div>
         </div>
-      </div>
+      </main>
     )
   }
 
@@ -108,11 +107,9 @@ export default function DashboardsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white" dir="rtl">
-      <Header />
-      
+    <main className="relative z-10">
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-20 pb-16 px-4 sm:px-6 lg:px-8">
+      <section className="relative overflow-hidden pt-28 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10"></div>
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
@@ -139,7 +136,7 @@ export default function DashboardsPage() {
           <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
             {/* Admin Dashboard Card */}
             {isAdmin && (
-              <Card 
+              <Card
                 className="group relative overflow-hidden border-2 hover:border-amber-500 transition-all duration-300 hover:shadow-2xl cursor-pointer bg-white"
                 onClick={() => handleDashboardClick('admin')}
               >
@@ -189,9 +186,9 @@ export default function DashboardsPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="pt-4 border-t border-slate-200">
-                    <Button 
+                    <Button
                       className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg group-hover:shadow-xl transition-all duration-300 h-12 text-base font-semibold"
                       onClick={(e) => {
                         e.stopPropagation()
@@ -209,47 +206,43 @@ export default function DashboardsPage() {
             )}
 
             {/* Merchant Dashboard Card */}
-            <Card 
+            <Card
               className={`group relative overflow-hidden border-2 transition-all duration-300 hover:shadow-2xl cursor-pointer bg-white ${
-                isMerchantApproved 
-                  ? 'hover:border-amber-500 border-amber-200' 
-                  : 'hover:border-orange-500 border-orange-200'
+                isMerchantApproved ? 'hover:border-amber-500 border-amber-200' : 'hover:border-orange-500 border-orange-200'
               }`}
               onClick={() => handleDashboardClick('merchant')}
             >
-              <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                isMerchantApproved 
-                  ? 'bg-gradient-to-br from-amber-500/5 to-orange-500/5' 
-                  : 'bg-gradient-to-br from-orange-500/5 to-red-500/5'
-              }`}></div>
+              <div
+                className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+                  isMerchantApproved ? 'bg-gradient-to-br from-amber-500/5 to-orange-500/5' : 'bg-gradient-to-br from-orange-500/5 to-red-500/5'
+                }`}
+              ></div>
               <CardHeader className="relative pb-4">
                 <div className="flex items-start justify-between mb-4">
-                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 ${
-                    isMerchantApproved 
-                      ? 'bg-gradient-to-br from-amber-500 to-orange-600' 
-                      : 'bg-gradient-to-br from-orange-500 to-red-600'
-                  }`}>
+                  <div
+                    className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 ${
+                      isMerchantApproved ? 'bg-gradient-to-br from-amber-500 to-orange-600' : 'bg-gradient-to-br from-orange-500 to-red-600'
+                    }`}
+                  >
                     <Store className="w-8 h-8 text-white" />
                   </div>
-                  <div className={`px-3 py-1 rounded-full ${
-                    isMerchantApproved 
-                      ? 'bg-amber-100 dark:bg-amber-900/20' 
-                      : 'bg-orange-100 dark:bg-orange-900/20'
-                  }`}>
-                    <span className={`text-xs font-semibold ${
-                      isMerchantApproved 
-                        ? 'text-amber-700 dark:text-amber-300' 
-                        : 'text-orange-700 dark:text-brown-300'
-                    }`}>
+                  <div
+                    className={`px-3 py-1 rounded-full ${
+                      isMerchantApproved ? 'bg-amber-100 dark:bg-amber-900/20' : 'bg-orange-100 dark:bg-orange-900/20'
+                    }`}
+                  >
+                    <span
+                      className={`text-xs font-semibold ${
+                        isMerchantApproved ? 'text-amber-700 dark:text-amber-300' : 'text-orange-700 dark:text-brown-300'
+                      }`}
+                    >
                       {isMerchantApproved ? 'موافق' : 'تاجر'}
                     </span>
                   </div>
                 </div>
                 <CardTitle className="text-3xl font-extrabold text-secondary mb-3">لوحة تحكم التاجر</CardTitle>
                 <CardDescription className="text-base text-muted-foreground leading-relaxed">
-                  {isMerchantApproved 
-                    ? 'أدر منتجاتك وطلباتك ومبيعاتك من مكان واحد'
-                    : 'انضم كتاجر وابدأ بيع منتجاتك على نوبيان'}
+                  {isMerchantApproved ? 'أدر منتجاتك وطلباتك ومبيعاتك من مكان واحد' : 'انضم كتاجر وابدأ بيع منتجاتك على نوبيان'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="relative space-y-6">
@@ -285,9 +278,9 @@ export default function DashboardsPage() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="pt-4 border-t border-slate-200">
-                      <Button 
+                      <Button
                         className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg group-hover:shadow-xl transition-all duration-300 h-12 text-base font-semibold"
                         onClick={(e) => {
                           e.stopPropagation()
@@ -313,7 +306,7 @@ export default function DashboardsPage() {
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-3">
                         <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
                           <CheckCircle2 className="w-4 h-4 text-green-600" />
@@ -333,9 +326,9 @@ export default function DashboardsPage() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="pt-4 border-t border-slate-200">
-                      <Button 
+                      <Button
                         className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg group-hover:shadow-xl transition-all duration-300 h-12 text-base font-semibold"
                         onClick={(e) => {
                           e.stopPropagation()
@@ -390,9 +383,8 @@ export default function DashboardsPage() {
           </div>
         </div>
       </section>
-
-      <Footer />
-    </div>
+    </main>
   )
 }
+
 

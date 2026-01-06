@@ -7,8 +7,18 @@ const baseUrl = "https://nubian-sd.store";
 
 export const metadata: Metadata = {
   title: "نوبيان | Nubian - أفضل متجر إلكتروني في السودان",
-  description: "نوبيان (Nubian) - متجر إلكتروني رائد في السودان. تسوق آلاف المنتجات الأصلية من الأزياء، الإلكترونيات، ديكور المنزل والمزيد. شحن سريع وآمن إلى جميع أنحاء السودان. اكتشف منصة نوبيان للتسوق الرقمي الآن.",
-  keywords: ["نوبيان", "Nubian", "نوبيان سودان", "Nubian Sudan", "متجر نوبيان", "nubian store", "تسوق إلكتروني السودان", "online shopping Sudan"],
+  description:
+    "نوبيان (Nubian) - متجر إلكتروني رائد في السودان. تسوق آلاف المنتجات الأصلية من الأزياء، الإلكترونيات، ديكور المنزل والمزيد. شحن سريع وآمن إلى جميع أنحاء السودان. اكتشف منصة نوبيان للتسوق الرقمي الآن.",
+  keywords: [
+    "نوبيان",
+    "Nubian",
+    "نوبيان سودان",
+    "Nubian Sudan",
+    "متجر نوبيان",
+    "nubian store",
+    "تسوق إلكتروني السودان",
+    "online shopping Sudan",
+  ],
   alternates: {
     canonical: baseUrl,
   },
@@ -33,31 +43,32 @@ export const metadata: Metadata = {
     googleBot: {
       index: true,
       follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
     },
   },
 };
 
-export default function page() {
+export default function Page() {
   return (
     <>
       <RoleBasedRedirect />
       <ModernNoubian />
+
       {/* SEO-Optimized Hidden Content for Search Engines */}
       <div className="sr-only" aria-hidden="true">
         <h1>نوبيان - Nubian: أفضل متجر إلكتروني في السودان</h1>
         <h2>متجر نوبيان للتسوق الإلكتروني | Nubian Online Store Sudan</h2>
         <p>
-          نوبيان (Nubian) هو متجر إلكتروني رائد في السودان يوفر آلاف المنتجات الأصلية من أفضل التجار. 
-          تسوق من نوبيان واحصل على الأزياء، الإلكترونيات، ديكور المنزل والمزيد مع شحن سريع وآمن إلى جميع أنحاء السودان. 
-          اكتشف منصة نوبيان للتسوق الرقمي الآن.
+          نوبيان (Nubian) هو متجر إلكتروني رائد في السودان يوفر آلاف المنتجات الأصلية من أفضل التجار. تسوق من نوبيان
+          واحصل على الأزياء، الإلكترونيات، ديكور المنزل والمزيد مع شحن سريع وآمن إلى جميع أنحاء السودان. اكتشف منصة نوبيان
+          للتسوق الرقمي الآن.
         </p>
         <p>
-          Nubian is a leading online store in Sudan offering thousands of authentic products from trusted sellers. 
-          Shop at Nubian for fashion, electronics, home decor and more with fast and secure shipping across Sudan. 
-          Discover the Nubian digital shopping platform now.
+          Nubian is a leading online store in Sudan offering thousands of authentic products from trusted sellers. Shop
+          at Nubian for fashion, electronics, home decor and more with fast and secure shipping across Sudan. Discover
+          the Nubian digital shopping platform now.
         </p>
         <ul>
           <li>نوبيان سودان | Nubian Sudan</li>
@@ -70,3 +81,5 @@ export default function page() {
     </>
   );
 }
+
+

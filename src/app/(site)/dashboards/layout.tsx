@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata } from "next";
 
 const baseUrl = "https://nubian-sd.store";
 
@@ -40,4 +40,5 @@ export default function DashboardsLayout({
 }) {
   return <>{children}</>;
 }
+
 

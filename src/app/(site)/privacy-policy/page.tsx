@@ -1,37 +1,26 @@
 "use client";
 
-import React from 'react';
-import Header from '@/components/Header'; // استيراد مكون Header
-import Footer from '@/components/Footer'; // استيراد مكون Footer
+import React from "react";
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 overflow-hidden" dir="rtl">
-      <Header /> {/* دمج مكون Header */}
-
-      <main className="relative z-10 px-6 md:px-12 max-w-4xl mx-auto py-16">
-        <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-8 ">
-          سياسة الخصوصية
-        </h1>
+    <main className="relative z-10 pt-28 pb-16">
+      <div className="container mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+        <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-8">سياسة الخصوصية</h1>
 
         <div className="bg-white p-8 rounded-lg shadow-lg space-y-6 text-right">
           <p className="text-slate-700 leading-relaxed">
-            نحن في تطبيق <span className="font-semibold text-amber-600">نوبيان</span> نحترم خصوصيتك وملتزمون بحماية بياناتك الشخصية. تهدف هذه السياسة إلى توضيح كيفية جمع، استخدام، تخزين، ومشاركة معلوماتك عند استخدامك لتطبيق ماركت.
+            نحن في تطبيق <span className="font-semibold text-amber-600">نوبيان</span> نحترم خصوصيتك وملتزمون بحماية بياناتك
+            الشخصية. تهدف هذه السياسة إلى توضيح كيفية جمع، استخدام، تخزين، ومشاركة معلوماتك عند استخدامك لتطبيق ماركت.
           </p>
 
           {/* Section 1: Information We Collect */}
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-slate-800 border-b pb-2">
-              1. المعلومات التي نجمعها
-            </h2>
+            <h2 className="text-2xl font-bold text-slate-800 border-b pb-2">1. المعلومات التي نجمعها</h2>
 
-            <h3 className="text-xl font-semibold text-slate-700">
-              1.1 معلومات شخصية
-            </h3>
-            <p className="text-slate-700 leading-relaxed">
-              قد نقوم بجمع المعلومات التالية عند التسجيل أو أثناء استخدامك للتطبيق:
-            </p>
-            <ul className="list-disc list-inside text-slate-700 space-y-1 pr-4"> {/* Added pr-4 for right padding */}
+            <h3 className="text-xl font-semibold text-slate-700">1.1 معلومات شخصية</h3>
+            <p className="text-slate-700 leading-relaxed">قد نقوم بجمع المعلومات التالية عند التسجيل أو أثناء استخدامك للتطبيق:</p>
+            <ul className="list-disc list-inside text-slate-700 space-y-1 pr-4">
               <li>الاسم الكامل</li>
               <li>البريد الإلكتروني</li>
               <li>رقم الهاتف</li>
@@ -40,9 +29,7 @@ export default function PrivacyPolicyPage() {
               <li>صورة الملف الشخصي (اختياري)</li>
             </ul>
 
-            <h3 className="text-xl font-semibold text-slate-700 pt-4">
-              1.2 معلومات الاستخدام
-            </h3>
+            <h3 className="text-xl font-semibold text-slate-700 pt-4">1.2 معلومات الاستخدام</h3>
             <ul className="list-disc list-inside text-slate-700 space-y-1 pr-4">
               <li>المنتجات التي بحثت عنها أو اشتريتها</li>
               <li>الوقت والتاريخ والمدة التي تستخدم فيها التطبيق</li>
@@ -50,9 +37,7 @@ export default function PrivacyPolicyPage() {
               <li>التعليقات أو التقييمات التي تتركها</li>
             </ul>
 
-            <h3 className="text-xl font-semibold text-slate-700 pt-4">
-              1.3 معلومات الجهاز
-            </h3>
+            <h3 className="text-xl font-semibold text-slate-700 pt-4">1.3 معلومات الجهاز</h3>
             <ul className="list-disc list-inside text-slate-700 space-y-1 pr-4">
               <li>نوع الجهاز ونظام التشغيل</li>
               <li>عنوان IP</li>
@@ -63,12 +48,8 @@ export default function PrivacyPolicyPage() {
 
           {/* Section 2: How We Use Your Information */}
           <div className="space-y-4 pt-6">
-            <h2 className="text-2xl font-bold text-slate-800 border-b pb-2">
-              2. كيف نستخدم معلوماتك
-            </h2>
-            <p className="text-slate-700 leading-relaxed">
-              نستخدم بياناتك للأغراض التالية:
-            </p>
+            <h2 className="text-2xl font-bold text-slate-800 border-b pb-2">2. كيف نستخدم معلوماتك</h2>
+            <p className="text-slate-700 leading-relaxed">نستخدم بياناتك للأغراض التالية:</p>
             <ul className="list-disc list-inside text-slate-700 space-y-1 pr-4">
               <li>إنشاء حساب المستخدم وتخصيص تجربته</li>
               <li>معالجة الطلبات والدفع والتوصيل</li>
@@ -81,9 +62,7 @@ export default function PrivacyPolicyPage() {
 
           {/* Section 3: Information Sharing */}
           <div className="space-y-4 pt-6">
-            <h2 className="text-2xl font-bold text-slate-800 border-b pb-2">
-              3. مشاركة المعلومات
-            </h2>
+            <h2 className="text-2xl font-bold text-slate-800 border-b pb-2">3. مشاركة المعلومات</h2>
             <p className="text-slate-700 leading-relaxed">
               لن نقوم ببيع أو تأجير معلوماتك الشخصية لأي طرف ثالث. قد نشارك بياناتك فقط مع:
             </p>
@@ -97,11 +76,10 @@ export default function PrivacyPolicyPage() {
 
           {/* Section 4: Data Protection */}
           <div className="space-y-4 pt-6">
-            <h2 className="text-2xl font-bold text-slate-800 border-b pb-2">
-              4. حماية البيانات
-            </h2>
+            <h2 className="text-2xl font-bold text-slate-800 border-b pb-2">4. حماية البيانات</h2>
             <p className="text-slate-700 leading-relaxed">
-              نطبق إجراءات أمنية تقنية وتنظيمية لحماية بياناتك من الوصول غير المصرح به أو التعديل أو الكشف أو التدمير. من هذه الإجراءات:
+              نطبق إجراءات أمنية تقنية وتنظيمية لحماية بياناتك من الوصول غير المصرح به أو التعديل أو الكشف أو التدمير. من
+              هذه الإجراءات:
             </p>
             <ul className="list-disc list-inside text-slate-700 space-y-1 pr-4">
               <li>تشفير البيانات أثناء النقل والتخزين</li>
@@ -112,12 +90,8 @@ export default function PrivacyPolicyPage() {
 
           {/* Section 5: User Rights */}
           <div className="space-y-4 pt-6">
-            <h2 className="text-2xl font-bold text-slate-800 border-b pb-2">
-              5. حقوق المستخدم
-            </h2>
-            <p className="text-slate-700 leading-relaxed">
-              بصفتك مستخدمًا، لك الحق في:
-            </p>
+            <h2 className="text-2xl font-bold text-slate-800 border-b pb-2">5. حقوق المستخدم</h2>
+            <p className="text-slate-700 leading-relaxed">بصفتك مستخدمًا، لك الحق في:</p>
             <ul className="list-disc list-inside text-slate-700 space-y-1 pr-4">
               <li>الوصول إلى بياناتك الشخصية</li>
               <li>طلب تصحيح أو حذف بياناتك</li>
@@ -125,15 +99,16 @@ export default function PrivacyPolicyPage() {
               <li>إلغاء الاشتراك في الإشعارات</li>
             </ul>
             <p className="text-slate-700 leading-relaxed">
-              لطلب أي من هذه الحقوق، يمكنك التواصل معنا عبر البريد: <a href="mailto:support@marketapp.com" className="text-amber-600 hover:underline">support@marketapp.com</a>
+              لطلب أي من هذه الحقوق، يمكنك التواصل معنا عبر البريد:{" "}
+              <a href="mailto:support@marketapp.com" className="text-amber-600 hover:underline">
+                support@marketapp.com
+              </a>
             </p>
           </div>
 
           {/* Section 6: Cookies */}
           <div className="space-y-4 pt-6">
-            <h2 className="text-2xl font-bold text-slate-800 border-b pb-2">
-              6. ملفات تعريف الارتباط (Cookies)
-            </h2>
+            <h2 className="text-2xl font-bold text-slate-800 border-b pb-2">6. ملفات تعريف الارتباط (Cookies)</h2>
             <p className="text-slate-700 leading-relaxed">
               قد نستخدم ملفات تعريف الارتباط وتقنيات مشابهة لتحسين تجربتك داخل التطبيق، مثل:
             </p>
@@ -142,47 +117,42 @@ export default function PrivacyPolicyPage() {
               <li>تتبع العروض التي شاهدتها</li>
               <li>تحليل سلوك المستخدم لتحسين المنتج</li>
             </ul>
-            <p className="text-slate-700 leading-relaxed">
-              يمكنك تعديل إعدادات الكوكيز من خلال إعدادات الجهاز.
-            </p>
+            <p className="text-slate-700 leading-relaxed">يمكنك تعديل إعدادات الكوكيز من خلال إعدادات الجهاز.</p>
           </div>
 
           {/* Section 7: Children's Privacy */}
           <div className="space-y-4 pt-6">
-            <h2 className="text-2xl font-bold text-slate-800 border-b pb-2">
-              7. خصوصية الأطفال
-            </h2>
+            <h2 className="text-2xl font-bold text-slate-800 border-b pb-2">7. خصوصية الأطفال</h2>
             <p className="text-slate-700 leading-relaxed">
-              تطبيق ماركت غير موجه للأطفال دون سن 13 عامًا. لا نقوم بجمع معلومات شخصية منهم عن قصد. إذا اكتشفنا أننا جمعنا معلومات عن طفل دون علم، فسنقوم بحذفها فورًا.
+              تطبيق ماركت غير موجه للأطفال دون سن 13 عامًا. لا نقوم بجمع معلومات شخصية منهم عن قصد. إذا اكتشفنا أننا جمعنا
+              معلومات عن طفل دون علم، فسنقوم بحذفها فورًا.
             </p>
           </div>
 
           {/* Section 8: Updates to Privacy Policy */}
           <div className="space-y-4 pt-6">
-            <h2 className="text-2xl font-bold text-slate-800 border-b pb-2">
-              8. التحديثات على سياسة الخصوصية
-            </h2>
+            <h2 className="text-2xl font-bold text-slate-800 border-b pb-2">8. التحديثات على سياسة الخصوصية</h2>
             <p className="text-slate-700 leading-relaxed">
-              قد نقوم بتحديث هذه السياسة من وقت لآخر. سنبلغك بأي تغييرات عبر التطبيق أو البريد الإلكتروني. استمرارك في استخدام التطبيق بعد التحديث يعني موافقتك على السياسة الجديدة.
+              قد نقوم بتحديث هذه السياسة من وقت لآخر. سنبلغك بأي تغييرات عبر التطبيق أو البريد الإلكتروني. استمرارك في
+              استخدام التطبيق بعد التحديث يعني موافقتك على السياسة الجديدة.
             </p>
           </div>
 
           {/* Section 9: Contact Us */}
           <div className="space-y-4 pt-6">
-            <h2 className="text-2xl font-bold text-slate-800 border-b pb-2">
-              9. تواصل معنا
-            </h2>
+            <h2 className="text-2xl font-bold text-slate-800 border-b pb-2">9. تواصل معنا</h2>
+            <p className="text-slate-700 leading-relaxed">إذا كان لديك أي أسئلة أو استفسارات، يُرجى التواصل معنا عبر:</p>
             <p className="text-slate-700 leading-relaxed">
-              إذا كان لديك أي أسئلة أو استفسارات، يُرجى التواصل معنا عبر:
-            </p>
-            <p className="text-slate-700 leading-relaxed">
-              📧 البريد الإلكتروني: <a href="mailto:support@marketapp.com" className="text-amber-600 hover:underline">support@marketapp.com</a>
+              📧 البريد الإلكتروني:{" "}
+              <a href="mailto:support@marketapp.com" className="text-amber-600 hover:underline">
+                support@marketapp.com
+              </a>
             </p>
           </div>
         </div>
-      </main>
-
-      <Footer /> {/* دمج مكون Footer */}
-    </div>
+      </div>
+    </main>
   );
 }
+
+

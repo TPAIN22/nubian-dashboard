@@ -1,10 +1,11 @@
-import type { Metadata } from 'next';
+import type { Metadata } from "next";
 
 const baseUrl = "https://nubian-sd.store";
 
 export const metadata: Metadata = {
   title: "عن نوبيان | About Nubian - متجر نوبيان للتسوق الإلكتروني",
-  description: "تعرف على نوبيان - متجر إلكتروني رائد في السودان. اكتشف رؤيتنا، مهمتنا، وقيمنا في تقديم أفضل تجربة تسوق إلكتروني.",
+  description:
+    "تعرف على نوبيان - متجر إلكتروني رائد في السودان. اكتشف رؤيتنا، مهمتنا، وقيمنا في تقديم أفضل تجربة تسوق إلكتروني.",
   alternates: {
     canonical: `${baseUrl}/about`,
   },
@@ -18,7 +19,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "عن نوبيان | About Nubian - متجر نوبيان للتسوق الإلكتروني",
-    description: "تعرف على نوبيان - متجر إلكتروني رائد في السودان. اكتشف رؤيتنا، مهمتنا، وقيمنا في تقديم أفضل تجربة تسوق إلكتروني.",
+    description:
+      "تعرف على نوبيان - متجر إلكتروني رائد في السودان. اكتشف رؤيتنا، مهمتنا، وقيمنا في تقديم أفضل تجربة تسوق إلكتروني.",
     url: `${baseUrl}/about`,
     type: "website",
     siteName: "نوبيان | Nubian",
@@ -40,4 +42,5 @@ export default function AboutLayout({
 }) {
   return <>{children}</>;
 }
+
 

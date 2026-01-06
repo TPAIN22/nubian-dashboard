@@ -1,10 +1,10 @@
-import type { Metadata } from 'next';
+import type { Metadata } from "next";
 
 const baseUrl = "https://nubian-sd.store";
 
 export const metadata: Metadata = {
   title: "الشروط والأحكام | نوبيان Nubian",
-  description: "الشروط والأحكام لاستخدام متجر نوبيان - اقرأ القواعد واللوائح الخاصة باستخدام منصة نوبيان للتسوق الإلكتروني.",
+  description: "الشروط والأحكام لمتجر نوبيان - تعرف على القواعد واللوائح الخاصة باستخدام منصة نوبيان.",
   alternates: {
     canonical: `${baseUrl}/terms-conditions`,
   },
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "الشروط والأحكام | نوبيان Nubian",
-    description: "الشروط والأحكام لاستخدام متجر نوبيان - اقرأ القواعد واللوائح الخاصة باستخدام منصة نوبيان للتسوق الإلكتروني.",
+    description: "الشروط والأحكام لمتجر نوبيان - تعرف على القواعد واللوائح الخاصة باستخدام منصة نوبيان.",
     url: `${baseUrl}/terms-conditions`,
     type: "website",
     siteName: "نوبيان | Nubian",
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
         url: `${baseUrl}/nubi.png`,
         width: 1200,
         height: 630,
-        alt: "الشروط والأحكام | Terms and Conditions",
+        alt: "الشروط والأحكام | Terms & Conditions",
       },
     ],
   },
@@ -40,4 +40,5 @@ export default function TermsConditionsLayout({
 }) {
   return <>{children}</>;
 }
+
 

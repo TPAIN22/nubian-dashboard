@@ -11,6 +11,7 @@ import StructuredData from "@/components/StructuredData"
 import ErrorBoundary from "@/components/ErrorBoundary"
 import { validateEnv } from "@/lib/envValidator"
 import logger from "@/lib/logger"
+import { ClerkDiagnostics } from "@/components/ClerkDiagnostics"
 
 // Validate environment variables at runtime (not during build)
 // The validateEnv function now handles build-time detection internally
@@ -133,16 +134,38 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   // Get Clerk publishable key from environment
+  // IMPORTANT: NEXT_PUBLIC_ variables must be set at BUILD TIME in Next.js
+  // They are embedded into the client bundle during build, not at runtime
   const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 
-  // Warn if Clerk key is missing (but don't break the app)
-  if (!clerkPublishableKey && typeof window === 'undefined') {
-    console.warn('⚠️ Clerk Warning: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is not set. Authentication will not work.')
+  // Validate Clerk key is present
+  if (!clerkPublishableKey || clerkPublishableKey.trim() === '' || clerkPublishableKey.includes('your_key')) {
+    if (typeof window === 'undefined') {
+      // Server-side: Log error in production, warn in development
+      if (process.env.NODE_ENV === 'production') {
+        console.error('❌ CRITICAL: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is missing or invalid in production!')
+        console.error('This variable MUST be set during the build process in your deployment platform.')
+        console.error('For Vercel: Set it in Project Settings > Environment Variables')
+        console.error('For other platforms: Ensure it is available during "next build" command')
+      } else {
+        console.warn('⚠️ Clerk Warning: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is not set. Authentication will not work.')
+        console.warn('Set this variable in your .env.local file for local development.')
+      }
+    }
+    
+    // In production, we should still try to render but Clerk won't work
+    // This prevents the entire app from breaking
+  } else {
+    if (typeof window === 'undefined') {
+      console.log('✅ Clerk publishable key is configured')
+    }
   }
 
+  // ClerkProvider requires a valid publishableKey
+  // If it's missing, we'll pass undefined and Clerk will show errors client-side
   return (
      <ClerkProvider
-      publishableKey={clerkPublishableKey}
+      publishableKey={clerkPublishableKey || undefined}
       appearance={{
         baseTheme: dark,
       }}
@@ -162,6 +185,7 @@ export default function RootLayout({
           >       
             {children}
             <Toaster/>
+            <ClerkDiagnostics />
           </ThemeProvider>
           </ErrorBoundary>
         </body>
