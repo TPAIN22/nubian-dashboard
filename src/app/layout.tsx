@@ -146,6 +146,9 @@ export default function RootLayout({
       appearance={{
         baseTheme: dark,
       }}
+      // Add redirect URLs for better handling
+      afterSignInUrl="/"
+      afterSignUpUrl="/"
     >
       <html lang="ar" dir="rtl" suppressHydrationWarning>
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>

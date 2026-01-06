@@ -1,5 +1,6 @@
 import React from "react";
 import ModernNoubian from "@/components/nubian";
+import RoleBasedRedirect from "@/components/RoleBasedRedirect";
 import type { Metadata } from "next";
 
 const baseUrl = "https://nubian-sd.store";
@@ -42,6 +43,7 @@ export const metadata: Metadata = {
 export default function page() {
   return (
     <>
+      <RoleBasedRedirect />
       <ModernNoubian />
       {/* SEO-Optimized Hidden Content for Search Engines */}
       <div className="sr-only" aria-hidden="true">
