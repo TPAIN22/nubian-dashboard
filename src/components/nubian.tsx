@@ -13,12 +13,18 @@ import { features, stats, testimonials, Stat, Feature, Testimonial } from "./dat
 
 export default function ModernNoubian() {
   return (
-    <div dir="rtl" className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
-      <Header />
+    <div dir="rtl" className="min-h-screen main-bg">
       <AnimatedBackground />
+      
+      {/* Hero Banner starts from top */}
+      <HeroSection stats={stats} />
+      
+      {/* Header overlays the banner */}
+      <div className="fixed top-0 left-0 right-0 z-50">
+        <Header />
+      </div>
 
       <main className="relative z-10">
-        <HeroSection stats={stats} />
         <FeaturesSection features={features} />
         <TestimonialsSection testimonials={testimonials} />
         <CtaSection />

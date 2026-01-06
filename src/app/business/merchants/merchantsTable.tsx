@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronDown, Check, X } from "lucide-react";
+import { ArrowUpDown, ChevronDown, Check, X, Ban, Trash2, MoreHorizontal, RotateCcw } from "lucide-react";
 import { axiosInstance } from '@/lib/axiosInstance';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -26,11 +26,13 @@ export type Merchant = {
   businessEmail: string;
   businessPhone?: string;
   businessAddress?: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  status: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
   rejectionReason?: string;
+  suspensionReason?: string;
   appliedAt: string;
   approvedAt?: string;
   approvedBy?: string;
+  suspendedAt?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -38,8 +40,12 @@ export type Merchant = {
 // Separate component for merchant actions to fix React hooks rules
 function MerchantActions({ merchant }: { merchant: Merchant }) {
   const [rejectionReason, setRejectionReason] = React.useState("");
+  const [suspensionReason, setSuspensionReason] = React.useState("");
   const [isApproving, setIsApproving] = React.useState(false);
   const [isRejecting, setIsRejecting] = React.useState(false);
+  const [isSuspending, setIsSuspending] = React.useState(false);
+  const [isUnsuspending, setIsUnsuspending] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
   const router = useRouter();
 
   const handleApprove = async () => {
@@ -89,9 +95,170 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
     }
   };
 
+  const handleSuspend = async () => {
+    if (!suspensionReason.trim()) {
+      toast.error("يرجى إدخال سبب التعليق");
+      return;
+    }
+    setIsSuspending(true);
+    try {
+      const response = await fetch(`/api/merchants/${merchant._id}/suspend`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ suspensionReason: suspensionReason.trim() }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        // Log error details for debugging
+        console.error('Suspend merchant error:', {
+          status: response.status,
+          statusText: response.statusText,
+          data: data
+        });
+        
+        // Handle specific error cases
+        if (response.status === 404 && data.error === 'SUSPEND_ENDPOINT_NOT_FOUND') {
+          const backendInfo = data.details?.backendRequired 
+            ? `\n\nالمطلوب في الخادم: ${data.details.backendRequired}`
+            : '';
+          throw new Error(`نقطة النهاية لتعليق التاجر غير متوفرة في الخادم.${backendInfo}`);
+        }
+        
+        const errorMessage = data.message || data.error || `فشل في تعليق التاجر (${response.status})`;
+        throw new Error(errorMessage);
+      }
+      
+      // Check if workaround was used
+      if (data._workaround) {
+        toast.success("تم تعليق التاجر (استخدام حل مؤقت)", {
+          description: "تم استخدام نقطة النهاية البديلة. يرجى إضافة نقطة النهاية المخصصة للتعليق في الخادم."
+        });
+      } else {
+        toast.success("تم تعليق التاجر بنجاح");
+      }
+      setSuspensionReason("");
+      router.refresh();
+    } catch (error: any) {
+      console.error('Error suspending merchant:', error);
+      const errorMessage = error.message || "فشل في تعليق التاجر. يرجى المحاولة مرة أخرى.";
+      toast.error(errorMessage);
+    } finally {
+      setIsSuspending(false);
+    }
+  };
+
+  const handleUnsuspend = async () => {
+    setIsUnsuspending(true);
+    try {
+      const response = await fetch(`/api/merchants/${merchant._id}/unsuspend`, {
+        method: 'PATCH',
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to unsuspend');
+      }
+      toast.success("تم إلغاء تعليق التاجر بنجاح");
+      router.refresh();
+    } catch (error: any) {
+      toast.error(error.message || "فشل في إلغاء تعليق التاجر");
+    } finally {
+      setIsUnsuspending(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/merchants/${merchant._id}/delete`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to delete');
+      }
+      toast.success("تم حذف التاجر بنجاح");
+      router.refresh();
+    } catch (error: any) {
+      toast.error(error.message || "فشل في حذف التاجر");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Show actions based on status
   if (merchant.status === "APPROVED") {
     return (
-      <div className="text-sm text-muted-foreground">موافق عليه</div>
+      <div className="flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">فتح القائمة</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>إجراءات</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                  <Ban className="h-4 w-4 ml-2" />
+                  تعليق التاجر
+                </DropdownMenuItem>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>تعليق التاجر</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    يرجى إدخال سبب تعليق التاجر <strong>{merchant.businessName}</strong>.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="py-4">
+                  <Textarea
+                    placeholder="سبب التعليق..."
+                    value={suspensionReason}
+                    onChange={(e) => setSuspensionReason(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setSuspensionReason("")}>إلغاء</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleSuspend} disabled={isSuspending || !suspensionReason.trim()}>
+                    {isSuspending ? "جاري المعالجة..." : "تعليق"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
+                  <Trash2 className="h-4 w-4 ml-2" />
+                  حذف التاجر
+                </DropdownMenuItem>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    هل أنت متأكد من حذف التاجر <strong>{merchant.businessName}</strong>؟ 
+                    هذا الإجراء لا يمكن التراجع عنه.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    {isDeleting ? "جاري الحذف..." : "حذف"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     );
   }
 
@@ -159,17 +326,123 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
           سبب الرفض: {merchant.rejectionReason}
         </div>
       )}
+      {merchant.status === "SUSPENDED" && (
+        <div className="flex items-center gap-2">
+          {merchant.suspensionReason && (
+            <div className="text-xs text-muted-foreground max-w-[200px]">
+              سبب التعليق: {merchant.suspensionReason}
+            </div>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">فتح القائمة</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>إجراءات</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                    <RotateCcw className="h-4 w-4 ml-2" />
+                    إلغاء التعليق
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>إلغاء تعليق التاجر</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      هل أنت متأكد من إلغاء تعليق التاجر <strong>{merchant.businessName}</strong>؟
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleUnsuspend} disabled={isUnsuspending}>
+                      {isUnsuspending ? "جاري المعالجة..." : "إلغاء التعليق"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
+                    <Trash2 className="h-4 w-4 ml-2" />
+                    حذف التاجر
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      هل أنت متأكد من حذف التاجر <strong>{merchant.businessName}</strong>؟ 
+                      هذا الإجراء لا يمكن التراجع عنه.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      {isDeleting ? "جاري الحذف..." : "حذف"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
     </div>
   );
 }
 
+// Client component for date formatting to avoid hydration mismatches
+function DateCell({ dateString }: { dateString: string }) {
+  const [formatted, setFormatted] = React.useState(dateString);
+  const [mounted, setMounted] = React.useState(false);
+  
+  React.useEffect(() => {
+    setMounted(true);
+    try {
+      const date = new Date(dateString);
+      if (!isNaN(date.getTime())) {
+        const formattedDate = date.toLocaleDateString('ar-SD', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+        setFormatted(formattedDate);
+      }
+    } catch (error) {
+      // Keep original dateString on error
+    }
+  }, [dateString]);
+  
+  // Use suppressHydrationWarning to prevent warnings from browser extensions
+  // that modify the DOM (like form fillers adding fdprocessedid attributes)
+  return (
+    <div className="text-sm" suppressHydrationWarning>
+      {mounted ? formatted : dateString}
+    </div>
+  );
+}
+
+// Legacy formatDate function for backward compatibility (use DateCell component instead)
 export const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('ar-SD', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return dateString;
+    }
+    
+    return date.toLocaleDateString('ar-SD', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch (error) {
+    return dateString;
+  }
 };
 
 import { Button } from "@/components/ui/button";
@@ -258,6 +531,7 @@ export const columns: ColumnDef<Merchant>[] = [
         PENDING: { label: "قيد المراجعة", className: "bg-yellow-100 text-yellow-800" },
         APPROVED: { label: "موافق عليه", className: "bg-green-100 text-green-800" },
         REJECTED: { label: "مرفوض", className: "bg-red-100 text-red-800" },
+        SUSPENDED: { label: "معلق", className: "bg-orange-100 text-orange-800" },
       };
       const statusInfo = statusMap[status] || { label: status, className: "bg-gray-100 text-gray-800" };
       
@@ -285,7 +559,7 @@ export const columns: ColumnDef<Merchant>[] = [
     },
     cell: ({ row }) => {
       const date = row.getValue("appliedAt") as string;
-      return <div className="text-sm">{formatDate(date)}</div>;
+      return <DateCell dateString={date} />;
     },
   },
   {
@@ -345,7 +619,8 @@ export function MerchantsTable({ merchants }: { merchants: Merchant[] }) {
             <Button variant="outline">
               {statusFilter === "all" ? "جميع الحالات" : 
                statusFilter === "PENDING" ? "قيد المراجعة" :
-               statusFilter === "APPROVED" ? "موافق عليه" : "مرفوض"}
+               statusFilter === "APPROVED" ? "موافق عليه" :
+               statusFilter === "SUSPENDED" ? "معلق" : "مرفوض"}
               <ChevronDown className="mr-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -353,6 +628,7 @@ export function MerchantsTable({ merchants }: { merchants: Merchant[] }) {
             <DropdownMenuItem onClick={() => setStatusFilter("all")}>جميع الحالات</DropdownMenuItem>
             <DropdownMenuItem onClick={() => setStatusFilter("PENDING")}>قيد المراجعة</DropdownMenuItem>
             <DropdownMenuItem onClick={() => setStatusFilter("APPROVED")}>موافق عليه</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setStatusFilter("SUSPENDED")}>معلق</DropdownMenuItem>
             <DropdownMenuItem onClick={() => setStatusFilter("REJECTED")}>مرفوض</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,47 +9,179 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Menu } from 'lucide-react'; // أيقونة القائمة للجوال
+import { Menu, X } from 'lucide-react';
 import Image from 'next/image';
 
+type NavLink = {
+  href: string;
+  label: string;
+  ariaLabel: string;
+};
+
+const NAV_LINKS: NavLink[] = [
+  {
+    href: '/about',
+    label: 'عن نوبيان',
+    ariaLabel: 'عن نوبيان - About Nubian',
+  },
+  {
+    href: '/contact',
+    label: 'اتصل بنا',
+    ariaLabel: 'اتصل بنا - Contact Us',
+  },
+];
+
 export default function Header() {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-50 w-full py-4" dir="rtl">
-      <div className="container mx-auto max-w-7xl bg-white/5 dark:bg-slate-900/5 backdrop-blur-sm shadow-sm border border-white/20 dark:border-white/10 rounded-2xl px-6 md:px-12 flex items-center relative h-20">
-        <Link href="/" className="flex items-center gap-2 group flex-shrink-0 absolute left-6 md:left-12" aria-label="نوبيان - Nubian الصفحة الرئيسية">
-         <Image src="/logo.png" alt="نوبيان - Nubian Logo" width={50} height={50} priority />
-        </Link>
-
-        {/* Desktop Navigation - Centered */}
-        <nav className="hidden md:flex items-center gap-8 text-primary font-medium mx-auto">
-          <Link href="/about" className="hover:text-primary/80 transition-colors">
-            عن نوبيان
+    <header 
+      className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${
+        isScrolled ? 'py-2' : 'py-4'
+      }`} 
+      dir="rtl"
+    >
+      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div 
+          className={`relative flex items-center justify-between transition-all duration-300 rounded-2xl ${
+            isScrolled 
+              ? 'bg-background/95 shadow-lg border border-border/50 backdrop-blur-xl h-16' 
+              : 'bg-background/80 shadow-md border border-border/30 backdrop-blur-lg h-20'
+          }`}
+        >
+          {/* Logo - Right Side (RTL) */}
+          <Link 
+            href="/" 
+            className="flex items-center gap-3 group flex-shrink-0 pr-6 md:pr-8 relative z-10" 
+            aria-label="نوبيان - Nubian الصفحة الرئيسية"
+          >
+            <div className="relative">
+              <Image 
+                src="/logo.png" 
+                alt="نوبيان - Nubian Logo" 
+                width={isScrolled ? 40 : 50} 
+                height={isScrolled ? 40 : 50} 
+                priority 
+                className="transition-all duration-300 group-hover:scale-110"
+              />
+              {/* Glow effect on hover */}
+              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl scale-0 group-hover:scale-150 transition-transform duration-300" />
+            </div>
+            
+            {/* Optional: Brand name next to logo */}
+            <span className="hidden sm:block text-xl md:text-2xl font-black bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent group-hover:from-primary/90 group-hover:to-primary transition-all duration-300">
+              نوبيان
+            </span>
           </Link>
-          <Link href="/contact" className="hover:text-primary/80 transition-colors">
-            اتصل بنا
-          </Link>
-        </nav>
 
-        {/* Mobile Navigation (Dropdown) */}
-        <div className="md:hidden flex-shrink-0">
-          <DropdownMenu dir="rtl">
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="h-10 w-10">
-                <Menu className="h-6 w-6" />
-                <span className="sr-only">فتح القائمة</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 p-2">
-              <DropdownMenuItem asChild>
-                <Link href="/about" className="block py-2 text-right hover:bg-accent rounded-md">عــن نـوبـيـان</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/contact" className="block py-2 text-right hover:bg-accent rounded-md">اتـصــل بـنـا</Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Desktop Navigation - Center */}
+          <nav 
+            className="hidden md:flex items-center gap-1 absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2"
+            aria-label="Primary Navigation"
+          >
+            {NAV_LINKS.map((link, index) => (
+              <Link
+                key={`nav-${index}`}
+                href={link.href}
+                className="relative px-6 py-2 text-base font-bold text-foreground/80 hover:text-primary transition-all duration-300 group"
+                aria-label={link.ariaLabel}
+              >
+                <span className="relative z-10">{link.label}</span>
+                
+                {/* Hover background effect */}
+                <div className="absolute inset-0 bg-primary/10 rounded-lg scale-0 group-hover:scale-100 transition-transform duration-300" />
+                
+                {/* Bottom border animation */}
+                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent group-hover:w-full transition-all duration-300" />
+              </Link>
+            ))}
+          </nav>
+
+          {/* Mobile Menu Button - Left Side (RTL) */}
+          <div className="md:hidden flex items-center pl-4">
+            <DropdownMenu open={isOpen} onOpenChange={setIsOpen} dir="rtl">
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className={`relative transition-all duration-300 hover:bg-primary/10 hover:scale-105 ${
+                    isScrolled ? 'h-10 w-10' : 'h-12 w-12'
+                  }`}
+                  aria-label={isOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
+                >
+                  <div className="relative">
+                    {isOpen ? (
+                      <X className="h-6 w-6 text-primary animate-in spin-in-180 duration-200" />
+                    ) : (
+                      <Menu className="h-6 w-6 text-foreground animate-in fade-in duration-200" />
+                    )}
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              
+              <DropdownMenuContent 
+                align="start" 
+                className="w-64 p-3 mt-2 bg-background/95 backdrop-blur-xl border-border/50 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200"
+                sideOffset={8}
+              >
+                {NAV_LINKS.map((link, index) => (
+                  <DropdownMenuItem 
+                    key={`mobile-nav-${index}`}
+                    asChild
+                    className="p-0 focus:bg-transparent"
+                  >
+                    <Link 
+                      href={link.href} 
+                      className="flex items-center w-full px-4 py-3 text-base font-bold text-right text-foreground/90 hover:text-primary hover:bg-primary/5 rounded-lg transition-all duration-200 group"
+                      onClick={() => setIsOpen(false)}
+                      aria-label={link.ariaLabel}
+                    >
+                      <span className="flex-1">{link.label}</span>
+                      
+                      {/* Arrow indicator */}
+                      <svg 
+                        className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" 
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+                
+                {/* Decorative bottom border */}
+                <div className="mt-2 pt-2 border-t border-border/30">
+                  <div className="h-1 w-12 bg-gradient-to-r from-primary to-transparent rounded-full mx-auto" />
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Decorative gradient line at bottom */}
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
         </div>
       </div>
+
+      {/* Backdrop overlay when mobile menu is open */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm -z-10 md:hidden animate-in fade-in duration-200"
+          onClick={() => setIsOpen(false)}
+          aria-hidden="true"
+        />
+      )}
     </header>
   );
 }

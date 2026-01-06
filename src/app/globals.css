@@ -6,6 +6,13 @@
 /* ============================================
    NUBIAN DESIGN SYSTEM - COLOR VARIABLES
    ============================================ */
+   body {
+    background: 
+      radial-gradient(ellipse at top right, rgba(var(--primary-rgb), 0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at bottom left, rgba(var(--accent-rgb), 0.03) 0%, transparent 50%),
+      #fafafa;
+    background-attachment: fixed;
+  }
 
 :root {
   /* Border Radius */
@@ -15,12 +22,14 @@
   --nubian-primary: #a37e2c;
   --nubian-primary-dark: #382A0D;
   --nubian-primary-foreground: #FFFFFF;
+  --primary-rgb: 163, 126, 44;
   
   /* Secondary & Accent Colors */
   --nubian-secondary: #005b35;
   --nubian-secondary-foreground: #FFFFFF;
   --nubian-accent: #30a1a7;
   --nubian-accent-foreground: #FFFFFF;
+  --accent-rgb: 48, 161, 167;
   
   /* Background Colors */
   --nubian-background: #FFFFFF;
@@ -203,5 +212,13 @@
     background-image: linear-gradient(to right, rgb(241 245 249 / 0.5) 1px, transparent 1px),
       linear-gradient(to bottom, rgb(241 245 249 / 0.5) 1px, transparent 1px);
     background-size: 20px 20px;
+  }
+  
+  .main-bg {
+    background: 
+      radial-gradient(ellipse at top right, rgba(var(--primary-rgb), 0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at bottom left, rgba(var(--accent-rgb), 0.03) 0%, transparent 50%),
+      #fafafa;
+    background-attachment: fixed;
   }
 }

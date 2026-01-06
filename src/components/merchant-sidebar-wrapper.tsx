@@ -9,7 +9,7 @@ import { MerchantSidebarProvider } from './merchant-sidebar-provider'
 interface MerchantStatus {
   hasApplication: boolean
   merchant?: {
-    status: 'PENDING' | 'APPROVED' | 'REJECTED'
+    status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED'
   }
 }
 
@@ -89,14 +89,24 @@ export function MerchantSidebarWrapper({ children }: { children: React.ReactNode
     )
   }
 
-  // Don't show sidebar on apply/pending pages
+  // Don't show sidebar on apply/pending pages - return full page without any wrapper
   if (pathname && NO_SIDEBAR_ROUTES.includes(pathname)) {
-    return <>{children}</>
+    return (
+      <div className="fixed inset-0 w-full h-full overflow-auto bg-background">
+        {children}
+      </div>
+    )
   }
 
-  // If no application or not approved, don't show sidebar
-  if (!merchantStatus?.hasApplication || merchantStatus.merchant?.status !== 'APPROVED') {
-    return <>{children}</>
+  // If no application or not approved, don't show sidebar - return full page
+  // Note: Suspended merchants should also see full page without sidebar
+  const merchantStatusValue = merchantStatus?.merchant?.status?.toUpperCase()
+  if (!merchantStatus?.hasApplication || merchantStatusValue !== 'APPROVED') {
+    return (
+      <div className="fixed inset-0 w-full h-full overflow-auto bg-background">
+        {children}
+      </div>
+    )
   }
 
   // Show sidebar only for approved merchants
