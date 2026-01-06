@@ -28,33 +28,28 @@ export default function SignInPage() {
     // Only run this effect when user loads and we're on sign-in page
     if (!isLoaded || pathname !== '/sign-in') return
     
-    // If user is signed in, redirect based on role
+    // If user is signed in, redirect immediately - middleware should handle this too, but this is a backup
     if (user && !hasRedirected.current) {
       hasRedirected.current = true
       
-      // Wait a bit longer for role metadata to be fully loaded
-      // This is especially important in production where metadata might take longer to sync
-      const checkRoleAndRedirect = () => {
+      // Use a more aggressive redirect approach
+      const redirectUser = () => {
         const role = user.publicMetadata?.role as string | undefined
 
-        // Use window.location for a hard redirect to prevent loops
+        // Use window.location.replace for a hard redirect that doesn't add to history
+        // This prevents back button from going back to sign-in
         if (role === 'admin') {
-          window.location.href = '/business/dashboard'
+          window.location.replace('/business/dashboard')
         } else if (role === 'merchant') {
-          window.location.href = '/merchant/dashboard'
+          window.location.replace('/merchant/dashboard')
         } else {
           // Regular users without special roles - redirect to home
-          // If role is undefined, still redirect to home to break the loop
-          window.location.href = '/'
+          window.location.replace('/')
         }
       }
       
-      // Try immediately first
-      checkRoleAndRedirect()
-      
-      // Also set a timeout as fallback in case metadata is still loading
-      // This helps in production where metadata sync might be slower
-      setTimeout(checkRoleAndRedirect, 500)
+      // Redirect immediately - don't wait
+      redirectUser()
     }
   }, [isLoaded, user, pathname])
 
@@ -101,6 +96,7 @@ export default function SignInPage() {
           path="/sign-in"
           afterSignInUrl="/"
           afterSignUpUrl="/"
+          forceRedirectUrl="/"
           appearance={{
             elements: {
               rootBox: "mx-auto w-full",
@@ -109,7 +105,6 @@ export default function SignInPage() {
               headerSubtitle: "text-sm",
             }
           }}
-          fallbackRedirectUrl="/"
         />
       </div>
     </div>

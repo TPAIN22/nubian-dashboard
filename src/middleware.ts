@@ -41,13 +41,26 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next()
   }
   
+  // Get auth data - use the correct Clerk middleware API
+  const { userId, sessionClaims } = await auth()
+  
+  // If user is authenticated and trying to access sign-in/sign-up, redirect them away
+  if (userId && (pathname === '/sign-in' || pathname.startsWith('/sign-in') || pathname === '/sign-up' || pathname.startsWith('/sign-up'))) {
+    // Get role to redirect to appropriate dashboard
+    let role = (sessionClaims?.publicMetadata as any)?.role as string | undefined
+    if (role === 'admin') {
+      return NextResponse.redirect(new URL('/business/dashboard', req.url))
+    } else if (role === 'merchant') {
+      return NextResponse.redirect(new URL('/merchant/dashboard', req.url))
+    } else {
+      return NextResponse.redirect(new URL('/', req.url))
+    }
+  }
+  
   // Handle public routes (including root route) - no auth needed
   if (isPublicRoute(req)) {
     return NextResponse.next()
   }
-  
-  // Get auth data - use the correct Clerk middleware API
-  const { userId, sessionClaims } = await auth()
   
   if (!userId) {
     // Only redirect to sign-in if not already there to prevent loops
@@ -95,7 +108,11 @@ export default clerkMiddleware(async (auth, req) => {
       
       // Admin access granted
     } catch (error: any) {
-      // Error checking admin role - redirect to sign in
+      // Error checking admin role - if user is authenticated, redirect to home
+      // If not authenticated, redirect to sign-in
+      if (userId) {
+        return NextResponse.redirect(new URL('/', req.url))
+      }
       return NextResponse.redirect(new URL('/sign-in', req.url))
     }
   }
