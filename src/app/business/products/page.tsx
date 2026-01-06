@@ -3,6 +3,7 @@ import { ProductsTable } from './productsTable';
 import { Button } from '@/components/ui/button';
 import { IconPlus } from '@tabler/icons-react';
 import Link from 'next/link';
+import { Suspense } from 'react';
 
 interface Product {
   _id: string;
@@ -18,19 +19,82 @@ interface Product {
   updatedAt: string;
 }
 
+async function getProducts() {
+  try {
+    const response = await axiosInstance.get("/products");
+    
+    // Debug: Log the response structure
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📦 Products API Response Structure:', {
+        hasSuccess: !!response.data?.success,
+        hasData: !!response.data?.data,
+        dataIsArray: Array.isArray(response.data?.data),
+        hasProducts: !!response.data?.products,
+        productsIsArray: Array.isArray(response.data?.products),
+        responseKeys: Object.keys(response.data || {}),
+        dataLength: Array.isArray(response.data?.data) ? response.data.data.length : 'N/A',
+      });
+    }
+    
+    // Backend returns: { success: true, data: [...], meta: {...} }
+    // Handle different response structures
+    let products = [];
+    
+    if (response.data?.success && Array.isArray(response.data?.data)) {
+      // Standard backend response structure: { success: true, data: [...], meta: {...} }
+      products = response.data.data;
+    } else if (Array.isArray(response.data?.products)) {
+      // Alternative structure with products key
+      products = response.data.products;
+    } else if (Array.isArray(response.data)) {
+      // Direct array response
+      products = response.data;
+    } else if (response.data?.data && Array.isArray(response.data.data)) {
+      // Nested data structure
+      products = response.data.data;
+    }
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ Products parsed:', products.length, 'items');
+    }
+    
+    return Array.isArray(products) ? products : [];
+  } catch (error: any) {
+    console.error('❌ Error fetching products:', {
+      message: error?.message,
+      response: error?.response?.data,
+      status: error?.response?.status,
+      url: error?.config?.url,
+    });
+    return [];
+  }
+}
+
+function ProductsLoading() {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <div className="text-lg text-muted-foreground">جاري التحميل...</div>
+    </div>
+  );
+}
+
 export default async function Page() {
-  const {products} = await axiosInstance.get("/products").then(res => res.data);
+  const products = await getProducts();
+  
   return (
     <div className='flex flex-col gap-4 h-full sm:mx-12 mx-2'>
       <div className='flex justify-between items-center'>
         <h1 className='text-2xl font-bold text-center'>المنتجات</h1>
         <Link href="/business/products/new" >
-          <Button className='w-30 py-2 cursor-pointer'><IconPlus/>
+          <Button className='w-30 py-2 cursor-pointer'>
+            <IconPlus className="w-4 h-4 ml-2" />
             اضافة منتج
           </Button>
         </Link>
       </div>
-      <ProductsTable productsData={products as Product[]} />
+      <Suspense fallback={<ProductsLoading />}>
+        <ProductsTable productsData={products as Product[]} />
+      </Suspense>
     </div>
   )
 }

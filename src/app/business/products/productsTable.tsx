@@ -204,8 +204,11 @@ export function ProductsTable({ productsData }: ProductsTableProps) {
     React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
 
+  // Ensure productsData is always an array
+  const safeProductsData = Array.isArray(productsData) ? productsData : []
+
   const table = useReactTable({
-    data: productsData,
+    data: safeProductsData,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -309,7 +312,9 @@ export function ProductsTable({ productsData }: ProductsTableProps) {
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  لا توجد نتائج.
+                  {safeProductsData.length === 0 
+                    ? "لا توجد منتجات متاحة." 
+                    : "لا توجد نتائج."}
                 </TableCell>
               </TableRow>
             )}

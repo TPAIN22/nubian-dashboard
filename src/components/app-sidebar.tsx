@@ -46,7 +46,7 @@ const data = {
     },
     {
       title: "التجار",
-      url: "/business/brands",
+      url: "/business/merchant",
       icon: IconUsers,
     },
     {

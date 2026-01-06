@@ -55,7 +55,7 @@ Once you have admin access, you can navigate to:
 - **Categories**: `/business/categories`
 - **Orders**: `/business/orders`
 - **Merchants**: `/business/merchants` (to approve/reject merchant applications)
-- **Brands**: `/business/brands`
+- **merchant**: `/business/merchant`
 - **Banners**: `/business/banners`
 - **Coupons**: `/business/coupons`
 - **Notifications**: `/business/notifications`

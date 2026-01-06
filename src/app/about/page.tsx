@@ -28,7 +28,7 @@ export default function AboutPage() {
             <p className="text-slate-700 leading-relaxed">
               <span className="font-semibold text-amber-600">Nubian</span> is a leading online store in Sudan, 
               dedicated to providing an exceptional shopping experience for our customers by offering thousands of 
-              authentic products from the best brands and trusted sellers. We are committed to bringing you the 
+              authentic products from the best merchant and trusted sellers. We are committed to bringing you the 
               latest products in fashion, electronics, home decor, and a wide range of other goods.
             </p>
           </div>
@@ -104,7 +104,7 @@ export default function AboutPage() {
               <li>سياسات استبدال وإرجاع واضحة</li>
             </ul>
             <ul className="list-disc list-inside text-slate-700 space-y-2 pr-4 mt-4">
-              <li>Thousands of authentic products from the best brands</li>
+              <li>Thousands of authentic products from the best merchant</li>
               <li>Fast and secure shipping across Sudan</li>
               <li>Competitive prices and ongoing special offers</li>
               <li>24/7 customer service availability</li>
