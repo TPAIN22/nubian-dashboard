@@ -15,30 +15,42 @@ interface DashboardStats {
 async function getDashboardStats(): Promise<DashboardStats> {
   try {
     // Fetch individual data directly (stats endpoint doesn't exist yet)
+    // Axios already has a 30-second timeout configured in axiosInstance
+    // Use Promise.allSettled to handle errors gracefully without blocking
     const [productsRes, merchantsRes, ordersRes] = await Promise.allSettled([
       axiosInstance.get('/products'),
       axiosInstance.get('/merchants'),
       axiosInstance.get('/orders'),
     ]);
 
-    // Backend returns: { success: true, data: [...], meta: {...} }
-    const products = productsRes.status === 'fulfilled' 
-      ? (productsRes.value.data?.success && Array.isArray(productsRes.value.data?.data)
-          ? productsRes.value.data.data
-          : productsRes.value.data?.products || productsRes.value.data || [])
-      : [];
-    
-    const merchants = merchantsRes.status === 'fulfilled'
-      ? (merchantsRes.value.data?.success && Array.isArray(merchantsRes.value.data?.data)
-          ? merchantsRes.value.data.data
-          : merchantsRes.value.data?.merchants || merchantsRes.value.data || [])
-      : [];
+    // Helper function to extract data from response or return empty array
+    const extractData = (result: PromiseSettledResult<any>, fallbackKey?: string): any[] => {
+      if (result.status === 'fulfilled') {
+        const response = result.value;
+        // Handle axios response structure: response.data contains the actual data
+        const data = response?.data || response;
+        
+        if (data?.success && Array.isArray(data.data)) {
+          return data.data;
+        }
+        if (Array.isArray(data)) {
+          return data;
+        }
+        if (fallbackKey && data?.[fallbackKey] && Array.isArray(data[fallbackKey])) {
+          return data[fallbackKey];
+        }
+        return [];
+      } else {
+        // Log rejected promise errors
+        console.error('API request failed:', result.reason?.message || result.reason);
+        return [];
+      }
+    };
 
-    const orders = ordersRes.status === 'fulfilled'
-      ? (ordersRes.value.data?.success && Array.isArray(ordersRes.value.data?.data)
-          ? ordersRes.value.data.data
-          : ordersRes.value.data?.orders || ordersRes.value.data || [])
-      : [];
+    // Backend returns: { success: true, data: [...], meta: {...} }
+    const products = extractData(productsRes, 'products');
+    const merchants = extractData(merchantsRes, 'merchants');
+    const orders = extractData(ordersRes, 'orders');
 
     const activeProducts = Array.isArray(products) 
       ? products.filter((p: any) => p.isActive !== false).length 

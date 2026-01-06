@@ -87,14 +87,35 @@ export default clerkMiddleware(async (auth, req) => {
       // Match backend check exactly: user.publicMetadata.role !== 'admin'
       // Backend uses strict !== (not case-insensitive)
       if (role !== 'admin') {
-        // Redirect non-admins away from admin routes
-        const response = NextResponse.redirect(new URL('/', req.url))
+        // Redirect non-admins away from admin routes to their appropriate dashboard
+        let redirectUrl = '/'
+        if (role === 'merchant') {
+          redirectUrl = '/merchant/dashboard'
+        }
+        // If no role or unknown role, redirect to home
+        const response = NextResponse.redirect(new URL(redirectUrl, req.url))
         response.headers.set('x-redirect-reason', 'not-admin')
         return response
       }
       
       // Admin access granted
     } catch (error: any) {
+      // Error checking admin role - if user is authenticated, redirect based on role
+      // If not authenticated, redirect to sign-in
+      if (userId) {
+        // Try to get role from sessionClaims (already available, no API call needed)
+        const role = (sessionClaims?.publicMetadata as any)?.role as string | undefined
+        
+        // Redirect to appropriate dashboard based on role
+        if (role === 'admin') {
+          return NextResponse.redirect(new URL('/business/dashboard', req.url))
+        } else if (role === 'merchant') {
+          return NextResponse.redirect(new URL('/merchant/dashboard', req.url))
+        } else {
+          // No role or unknown role - redirect to home
+          return NextResponse.redirect(new URL('/', req.url))
+        }
+      }
       // Error checking admin role - redirect to sign in
       return NextResponse.redirect(new URL('/sign-in', req.url))
     }

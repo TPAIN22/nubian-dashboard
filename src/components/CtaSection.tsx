@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 
@@ -22,13 +23,17 @@ export default function CtaSection() {
             انضم إلى ملايين العملاء الراضين في جميع أنحاء السودان. حمّل تطبيقنا للحصول على عروض حصرية، ودفع أسرع، وتوصيات شخصية.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
-              حمـــل التـــطبــيــق
-              <ArrowRight className="w-4 h-4 mr-2" />
-            </Button>
-            <Button variant="outline" size="lg" className="border-2 border-secondary-foreground/30 text-secondary-foreground bg-card/20 hover:bg-card/30 hover:scale-105 transition-all duration-300">
-              انضم الى اسـرة نـوبـيـان
-            </Button>
+            <Link href="/merchant/apply">
+              <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+                حمـــل التـــطبــيــق
+                <ArrowRight className="w-4 h-4 mr-2" />
+              </Button>
+            </Link>
+            <Link href="/merchant/apply">
+              <Button variant="outline" size="lg" className="border-2 border-secondary-foreground/30 text-secondary-foreground bg-card/20 hover:bg-card/30 hover:scale-105 transition-all duration-300">
+                انضم الى اسـرة نـوبـيـان
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

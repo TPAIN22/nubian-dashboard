@@ -1,13 +1,12 @@
 'use client'
 
 import { useUser } from '@clerk/nextjs'
-import { useRouter, usePathname } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { SignIn } from '@clerk/nextjs'
 
 export default function SignInPage() {
   const { user, isLoaded } = useUser()
-  const router = useRouter()
   const pathname = usePathname()
   const hasRedirected = useRef(false)
   const [clerkError, setClerkError] = useState<string | null>(null)
@@ -26,25 +25,32 @@ export default function SignInPage() {
     }
 
     // Only run this effect when user loads and we're on sign-in page
-    if (!isLoaded || pathname !== '/sign-in') return
+    if (!isLoaded || pathname !== '/sign-in') {
+      return
+    }
     
     // If user is signed in, redirect based on role
+    // Redirect immediately to prevent race condition with Clerk's automatic redirect
     if (user && !hasRedirected.current) {
       hasRedirected.current = true
       const role = user.publicMetadata?.role as string | undefined
 
-      // Use window.location for a hard redirect to prevent loops
-      // Add a small delay to ensure Clerk state is fully settled
-      setTimeout(() => {
-        if (role === 'admin') {
-          window.location.href = '/business/dashboard'
-        } else if (role === 'merchant') {
-          window.location.href = '/merchant/dashboard'
-        } else {
-          // Regular users without special roles - redirect to home
-          window.location.href = '/'
-        }
-      }, 100)
+      // Determine redirect URL based on role
+      let redirectUrl = '/'
+      if (role === 'admin') {
+        redirectUrl = '/business/dashboard'
+      } else if (role === 'merchant') {
+        redirectUrl = '/merchant/dashboard'
+      }
+
+      // Redirect immediately to prevent Clerk from redirecting to '/' first
+      // Use window.location.replace for a hard redirect that prevents race conditions
+      try {
+        window.location.replace(redirectUrl)
+      } catch (error) {
+        console.error('Redirect error:', error)
+        window.location.href = redirectUrl
+      }
     }
   }, [isLoaded, user, pathname])
 
@@ -89,8 +95,6 @@ export default function SignInPage() {
         <SignIn 
           routing="path"
           path="/sign-in"
-          afterSignInUrl="/sign-in"
-          afterSignUpUrl="/sign-in"
           appearance={{
             elements: {
               rootBox: "mx-auto w-full",
@@ -99,7 +103,6 @@ export default function SignInPage() {
               headerSubtitle: "text-sm",
             }
           }}
-          fallbackRedirectUrl="/sign-in"
         />
       </div>
     </div>

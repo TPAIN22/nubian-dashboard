@@ -43,6 +43,7 @@ export default function MerchantDashboard() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [productsCount, setProductsCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [loadingError, setLoadingError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isLoaded) return
@@ -56,60 +57,174 @@ export default function MerchantDashboard() {
       return
     }
 
+    let maxLoadingTimer: NodeJS.Timeout | null = null
+
     const loadDashboardData = async () => {
+      // Set a maximum loading time (30 seconds)
+      maxLoadingTimer = setTimeout(() => {
+        setLoadingError('استغرق التحميل وقتاً طويلاً. يرجى تحديث الصفحة أو التحقق من الاتصال بالإنترنت.')
+        setLoading(false)
+      }, 30000)
+
       try {
-        const token = await getToken()
+        // Add timeout for token retrieval
+        let tokenTimeoutId: NodeJS.Timeout | null = null
+        const tokenPromise = getToken()
+        const timeoutPromise = new Promise<string | null>((_, reject) => {
+          tokenTimeoutId = setTimeout(() => reject(new Error('Token retrieval timeout')), 10000)
+        })
+        
+        let token: string | null
+        try {
+          token = await Promise.race([tokenPromise, timeoutPromise]) as string | null
+          // Clear timeout if promise resolved before timeout
+          if (tokenTimeoutId) {
+            clearTimeout(tokenTimeoutId)
+            tokenTimeoutId = null
+          }
+        } catch (error) {
+          // Clear timeout on error
+          if (tokenTimeoutId) {
+            clearTimeout(tokenTimeoutId)
+            tokenTimeoutId = null
+          }
+          logger.error('Token retrieval failed or timed out', { error: error instanceof Error ? error.message : String(error) })
+          toast.error('فشل الحصول على رمز المصادقة. يرجى المحاولة مرة أخرى.')
+          setLoading(false)
+          if (maxLoadingTimer) {
+            clearTimeout(maxLoadingTimer)
+            maxLoadingTimer = null
+          }
+          return
+        }
         
         if (!token) {
           logger.error('Authentication token is null', {})
           toast.error('فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.')
           router.push('/sign-in')
+          setLoading(false)
+          if (maxLoadingTimer) {
+            clearTimeout(maxLoadingTimer)
+            maxLoadingTimer = null
+          }
           return
         }
         
-        // Check merchant status
-        const statusResponse = await axiosInstance.get('/merchants/my-status', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
+        // Check merchant status with timeout
+        let statusTimeoutId: NodeJS.Timeout | null = null
+        let statusResponse: any
+        try {
+          statusResponse = await Promise.race([
+            axiosInstance.get('/merchants/my-status', {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }),
+            new Promise((_, reject) => {
+              statusTimeoutId = setTimeout(() => reject(new Error('Request timeout')), 25000)
+            }),
+          ]) as any
+          // Clear timeout if promise resolved before timeout
+          if (statusTimeoutId) {
+            clearTimeout(statusTimeoutId)
+            statusTimeoutId = null
+          }
+        } catch (statusError) {
+          // Clear timeout on error
+          if (statusTimeoutId) {
+            clearTimeout(statusTimeoutId)
+            statusTimeoutId = null
+          }
+          // Re-throw to be handled by outer catch
+          throw statusError
+        }
         if (statusResponse.data.hasApplication) {
           const merchantData = statusResponse.data.merchant
           setMerchant(merchantData)
           
           if (merchantData.status !== 'APPROVED') {
             router.replace('/merchant/pending')
+            if (maxLoadingTimer) {
+              clearTimeout(maxLoadingTimer)
+              maxLoadingTimer = null
+            }
             return
           }
 
-          // Load stats
+          // Load stats with timeout
           try {
-            const statsResponse = await axiosInstance.get('/orders/merchant/stats', {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            })
-            setStats(statsResponse.data)
+            let statsTimeoutId: NodeJS.Timeout | null = null
+            try {
+              const statsResponse = await Promise.race([
+                axiosInstance.get('/orders/merchant/stats', {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                }),
+                new Promise((_, reject) => {
+                  statsTimeoutId = setTimeout(() => reject(new Error('Stats request timeout')), 25000)
+                }),
+              ]) as any
+              // Clear timeout if promise resolved before timeout
+              if (statsTimeoutId) {
+                clearTimeout(statsTimeoutId)
+                statsTimeoutId = null
+              }
+              setStats(statsResponse.data)
+            } catch (statsError) {
+              // Clear timeout on error
+              if (statsTimeoutId) {
+                clearTimeout(statsTimeoutId)
+                statsTimeoutId = null
+              }
+              throw statsError
+            }
           } catch (error) {
             logger.error('Error loading stats', { error: error instanceof Error ? error.message : String(error) })
+            // Don't block the page if stats fail to load
           }
 
-          // Load products count
+          // Load products count with timeout
           try {
-            const productsResponse = await axiosInstance.get('/products/merchant/my-products', {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            })
-            // Backend returns standardized paginated response: { success, data: [...], meta: { pagination: { total, ... } } }
-            const totalCount = productsResponse.data.meta?.pagination?.total ?? productsResponse.data.data?.length ?? 0
-            setProductsCount(totalCount)
+            let productsTimeoutId: NodeJS.Timeout | null = null
+            try {
+              const productsResponse = await Promise.race([
+                axiosInstance.get('/products/merchant/my-products', {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                }),
+                new Promise((_, reject) => {
+                  productsTimeoutId = setTimeout(() => reject(new Error('Products request timeout')), 25000)
+                }),
+              ]) as any
+              // Clear timeout if promise resolved before timeout
+              if (productsTimeoutId) {
+                clearTimeout(productsTimeoutId)
+                productsTimeoutId = null
+              }
+              // Backend returns standardized paginated response: { success, data: [...], meta: { pagination: { total, ... } } }
+              const totalCount = productsResponse.data.meta?.pagination?.total ?? productsResponse.data.data?.length ?? 0
+              setProductsCount(totalCount)
+            } catch (productsError) {
+              // Clear timeout on error
+              if (productsTimeoutId) {
+                clearTimeout(productsTimeoutId)
+                productsTimeoutId = null
+              }
+              throw productsError
+            }
           } catch (error) {
             logger.error('Error loading products', { error: error instanceof Error ? error.message : String(error) })
+            // Don't block the page if products fail to load
           }
         } else {
           // User has merchant role but no application - redirect to apply
           router.replace('/merchant/apply')
+          if (maxLoadingTimer) {
+            clearTimeout(maxLoadingTimer)
+            maxLoadingTimer = null
+          }
           return
         }
       } catch (error: any) {
@@ -117,32 +232,88 @@ export default function MerchantDashboard() {
           error: error instanceof Error ? error.message : String(error),
           status: error.response?.status 
         })
+        
+        // Handle timeout errors
+        if (error.message?.includes('timeout') || error.message?.includes('Timeout')) {
+          toast.error('انتهت مهلة الطلب. يرجى التحقق من الاتصال بالإنترنت والمحاولة مرة أخرى.')
+          setLoading(false)
+          if (maxLoadingTimer) {
+            clearTimeout(maxLoadingTimer)
+            maxLoadingTimer = null
+          }
+          return
+        }
+        
         // Only redirect to apply if it's a 404 (no application found)
         // For other errors, show the error but don't redirect
         if (error.response?.status === 404) {
           router.replace('/merchant/apply')
+          setLoading(false)
+          if (maxLoadingTimer) {
+            clearTimeout(maxLoadingTimer)
+            maxLoadingTimer = null
+          }
           return
         }
-        // For other errors, just set loading to false and show error
-        // Don't redirect - let the user see the error
+        
+        // For other errors, show error message
+        toast.error('حدث خطأ أثناء تحميل البيانات. يرجى المحاولة مرة أخرى.')
+        setLoadingError('فشل تحميل البيانات. يرجى تحديث الصفحة.')
       } finally {
+        if (maxLoadingTimer) {
+          clearTimeout(maxLoadingTimer)
+          maxLoadingTimer = null
+        }
         setLoading(false)
       }
     }
 
     loadDashboardData()
+    
+    // Cleanup timer on unmount
+    return () => {
+      if (maxLoadingTimer) {
+        clearTimeout(maxLoadingTimer)
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, user, router])
 
   if (!isLoaded || loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex flex-col items-center justify-center h-screen gap-4">
         <div className="text-lg">جاري التحميل...</div>
+        {loadingError && (
+          <div className="max-w-md p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-red-800 dark:text-red-200 text-sm">{loadingError}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+            >
+              تحديث الصفحة
+            </button>
+          </div>
+        )}
       </div>
     )
   }
 
   if (!merchant) {
+    if (loadingError) {
+      return (
+        <div className="flex flex-col items-center justify-center h-screen gap-4">
+          <div className="max-w-md p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-red-800 dark:text-red-200">{loadingError}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              تحديث الصفحة
+            </button>
+          </div>
+        </div>
+      )
+    }
     return null
   }
 
