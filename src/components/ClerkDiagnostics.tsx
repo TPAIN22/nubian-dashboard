@@ -59,13 +59,17 @@ export function ClerkDiagnostics() {
     const clerkScriptLoaded = typeof window !== 'undefined' && 
       (window as any).Clerk !== undefined
 
+    // Declare variables in outer scope for use in console.log
+    let clerkScripts: NodeListOf<HTMLScriptElement> | null = null
+    let clerkResources: PerformanceResourceTiming[] = []
+
     if (!clerkScriptLoaded && !isLoaded) {
       errors.push('Clerk JavaScript SDK is not loaded. Check network tab for failed requests.')
       
       // Additional diagnostics
       if (typeof window !== 'undefined') {
         // Check if Clerk script tags exist in the DOM
-        const clerkScripts = document.querySelectorAll('script[src*="clerk"]')
+        clerkScripts = document.querySelectorAll('script[src*="clerk"]')
         if (clerkScripts.length === 0) {
           errors.push('No Clerk script tags found in DOM. This suggests the SDK never attempted to load.')
         } else {
@@ -112,8 +116,8 @@ export function ClerkDiagnostics() {
         
         // Check for network errors with detailed information
         const performanceEntries = performance.getEntriesByType('resource') as PerformanceResourceTiming[]
-        const clerkResources = performanceEntries.filter(entry => 
-          entry.name.includes('clerk') || entry.name.includes('clerk.accounts.dev') || entry.name.includes('clerk.com')
+        clerkResources = performanceEntries.filter(entry => 
+          entry.name.includes('clerk') || entry.name.includes('clerk.accounts.dev') || entry.name.includes('clerk.com') || entry.name.includes('nubian-sd.store')
         )
         
         if (clerkResources.length > 0) {
@@ -200,7 +204,7 @@ export function ClerkDiagnostics() {
       console.log('Key Format Valid:', publishableKey?.startsWith('pk_') ? '✅ Yes' : '❌ No')
       console.log('Clerk Loaded:', isLoaded ? '✅ Yes' : '❌ No')
       console.log('Window.Clerk Available:', typeof window !== 'undefined' && (window as any).Clerk ? '✅ Yes' : '❌ No')
-      console.log('Script Tags Found:', clerkScripts.length)
+      console.log('Script Tags Found:', clerkScripts?.length || 0)
       console.log('Network Resources:', clerkResources.length)
       console.log('Errors:', errors.length > 0 ? errors : 'None')
       
