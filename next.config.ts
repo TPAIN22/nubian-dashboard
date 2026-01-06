@@ -37,16 +37,18 @@ const nextConfig: NextConfig = {
     const isDevelopment = process.env.NODE_ENV === 'development';
     const cspDirectives = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.accounts.dev https://*.clerk.com blob:",
-      "worker-src 'self' blob: https://*.clerk.accounts.dev https://*.clerk.com",
-      "style-src 'self' 'unsafe-inline'",
+      // Clerk script sources - allow all Clerk domains and CDNs
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.accounts.dev https://*.clerk.com https://*.clerk.dev https://clerk.com https://*.clerkstage.dev blob:",
+      "worker-src 'self' blob: https://*.clerk.accounts.dev https://*.clerk.com https://*.clerk.dev https://clerk.com",
+      "style-src 'self' 'unsafe-inline' https://*.clerk.accounts.dev https://*.clerk.com",
       "img-src 'self' data: https: blob:",
-      "font-src 'self' data:",
-      "connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.clerk.accounts.dev https://*.clerk.com https://*.imagekit.io",
-      "frame-src 'self' https://*.clerk.accounts.dev",
+      "font-src 'self' data: https://*.clerk.accounts.dev https://*.clerk.com",
+      // Clerk API connections - allow all Clerk API endpoints
+      "connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.clerk.accounts.dev https://*.clerk.com https://*.clerk.dev https://clerk.com https://*.imagekit.io wss://*.clerk.accounts.dev wss://*.clerk.com",
+      "frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://*.clerk.dev",
       "object-src 'none'",
       "base-uri 'self'",
-      "form-action 'self'",
+      "form-action 'self' https://*.clerk.accounts.dev https://*.clerk.com",
       "frame-ancestors 'self'",
     ];
     

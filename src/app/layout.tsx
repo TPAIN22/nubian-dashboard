@@ -170,10 +170,12 @@ export default function RootLayout({
   }
 
   // ClerkProvider requires a valid publishableKey
-  // If it's missing, we'll pass undefined and Clerk will show errors client-side
+  // According to Clerk docs: https://clerk.com/docs
+  // The publishableKey must be set at build time for NEXT_PUBLIC_ variables
+  // If it's missing, Clerk SDK won't load properly
   return (
      <ClerkProvider
-      publishableKey={clerkPublishableKey || undefined}
+      publishableKey={isKeyValid ? clerkPublishableKey : undefined}
       appearance={{
         baseTheme: dark,
       }}

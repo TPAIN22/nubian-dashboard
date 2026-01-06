@@ -61,6 +61,36 @@ export function ClerkDiagnostics() {
 
     if (!clerkScriptLoaded && !isLoaded) {
       errors.push('Clerk JavaScript SDK is not loaded. Check network tab for failed requests.')
+      
+      // Additional diagnostics
+      if (typeof window !== 'undefined') {
+        // Check if Clerk script tags exist in the DOM
+        const clerkScripts = document.querySelectorAll('script[src*="clerk"]')
+        if (clerkScripts.length === 0) {
+          errors.push('No Clerk script tags found in DOM. This suggests the SDK never attempted to load.')
+        } else {
+          errors.push(`Found ${clerkScripts.length} Clerk script tag(s), but SDK object is not available.`)
+        }
+        
+        // Check for network errors
+        const performanceEntries = performance.getEntriesByType('resource') as PerformanceResourceTiming[]
+        const clerkResources = performanceEntries.filter(entry => 
+          entry.name.includes('clerk') || entry.name.includes('clerk.accounts.dev') || entry.name.includes('clerk.com')
+        )
+        
+        if (clerkResources.length > 0) {
+          const failedResources = clerkResources.filter(entry => {
+            // Check if resource failed (status 0 usually means failed)
+            return (entry as any).transferSize === 0 && (entry as any).decodedBodySize === 0
+          })
+          
+          if (failedResources.length > 0) {
+            errors.push(`${failedResources.length} Clerk resource(s) failed to load. Check Network tab.`)
+          }
+        } else {
+          errors.push('No Clerk resources found in network requests. SDK may not be initializing.')
+        }
+      }
     }
 
     // Check for CSP violations
