@@ -7,26 +7,26 @@ export default function CtaSection() {
     <section className="py-24 px-6 md:px-12">
       <div className="max-w-7xl mx-auto">
         <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl" />
-        <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-3xl" />
-        <div className="relative z-10 text-center py-16 px-8 text-white">
+        <div className="absolute inset-0 bg-gradient-to-r from-secondary to-secondary/90 rounded-3xl" />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-primary/5 rounded-3xl" />
+        <div className="relative z-10 text-center py-16 px-8 text-secondary-foreground">
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
             ابــدا التســوق
-            <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
               {" "}
               الــيـــوم
             </span>
             !
           </h2>
-          <p className="text-xl text-slate-300 max-w-2xl mx-auto mb-8 leading-relaxed">
+          <p className="text-xl text-secondary-foreground/80 max-w-2xl mx-auto mb-8 leading-relaxed">
             انضم إلى ملايين العملاء الراضين في جميع أنحاء السودان. حمّل تطبيقنا للحصول على عروض حصرية، ودفع أسرع، وتوصيات شخصية.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+            <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
               حمـــل التـــطبــيــق
               <ArrowRight className="w-4 h-4 mr-2" />
             </Button>
-            <Button variant="outline" size="lg" className="border-2 border-white/30 text-black bg-white hover:bg-white/10 hover:text-white hover:scale-105 transition-all duration-300">
+            <Button variant="outline" size="lg" className="border-2 border-secondary-foreground/30 text-secondary-foreground bg-card/20 hover:bg-card/30 hover:scale-105 transition-all duration-300">
               انضم الى اسـرة نـوبـيـان
             </Button>
           </div>

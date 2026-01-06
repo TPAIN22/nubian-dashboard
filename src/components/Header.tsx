@@ -21,32 +21,30 @@ export default function Header() {
         </Link>
 
         {/* Desktop Navigation - Centered */}
-        <nav className="hidden md:flex items-center gap-8 text-slate-700 font-medium mx-auto">
-          <Link href="/about" className="hover:text-amber-500 transition-colors">
+        <nav className="hidden md:flex items-center gap-8 text-primary font-medium mx-auto">
+          <Link href="/about" className="hover:text-primary/80 transition-colors">
             عن نوبيان
           </Link>
-          <Link href="/contact" className="hover:text-amber-500 transition-colors">
+          <Link href="/contact" className="hover:text-primary/80 transition-colors">
             اتصل بنا
           </Link>
         </nav>
 
         {/* Mobile Navigation (Dropdown) */}
-        <div className="md:hidden flex-shrink-0"> {/* هذا الـ div سيظهر فقط على الشاشات الأصغر من md */}
+        <div className="md:hidden flex-shrink-0">
           <DropdownMenu dir="rtl">
             <DropdownMenuTrigger asChild>
-              {/* زر القائمة للجوال، تأكد من حجمه المناسب للمس */}
-              <Button variant="outline" size="icon" className="h-10 w-10 "> {/* زيادة حجم الزر قليلاً */}
+              <Button variant="outline" size="icon" className="h-10 w-10">
                 <Menu className="h-6 w-6" />
-                <span className="sr-only ">فتح القائمة</span> {/* نص مخفي لتحسين إمكانية الوصول */}
+                <span className="sr-only">فتح القائمة</span>
               </Button>
             </DropdownMenuTrigger>
-            {/* محتوى القائمة المنسدلة للجوال */}
-            <DropdownMenuContent align="end" className="w-56 p-2"> {/* إضافة padding للقائمة */}
+            <DropdownMenuContent align="end" className="w-56 p-2">
               <DropdownMenuItem asChild>
-                <Link href="/about" className="block py-2 text-right hover:bg-slate-50 rounded-md">عــن نـوبـيـان</Link>
+                <Link href="/about" className="block py-2 text-right hover:bg-accent rounded-md">عــن نـوبـيـان</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/contact" className="block py-2 text-right hover:bg-slate-50 rounded-md">اتـصــل بـنـا</Link>
+                <Link href="/contact" className="block py-2 text-right hover:bg-accent rounded-md">اتـصــل بـنـا</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

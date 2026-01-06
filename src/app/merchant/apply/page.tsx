@@ -239,21 +239,21 @@ export default function MerchantApply() {
 
             <div className="bg-white rounded-xl shadow-xl border border-slate-200 p-8 md:p-10">
               <div className="text-center mb-6">
-                <div className="mx-auto w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center mb-4">
-                  <CheckCircle2 className="w-10 h-10 text-green-600 dark:text-green-400" />
+                <div className="mx-auto w-20 h-20 rounded-full bg-success/10 dark:bg-success/20 flex items-center justify-center mb-4">
+                  <CheckCircle2 className="w-10 h-10 text-success" />
                 </div>
-                <h2 className="text-3xl font-bold text-slate-900 mb-2">تم استلام طلبك</h2>
-                <p className="text-slate-600 text-lg">
+                <h2 className="text-3xl font-bold text-foreground mb-2">تم استلام طلبك</h2>
+                <p className="text-muted-foreground text-lg">
                   تم إرسال طلب التاجر الخاص بك بنجاح. سيقوم فريقنا بمراجعته خلال 1-2 يوم عمل.
                 </p>
               </div>
               
-              <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg p-6 mb-6">
+              <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-lg p-6 mb-6">
                 <div className="flex items-start gap-4">
-                  <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400 mt-0.5" />
+                  <Clock className="w-6 h-6 text-primary mt-0.5" />
                   <div>
-                    <h3 className="font-semibold text-slate-900 mb-2">ماذا يحدث بعد ذلك؟</h3>
-                    <ul className="space-y-2 text-slate-600 text-sm">
+                    <h3 className="font-semibold text-foreground mb-2">ماذا يحدث بعد ذلك؟</h3>
+                    <ul className="space-y-2 text-muted-foreground text-sm">
                       <li>• سيقوم فريقنا بمراجعة طلبك خلال 1-2 يوم عمل</li>
                       <li>• سنخطرك عبر البريد الإلكتروني بمجرد معالجة طلبك</li>
                       <li>• يمكنك التحقق من حالة طلبك من خلال زيارة هذه الصفحة مرة أخرى</li>
@@ -316,21 +316,21 @@ export default function MerchantApply() {
             {merchant.status === 'PENDING' && (
               <>
                 <div className="text-center mb-6">
-                  <div className="mx-auto w-20 h-20 rounded-full bg-yellow-100 dark:bg-yellow-900/20 flex items-center justify-center mb-4">
-                    <Clock className="w-10 h-10 text-yellow-600 dark:text-yellow-400" />
+                  <div className="mx-auto w-20 h-20 rounded-full bg-warning/10 dark:bg-warning/20 flex items-center justify-center mb-4">
+                    <Clock className="w-10 h-10 text-warning" />
                   </div>
-                  <h2 className="text-3xl font-bold text-slate-900 mb-2">الطلب قيد المراجعة</h2>
-                  <p className="text-slate-600 text-lg">
-                    طلب التاجر الخاص بك لـ <strong className="text-slate-900">{merchant.businessName}</strong> قيد المراجعة حالياً من قبل فريقنا.
+                  <h2 className="text-3xl font-bold text-foreground mb-2">الطلب قيد المراجعة</h2>
+                  <p className="text-muted-foreground text-lg">
+                    طلب التاجر الخاص بك لـ <strong className="text-foreground">{merchant.businessName}</strong> قيد المراجعة حالياً من قبل فريقنا.
                   </p>
                 </div>
                 
-                <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg p-6 mb-6">
+                <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-lg p-6 mb-6">
                   <div className="flex items-start gap-4">
-                    <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400 mt-0.5" />
+                    <Clock className="w-6 h-6 text-primary mt-0.5" />
                     <div>
-                      <h3 className="font-semibold text-slate-900 mb-2">ماذا يحدث بعد ذلك؟</h3>
-                      <ul className="space-y-2 text-slate-600 text-sm">
+                      <h3 className="font-semibold text-foreground mb-2">ماذا يحدث بعد ذلك؟</h3>
+                      <ul className="space-y-2 text-muted-foreground text-sm">
                         <li>• سيقوم فريقنا بمراجعة طلبك خلال 1-2 يوم عمل</li>
                         <li>• سنخطرك عبر البريد الإلكتروني بمجرد معالجة طلبك</li>
                         <li>• يمكنك التحقق من حالة طلبك هنا في أي وقت</li>
@@ -363,9 +363,9 @@ export default function MerchantApply() {
             {merchant.status === 'REJECTED' && (
               <>
                 <div className="text-center mb-6">
-                  <div className="mx-auto w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center mb-4">
+                  <div className="mx-auto w-20 h-20 rounded-full bg-destructive/10 dark:bg-destructive/20 flex items-center justify-center mb-4">
                     <svg
-                      className="w-10 h-10 text-red-600 dark:text-red-400"
+                      className="w-10 h-10 text-destructive"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -378,21 +378,21 @@ export default function MerchantApply() {
                       />
                     </svg>
                   </div>
-                  <h2 className="text-3xl font-bold text-slate-900 mb-2">تم رفض الطلب</h2>
-                  <p className="text-slate-600 text-lg">
-                    للأسف، تم رفض طلب التاجر الخاص بك لـ <strong className="text-slate-900">{merchant.businessName}</strong>.
+                  <h2 className="text-3xl font-bold text-foreground mb-2">تم رفض الطلب</h2>
+                  <p className="text-muted-foreground text-lg">
+                    للأسف، تم رفض طلب التاجر الخاص بك لـ <strong className="text-foreground">{merchant.businessName}</strong>.
                   </p>
                 </div>
 
                 {merchant.rejectionReason && (
-                  <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-6 mb-6">
-                    <h3 className="font-semibold text-slate-900 mb-2 flex items-center gap-2">
-                      <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="bg-destructive/5 dark:bg-destructive/10 border border-destructive/20 rounded-lg p-6 mb-6">
+                    <h3 className="font-semibold text-foreground mb-2 flex items-center gap-2">
+                      <svg className="w-5 h-5 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       سبب الرفض
                     </h3>
-                    <p className="text-slate-700 dark:text-slate-300">{merchant.rejectionReason}</p>
+                    <p className="text-foreground">{merchant.rejectionReason}</p>
                   </div>
                 )}
 

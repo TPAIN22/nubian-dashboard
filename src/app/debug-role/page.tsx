@@ -71,7 +71,7 @@ export default function DebugRolePage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <div className={`p-3 rounded-lg ${user?.publicMetadata?.role === 'admin' ? 'bg-green-100 dark:bg-green-900/20' : 'bg-red-100 dark:bg-red-900/20'}`}>
+              <div className={`p-3 rounded-lg ${user?.publicMetadata?.role === 'admin' ? 'bg-success/10 dark:bg-success/20' : 'bg-destructive/10 dark:bg-destructive/20'}`}>
                 <strong>Client Role Check:</strong> {user?.publicMetadata?.role === 'admin' ? '✅ ADMIN' : '❌ NOT ADMIN'}
                 <br />
                 <span className="text-sm text-muted-foreground">
@@ -79,7 +79,7 @@ export default function DebugRolePage() {
                 </span>
               </div>
               
-              <div className={`p-3 rounded-lg ${apiData?.isAdmin ? 'bg-green-100 dark:bg-green-900/20' : 'bg-red-100 dark:bg-red-900/20'}`}>
+              <div className={`p-3 rounded-lg ${apiData?.isAdmin ? 'bg-success/10 dark:bg-success/20' : 'bg-destructive/10 dark:bg-destructive/20'}`}>
                 <strong>Server Role Check:</strong> {apiData?.isAdmin ? '✅ ADMIN' : '❌ NOT ADMIN'}
                 <br />
                 <span className="text-sm text-muted-foreground">
@@ -88,7 +88,7 @@ export default function DebugRolePage() {
               </div>
 
               {user?.publicMetadata?.role !== 'admin' && (
-                <div className="p-4 bg-yellow-100 dark:bg-yellow-900/20 rounded-lg">
+                <div className="p-4 bg-warning/10 dark:bg-warning/20 rounded-lg">
                   <strong>⚠️ Issue Detected:</strong>
                   <ul className="list-disc list-inside mt-2 space-y-1">
                     <li>Your role is not set to &quot;admin&quot; (lowercase)</li>
@@ -101,7 +101,7 @@ export default function DebugRolePage() {
               )}
 
               {user?.publicMetadata?.role === 'admin' && apiData?.isAdmin && (
-                <div className="p-4 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                <div className="p-4 bg-success/10 dark:bg-success/20 rounded-lg">
                   <strong>✅ Role is correctly set!</strong>
                   <p className="mt-2">If you&apos;re still being redirected, check:</p>
                   <ul className="list-disc list-inside mt-2 space-y-1">

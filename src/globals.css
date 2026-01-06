@@ -2,11 +2,143 @@
 @import "tw-animate-css";
 @plugin "daisyui";
 @custom-variant dark (&:is(.dark *));
+
+/* ============================================
+   NUBIAN DESIGN SYSTEM - COLOR VARIABLES
+   ============================================ */
+
+:root {
+  /* Border Radius */
+  --radius: 0.75rem;
+  
+  /* Primary Colors - Nubian Gold */
+  --nubian-primary: #a37e2c;
+  --nubian-primary-dark: #382A0D;
+  --nubian-primary-foreground: #FFFFFF;
+  
+  /* Secondary & Accent Colors */
+  --nubian-secondary: #005b35;
+  --nubian-secondary-foreground: #FFFFFF;
+  --nubian-accent: #30a1a7;
+  --nubian-accent-foreground: #FFFFFF;
+  
+  /* Background Colors */
+  --nubian-background: #FFFFFF;
+  --nubian-secondary-background: #1f1c14;
+  --nubian-surface: #F9FAFB;
+  --nubian-card-background: #FFFFFF;
+  
+  /* Text Colors */
+  --nubian-text-primary: #005b35;
+  --nubian-text-secondary: #191610;
+  --nubian-text-accent: #8d7c58;
+  --nubian-text-dark: #1F2937;
+  --nubian-text-gray: #333333;
+  
+  /* Button Colors */
+  --nubian-btn-primary: #8d7c58;
+  --nubian-btn-primary-foreground: #FFFFFF;
+  --nubian-btn-secondary: #2f291d;
+  --nubian-btn-secondary-foreground: #FFFFFF;
+  
+  /* Status Colors */
+  --nubian-success: #22C55E;
+  --nubian-success-foreground: #FFFFFF;
+  --nubian-error: #EF4444;
+  --nubian-error-foreground: #FFFFFF;
+  --nubian-warning: #F97316;
+  --nubian-warning-foreground: #FFFFFF;
+  
+  /* Borders & Effects */
+  --nubian-border: #e4ded3;
+  --nubian-overlay: rgba(0, 0, 0, 0.3);
+  
+  /* Semantic Color Mappings */
+  --background: var(--nubian-background);
+  --foreground: var(--nubian-text-primary);
+  --card: var(--nubian-card-background);
+  --card-foreground: var(--nubian-text-primary);
+  --popover: var(--nubian-card-background);
+  --popover-foreground: var(--nubian-text-primary);
+  --primary: var(--nubian-primary);
+  --primary-foreground: var(--nubian-primary-foreground);
+  --secondary: var(--nubian-secondary);
+  --secondary-foreground: var(--nubian-secondary-foreground);
+  --muted: var(--nubian-surface);
+  --muted-foreground: var(--nubian-text-gray);
+  --accent: var(--nubian-accent);
+  --accent-foreground: var(--nubian-accent-foreground);
+  --destructive: var(--nubian-error);
+  --destructive-foreground: var(--nubian-error-foreground);
+  --success: var(--nubian-success);
+  --success-foreground: var(--nubian-success-foreground);
+  --warning: var(--nubian-warning);
+  --warning-foreground: var(--nubian-warning-foreground);
+  --border: var(--nubian-border);
+  --input: var(--nubian-border);
+  --ring: var(--nubian-primary);
+  --chart-1: var(--nubian-primary);
+  --chart-2: var(--nubian-secondary);
+  --chart-3: var(--nubian-accent);
+  --chart-4: var(--nubian-btn-primary);
+  --chart-5: var(--nubian-text-accent);
+  --sidebar: var(--nubian-surface);
+  --sidebar-foreground: var(--nubian-text-primary);
+  --sidebar-primary: var(--nubian-primary);
+  --sidebar-primary-foreground: var(--nubian-primary-foreground);
+  --sidebar-accent: var(--nubian-surface);
+  --sidebar-accent-foreground: var(--nubian-text-primary);
+  --sidebar-border: var(--nubian-border);
+  --sidebar-ring: var(--nubian-primary);
+}
+
+.dark {
+  /* Dark mode will be implemented later, keeping structure ready */
+  --background: var(--nubian-secondary-background);
+  --foreground: #FFFFFF;
+  --card: #2a2720;
+  --card-foreground: #FFFFFF;
+  --popover: #2a2720;
+  --popover-foreground: #FFFFFF;
+  --primary: var(--nubian-primary);
+  --primary-foreground: var(--nubian-primary-foreground);
+  --secondary: var(--nubian-secondary);
+  --secondary-foreground: var(--nubian-secondary-foreground);
+  --muted: #2a2720;
+  --muted-foreground: #a8a8a8;
+  --accent: var(--nubian-accent);
+  --accent-foreground: var(--nubian-accent-foreground);
+  --destructive: var(--nubian-error);
+  --destructive-foreground: var(--nubian-error-foreground);
+  --success: var(--nubian-success);
+  --success-foreground: var(--nubian-success-foreground);
+  --warning: var(--nubian-warning);
+  --warning-foreground: var(--nubian-warning-foreground);
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.15);
+  --ring: var(--nubian-primary);
+  --chart-1: var(--nubian-primary);
+  --chart-2: var(--nubian-secondary);
+  --chart-3: var(--nubian-accent);
+  --chart-4: var(--nubian-btn-primary);
+  --chart-5: var(--nubian-text-accent);
+  --sidebar: #2a2720;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: var(--nubian-primary);
+  --sidebar-primary-foreground: var(--nubian-primary-foreground);
+  --sidebar-accent: #2a2720;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: var(--nubian-primary);
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  
+  /* Color Mappings for Tailwind */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -22,6 +154,11 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -38,75 +175,18 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-}
-
-:root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  
+  /* Nubian Brand Colors - Direct Access */
+  --color-nubian-primary: var(--nubian-primary);
+  --color-nubian-primary-dark: var(--nubian-primary-dark);
+  --color-nubian-secondary: var(--nubian-secondary);
+  --color-nubian-accent: var(--nubian-accent);
+  --color-nubian-surface: var(--nubian-surface);
+  --color-nubian-success: var(--nubian-success);
+  --color-nubian-error: var(--nubian-error);
+  --color-nubian-warning: var(--nubian-warning);
+  --color-nubian-btn-primary: var(--nubian-btn-primary);
+  --color-nubian-btn-secondary: var(--nubian-btn-secondary);
 }
 
 @layer base {

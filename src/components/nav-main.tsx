@@ -47,7 +47,7 @@ export function NavMain({
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     tooltip={item.title}
-                    className={isActive ? "bg-[#4f4f4f] text-white" : ""}
+                    className={isActive ? "bg-primary text-primary-foreground" : ""}
                   >
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>

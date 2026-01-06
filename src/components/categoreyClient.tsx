@@ -199,7 +199,7 @@ export default function CategoryListClient({ categories: initialCategories }: Ca
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteCategory} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction onClick={handleDeleteCategory} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
               تأكيد الحذف
             </AlertDialogAction>
           </AlertDialogFooter>

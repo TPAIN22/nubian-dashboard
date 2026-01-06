@@ -76,10 +76,10 @@ export default function DashboardsPage() {
 
   if (!isLoaded || checking) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-amber-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
-          <div className="text-lg text-slate-600">جاري التحميل...</div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <div className="text-lg text-muted-foreground">جاري التحميل...</div>
         </div>
       </div>
     )
@@ -108,7 +108,7 @@ export default function DashboardsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-amber-50" dir="rtl">
+    <div className="min-h-screen bg-white" dir="rtl">
       <Header />
       
       {/* Hero Section */}
@@ -116,14 +116,14 @@ export default function DashboardsPage() {
         <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10"></div>
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-100 dark:bg-amber-900/20 rounded-full mb-6">
-              <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              <span className="text-sm font-medium text-amber-900 dark:text-amber-100">لوحات التحكم المتقدمة</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 dark:bg-primary/20 rounded-full mb-6">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-primary">لوحات التحكم المتقدمة</span>
             </div>
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-slate-900 mb-6 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 bg-clip-text text-transparent">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-foreground mb-6 bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent">
               لوحات التحكم
             </h1>
-            <p className="text-xl md:text-2xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
               اختر لوحة التحكم المناسبة لإدارة عملك على منصة نوبيان
             </p>
           </div>
@@ -150,8 +150,8 @@ export default function DashboardsPage() {
                       <span className="text-xs font-semibold text-purple-700 dark:text-purple-300">إدارة</span>
                     </div>
                   </div>
-                  <CardTitle className="text-3xl font-bold text-slate-900 mb-2">لوحة تحكم الإدارة</CardTitle>
-                  <CardDescription className="text-base text-slate-600">
+                  <CardTitle className="text-3xl font-bold text-foreground mb-2">لوحة تحكم الإدارة</CardTitle>
+                  <CardDescription className="text-base text-muted-foreground">
                     إدارة شاملة لمنصة نوبيان - المنتجات، الطلبات، التجار، والإحصائيات
                   </CardDescription>
                 </CardHeader>
@@ -242,8 +242,8 @@ export default function DashboardsPage() {
                     </span>
                   </div>
                 </div>
-                <CardTitle className="text-3xl font-bold text-slate-900 mb-2">لوحة تحكم التاجر</CardTitle>
-                <CardDescription className="text-base text-slate-600">
+                <CardTitle className="text-3xl font-bold text-foreground mb-2">لوحة تحكم التاجر</CardTitle>
+                <CardDescription className="text-base text-muted-foreground">
                   {isMerchantApproved 
                     ? 'إدارة متجرك، منتجاتك، طلباتك، وإحصائيات مبيعاتك'
                     : 'ابدأ رحلتك كتاجر على منصة نوبيان - قدم طلبك الآن'}

@@ -131,14 +131,14 @@ export const columns: ColumnDef<Order>[] = [
           <span
             className={`px-2 py-1 rounded-full text-xs font-medium ${
               status === "delivered"
-                ? "bg-green-100 text-green-800"
+                ? "bg-success/10 text-success"
                 : status === "shipped"
-                ? "bg-blue-100 text-blue-800"
+                ? "bg-accent/10 text-accent"
                 : status === "confirmed"
-                ? "bg-yellow-100 text-yellow-800"
+                ? "bg-warning/10 text-warning"
                 : status === "cancelled"
-                ? "bg-red-100 text-red-800"
-                : "bg-gray-100 text-gray-800"
+                ? "bg-destructive/10 text-destructive"
+                : "bg-muted text-muted-foreground"
             }`}
           >
             {getStatusInArabic(status)}

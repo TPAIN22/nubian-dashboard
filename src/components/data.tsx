@@ -28,22 +28,22 @@ export const features: Feature[] = [
     icon: <ShoppingBag className="w-8 h-8" />,
     title: "منتجات متنوعة",
     desc: "تصفح آلاف المنتجات الأصلية من الأزياء إلى ديكور المنزل والإلكترونيات.",
-    color: "from-amber-400 to-orange-500",
-    accent: "#f0b745",
+    color: "from-primary to-primary/80",
+    accent: "#a37e2c",
   },
   {
     icon: <Shield className="w-8 h-8" />,
     title: "حماية للعملاء",
     desc: "طرق دفع آمنة مع حماية للمشتري وإرجاع جميع المشتريات.",
-    color: "from-teal-400 to-cyan-500",
+    color: "from-accent to-accent/80",
     accent: "#30a1a7",
   },
   {
     icon: <Car className="w-8 h-8" />,
     title: "شحن سريع",
     desc: "شحن سريع في جميع أنحاء السودان مع تتبع جميع الطلبات في الوقت الحقيقي.",
-    color: "from-purple-400 to-pink-500",
-    accent: "#8b5cf6",
+    color: "from-secondary to-secondary/80",
+    accent: "#005b35",
   },
 ];
 

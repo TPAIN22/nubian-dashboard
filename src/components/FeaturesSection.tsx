@@ -15,18 +15,18 @@ export default function FeaturesSection({ features }: FeaturesSectionProps) {
     <section className="py-24 px-6 md:px-12">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-        <Badge variant="secondary" className="mb-4 bg-teal-100 text-teal-800 border-0">
+        <Badge variant="secondary" className="mb-4 bg-accent/10 text-accent border-0">
           لـــمــاذا تــخــتــار نـوبـيــــــان
         </Badge>
-        <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">
+        <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
           لـــمــاذا التـــســوق مــن
-          <span className="bg-gradient-to-r from-teal-500 to-cyan-500 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-accent to-accent/80 bg-clip-text text-transparent">
             {" "}
             نـوبـيــــــان
           </span>
           ?
         </h2>
-        <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
           منصة التجارة الإلكترونية الرائدة في السودان تقدم منتجات عالية الجودة وأسعارًا تنافسية وخدمة استثنائية.
         </p>
       </div>
@@ -41,14 +41,14 @@ export default function FeaturesSection({ features }: FeaturesSectionProps) {
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-r opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-2xl blur-xl" style={{ background: feature.accent }} />
               </div>
-              <h3 className="text-xl font-semibold text-slate-900">
+              <h3 className="text-xl font-semibold text-foreground">
                 {feature.title}
               </h3>
-              <p className="text-slate-600 leading-relaxed">
+              <p className="text-muted-foreground leading-relaxed">
                 {feature.desc}
               </p>
               <div className="pt-2">
-                <Button variant="ghost" className="text-slate-700 hover:text-slate-900 group-hover:translate-x-1 transition-transform p-0">
+                <Button variant="ghost" className="text-foreground hover:text-primary group-hover:translate-x-1 transition-transform p-0">
                   المزيد <ArrowLeft className="w-4 h-4 mr-1" />
                 </Button>
               </div>
