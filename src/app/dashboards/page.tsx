@@ -116,15 +116,18 @@ export default function DashboardsPage() {
         <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10"></div>
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 dark:bg-primary/20 rounded-full mb-6">
-              <Sparkles className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-primary">لوحات التحكم المتقدمة</span>
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 rounded-full mb-6 border border-primary/20">
+              <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+              <span className="text-sm font-semibold text-primary">لوحات التحكم المتقدمة</span>
             </div>
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-foreground mb-6 bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-primary mb-6 bg-gradient-to-r from-primary via-primary/90 to-primary/80 bg-clip-text drop-shadow-sm">
               لوحات التحكم
             </h1>
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              اختر لوحة التحكم المناسبة لإدارة عملك على منصة نوبيان
+            <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed font-medium">
+              اختر لوحة التحكم المناسبة لإدارة عملك بكفاءة على منصة نوبيان
+            </p>
+            <p className="text-base md:text-lg text-muted-foreground/80 max-w-2xl mx-auto mt-4 leading-relaxed">
+              أدوات قوية وسهلة الاستخدام لإدارة كل جانب من جوانب عملك
             </p>
           </div>
         </div>
@@ -147,12 +150,12 @@ export default function DashboardsPage() {
                       <Shield className="w-8 h-8 text-white" />
                     </div>
                     <div className="px-3 py-1 bg-purple-100 dark:bg-purple-900/20 rounded-full">
-                      <span className="text-xs font-semibold text-purple-700 dark:text-purple-300">إدارة</span>
+                      <span className="text-xs font-semibold text-green-700 dark:text-green-600">إدارة</span>
                     </div>
                   </div>
-                  <CardTitle className="text-3xl font-bold text-foreground mb-2">لوحة تحكم الإدارة</CardTitle>
-                  <CardDescription className="text-base text-muted-foreground">
-                    إدارة شاملة لمنصة نوبيان - المنتجات، الطلبات، التجار، والإحصائيات
+                  <CardTitle className="text-3xl font-extrabold mb-3 text-primary">لوحة تحكم الإدارة</CardTitle>
+                  <CardDescription className="text-base text-muted-foreground leading-relaxed">
+                    إدارة كاملة للمنتجات، الطلبات، والتجار مع تقارير مفصلة
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="relative space-y-6">
@@ -160,29 +163,29 @@ export default function DashboardsPage() {
                     <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
                       <Package className="w-5 h-5 text-purple-600" />
                       <div>
-                        <p className="text-xs text-slate-500">المنتجات</p>
-                        <p className="text-sm font-semibold text-slate-900">إدارة كاملة</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">المنتجات</p>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">أضف، عدّل، احذف</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
                       <Users className="w-5 h-5 text-purple-600" />
                       <div>
-                        <p className="text-xs text-slate-500">التجار</p>
-                        <p className="text-sm font-semibold text-slate-900">مراقبة</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">التجار</p>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">راقب ووافق</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
                       <BarChart3 className="w-5 h-5 text-purple-600" />
                       <div>
-                        <p className="text-xs text-slate-500">الإحصائيات</p>
-                        <p className="text-sm font-semibold text-slate-900">تحليلات</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">الطلبات</p>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">تتبع وإدارة</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
                       <TrendingUp className="w-5 h-5 text-purple-600" />
                       <div>
-                        <p className="text-xs text-slate-500">الأداء</p>
-                        <p className="text-sm font-semibold text-slate-900">تقارير</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">التقارير</p>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">عرض وتحليل</p>
                       </div>
                     </div>
                   </div>
@@ -197,7 +200,7 @@ export default function DashboardsPage() {
                     >
                       <span className="flex items-center justify-center gap-2">
                         <LayoutDashboard className="w-5 h-5" />
-                        الدخول إلى لوحة التحكم
+                        <span>افتح لوحة التحكم</span>
                       </span>
                     </Button>
                   </div>
@@ -236,17 +239,17 @@ export default function DashboardsPage() {
                     <span className={`text-xs font-semibold ${
                       isMerchantApproved 
                         ? 'text-amber-700 dark:text-amber-300' 
-                        : 'text-orange-700 dark:text-orange-300'
+                        : 'text-orange-700 dark:text-brown-300'
                     }`}>
                       {isMerchantApproved ? 'موافق' : 'تاجر'}
                     </span>
                   </div>
                 </div>
-                <CardTitle className="text-3xl font-bold text-foreground mb-2">لوحة تحكم التاجر</CardTitle>
-                <CardDescription className="text-base text-muted-foreground">
+                <CardTitle className="text-3xl font-extrabold text-secondary mb-3">لوحة تحكم التاجر</CardTitle>
+                <CardDescription className="text-base text-muted-foreground leading-relaxed">
                   {isMerchantApproved 
-                    ? 'إدارة متجرك، منتجاتك، طلباتك، وإحصائيات مبيعاتك'
-                    : 'ابدأ رحلتك كتاجر على منصة نوبيان - قدم طلبك الآن'}
+                    ? 'أدر منتجاتك وطلباتك ومبيعاتك من مكان واحد'
+                    : 'انضم كتاجر وابدأ بيع منتجاتك على نوبيان'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="relative space-y-6">
@@ -256,29 +259,29 @@ export default function DashboardsPage() {
                       <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
                         <Store className="w-5 h-5 text-amber-600" />
                         <div>
-                          <p className="text-xs text-slate-500">المتجر</p>
-                          <p className="text-sm font-semibold text-slate-900">إدارة كاملة</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">المنتجات</p>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">أضف وعدّل</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
                         <Package className="w-5 h-5 text-amber-600" />
                         <div>
-                          <p className="text-xs text-slate-500">المنتجات</p>
-                          <p className="text-sm font-semibold text-slate-900">إضافة وتعديل</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">الطلبات</p>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">تتبع ومعالجة</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
                         <BarChart3 className="w-5 h-5 text-amber-600" />
                         <div>
-                          <p className="text-xs text-slate-500">المبيعات</p>
-                          <p className="text-sm font-semibold text-slate-900">تحليلات</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">المبيعات</p>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">عرض الإحصائيات</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
                         <TrendingUp className="w-5 h-5 text-amber-600" />
                         <div>
-                          <p className="text-xs text-slate-500">الأداء</p>
-                          <p className="text-sm font-semibold text-slate-900">تقارير</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">الأداء</p>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">تتبع النمو</p>
                         </div>
                       </div>
                     </div>
@@ -293,7 +296,7 @@ export default function DashboardsPage() {
                       >
                         <span className="flex items-center justify-center gap-2">
                           <LayoutDashboard className="w-5 h-5" />
-                          الدخول إلى لوحة التحكم
+                          <span>افتح لوحة التحكم</span>
                         </span>
                       </Button>
                     </div>
@@ -304,9 +307,9 @@ export default function DashboardsPage() {
                       <div className="flex items-start gap-4 p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 rounded-lg border border-amber-200 dark:border-amber-800">
                         <Zap className="w-6 h-6 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                         <div>
-                          <h3 className="font-semibold text-slate-900 mb-1">ابدأ رحلتك كتاجر</h3>
+                          <h3 className="font-semibold text-slate-900 mb-1">ابدأ البيع الآن</h3>
                           <p className="text-sm text-slate-600">
-                            انضم إلى آلاف التجار الناجحين على منصة نوبيان. قدم طلبك الآن واحصل على الموافقة خلال 1-2 يوم عمل.
+                            انضم إلى آلاف التجار على نوبيان. قدم طلبك واحصل على الموافقة خلال 1-2 يوم عمل.
                           </p>
                         </div>
                       </div>
@@ -314,19 +317,19 @@ export default function DashboardsPage() {
                       <div className="grid grid-cols-2 gap-3">
                         <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
                           <CheckCircle2 className="w-4 h-4 text-green-600" />
-                          <span className="text-xs text-slate-600">تقديم مجاني</span>
+                          <span className="text-xs text-slate-600 dark:text-slate-300">مجاني تماماً</span>
                         </div>
                         <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
                           <CheckCircle2 className="w-4 h-4 text-green-600" />
-                          <span className="text-xs text-slate-600">موافقة سريعة</span>
+                          <span className="text-xs text-slate-600 dark:text-slate-300">موافقة خلال يومين</span>
                         </div>
                         <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
                           <CheckCircle2 className="w-4 h-4 text-green-600" />
-                          <span className="text-xs text-slate-600">دعم كامل</span>
+                          <span className="text-xs text-slate-600 dark:text-slate-300">دعم فني متواصل</span>
                         </div>
                         <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
                           <CheckCircle2 className="w-4 h-4 text-green-600" />
-                          <span className="text-xs text-slate-600">أدوات متقدمة</span>
+                          <span className="text-xs text-slate-600 dark:text-slate-300">أدوات سهلة الاستخدام</span>
                         </div>
                       </div>
                     </div>
@@ -341,7 +344,7 @@ export default function DashboardsPage() {
                       >
                         <span className="flex items-center justify-center gap-2">
                           <Store className="w-5 h-5" />
-                          {user ? 'تقديم طلب تاجر' : 'تسجيل الدخول للبدء'}
+                          {user ? 'قدم طلبك الآن' : 'سجّل الدخول للبدء'}
                         </span>
                       </Button>
                     </div>
@@ -357,14 +360,14 @@ export default function DashboardsPage() {
               <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
                 <Globe className="w-6 h-6 text-white" />
               </div>
-              <h3 className="font-bold text-slate-900 mb-2">منصة موحدة</h3>
-              <p className="text-sm text-slate-600">إدارة كل شيء من مكان واحد</p>
+              <h3 className="font-bold text-slate-900 mb-2">كل شيء في مكان واحد</h3>
+              <p className="text-sm text-slate-600">أدر كل شيء بسهولة</p>
             </div>
             <div className="text-center p-6 bg-white rounded-xl border border-slate-200 shadow-sm">
               <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
                 <Zap className="w-6 h-6 text-white" />
               </div>
-              <h3 className="font-bold text-slate-900 mb-2">أداء سريع</h3>
+              <h3 className="font-bold text-slate-900 mb-2">سريع وسهل</h3>
               <p className="text-sm text-slate-600">تجربة سلسة وسريعة</p>
             </div>
             <div className="text-center p-6 bg-white rounded-xl border border-slate-200 shadow-sm">

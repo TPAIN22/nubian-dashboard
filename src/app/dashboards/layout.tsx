@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 const baseUrl = "https://nubian-sd.store";
 
 export const metadata: Metadata = {
-  title: "لوحات التحكم | Dashboards - نوبيان",
+  title: "لوحات التحكم - نوبيان",
   description: "اختر لوحة التحكم المناسبة لك - لوحة تحكم الإدارة أو لوحة تحكم التاجر. إدارة شاملة لعملك على منصة نوبيان.",
   alternates: {
     canonical: `${baseUrl}/dashboards`,
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "لوحات التحكم | Dashboards - نوبيان",
+    title: "لوحات التحكم - نوبيان",
     description: "اختر لوحة التحكم المناسبة لك - لوحة تحكم الإدارة أو لوحة تحكم التاجر.",
     url: `${baseUrl}/dashboards`,
     type: "website",
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
         url: `${baseUrl}/nubi.png`,
         width: 1200,
         height: 630,
-        alt: "لوحات التحكم | Dashboards - نوبيان",
+        alt: "لوحات التحكم - نوبيان",
       },
     ],
   },
