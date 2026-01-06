@@ -13,6 +13,8 @@ export default function SignInPage() {
   const [clerkError, setClerkError] = useState<string | null>(null)
   const [redirectTimeout, setRedirectTimeout] = useState<NodeJS.Timeout | null>(null)
   const [clerkLoadError, setClerkLoadError] = useState<string | null>(null)
+  const [loadingTimeout, setLoadingTimeout] = useState(false)
+  const [redirectTimeoutWarning, setRedirectTimeoutWarning] = useState(false)
 
   useEffect(() => {
     // Check if Clerk keys are configured (only on client side)
@@ -102,8 +104,6 @@ export default function SignInPage() {
   }, [redirectTimeout])
 
   // Show loading while checking auth status with timeout
-  const [loadingTimeout, setLoadingTimeout] = useState(false)
-  
   useEffect(() => {
     // Set a timeout to prevent infinite loading
     const timeout = setTimeout(() => {
@@ -116,6 +116,19 @@ export default function SignInPage() {
 
     return () => clearTimeout(timeout)
   }, [isLoaded])
+
+  // If user is signed in, show loading while redirecting with timeout
+  useEffect(() => {
+    if (user && hasRedirected.current) {
+      // Show warning if redirect takes too long
+      const timeout = setTimeout(() => {
+        setRedirectTimeoutWarning(true)
+        console.warn('⚠️ Redirect taking longer than expected')
+      }, 3000) // 3 second warning
+
+      return () => clearTimeout(timeout)
+    }
+  }, [user])
 
   // Show Clerk load error if present
   if (clerkLoadError) {
@@ -162,21 +175,6 @@ export default function SignInPage() {
       </div>
     )
   }
-
-  // If user is signed in, show loading while redirecting with timeout
-  const [redirectTimeoutWarning, setRedirectTimeoutWarning] = useState(false)
-  
-  useEffect(() => {
-    if (user && hasRedirected.current) {
-      // Show warning if redirect takes too long
-      const timeout = setTimeout(() => {
-        setRedirectTimeoutWarning(true)
-        console.warn('⚠️ Redirect taking longer than expected')
-      }, 3000) // 3 second warning
-
-      return () => clearTimeout(timeout)
-    }
-  }, [user])
 
   if (user) {
     return (
