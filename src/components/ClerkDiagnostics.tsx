@@ -70,26 +70,106 @@ export function ClerkDiagnostics() {
           errors.push('No Clerk script tags found in DOM. This suggests the SDK never attempted to load.')
         } else {
           errors.push(`Found ${clerkScripts.length} Clerk script tag(s), but SDK object is not available.`)
+          
+          // Inspect the script tags to see what they're trying to load
+          console.group('📜 Clerk Script Tags Found')
+          clerkScripts.forEach((script, idx) => {
+            const scriptElement = script as HTMLScriptElement
+            console.log(`Script ${idx + 1}:`, scriptElement.src || 'Inline script')
+            console.log('  - Async:', scriptElement.async)
+            console.log('  - Defer:', scriptElement.defer)
+            console.log('  - Loaded:', scriptElement.complete || 'Unknown')
+            
+            // Check if script has an error handler
+            scriptElement.addEventListener('error', (e) => {
+              console.error(`Script ${idx + 1} failed to load:`, scriptElement.src)
+              errors.push(`Script tag ${idx + 1} failed: ${scriptElement.src}`)
+            })
+          })
+          console.groupEnd()
+          
+          // Check if scripts are in a blocked state
+          const blockedScripts = Array.from(clerkScripts).filter(script => {
+            const scriptEl = script as HTMLScriptElement
+            // If script has src but hasn't loaded after 5 seconds, it might be blocked
+            return scriptEl.src && !scriptEl.complete
+          })
+          
+          if (blockedScripts.length > 0) {
+            console.warn('⚠️ Some Clerk scripts appear to be blocked or still loading')
+            blockedScripts.forEach((script, idx) => {
+              const scriptEl = script as HTMLScriptElement
+              console.warn(`Blocked/Slow script ${idx + 1}:`, scriptEl.src)
+            })
+          }
         }
         
-        // Check for network errors
+        // Check for network errors with detailed information
         const performanceEntries = performance.getEntriesByType('resource') as PerformanceResourceTiming[]
         const clerkResources = performanceEntries.filter(entry => 
           entry.name.includes('clerk') || entry.name.includes('clerk.accounts.dev') || entry.name.includes('clerk.com')
         )
         
         if (clerkResources.length > 0) {
-          const failedResources = clerkResources.filter(entry => {
-            // Check if resource failed (status 0 usually means failed)
-            return (entry as any).transferSize === 0 && (entry as any).decodedBodySize === 0
+          const failedResources: Array<{url: string, duration: number, size: number}> = []
+          
+          clerkResources.forEach(entry => {
+            const resource = entry as PerformanceResourceTiming & { transferSize?: number, decodedBodySize?: number }
+            // Check if resource failed (transferSize 0 or very small, or duration suggests failure)
+            const transferSize = resource.transferSize || 0
+            const decodedBodySize = resource.decodedBodySize || 0
+            
+            if (transferSize === 0 && decodedBodySize === 0 && resource.duration > 100) {
+              failedResources.push({
+                url: resource.name,
+                duration: resource.duration,
+                size: transferSize
+              })
+            }
           })
           
           if (failedResources.length > 0) {
-            errors.push(`${failedResources.length} Clerk resource(s) failed to load. Check Network tab.`)
+            errors.push(`${failedResources.length} Clerk resource(s) failed to load.`)
+            // Log detailed info about failed resources
+            console.group('❌ Failed Clerk Resources')
+            failedResources.forEach(resource => {
+              console.error('Failed URL:', resource.url)
+              console.error('Duration:', resource.duration, 'ms')
+              console.error('Size:', resource.size, 'bytes')
+            })
+            console.groupEnd()
+            
+            // Check if it's a CSP issue
+            const cspError = document.querySelector('meta[http-equiv="Content-Security-Policy"]')
+            if (cspError) {
+              errors.push('CSP header detected. Verify next.config.ts allows Clerk domains.')
+            }
+          } else {
+            // Resources loaded but SDK not available - might be initialization issue
+            console.warn('⚠️ Clerk resources loaded but SDK object not available')
+            console.log('Loaded Clerk resources:', clerkResources.map(r => r.name))
           }
         } else {
           errors.push('No Clerk resources found in network requests. SDK may not be initializing.')
         }
+        
+        // Check for captured Clerk errors
+        const checkForClerkErrors = () => {
+          if (typeof window !== 'undefined') {
+            const clerkErrors = (window as any).__CLERK_ERRORS__ || []
+            if (clerkErrors.length > 0) {
+              errors.push(`Clerk initialization errors detected: ${clerkErrors.length}`)
+              console.group('❌ Captured Clerk Errors')
+              clerkErrors.forEach((error: string, idx: number) => {
+                console.error(`${idx + 1}. ${error}`)
+              })
+              console.groupEnd()
+            }
+          }
+        }
+        
+        // Check after a short delay to catch async initialization errors
+        setTimeout(checkForClerkErrors, 2000)
       }
     }
 
@@ -110,10 +190,32 @@ export function ClerkDiagnostics() {
     // Log diagnostics to console for debugging
     if (errors.length > 0 || !isLoaded) {
       console.group('🔍 Clerk Diagnostics')
-      console.log('Publishable Key:', publishableKey ? '✅ Set' : '❌ Missing')
+      console.log('Publishable Key:', publishableKey ? `✅ Set (${publishableKey.substring(0, 15)}...)` : '❌ Missing')
+      console.log('Key Format Valid:', publishableKey?.startsWith('pk_') ? '✅ Yes' : '❌ No')
       console.log('Clerk Loaded:', isLoaded ? '✅ Yes' : '❌ No')
+      console.log('Window.Clerk Available:', typeof window !== 'undefined' && (window as any).Clerk ? '✅ Yes' : '❌ No')
+      console.log('Script Tags Found:', clerkScripts.length)
+      console.log('Network Resources:', clerkResources.length)
       console.log('Errors:', errors.length > 0 ? errors : 'None')
+      
+      // Additional helpful info
+      if (publishableKey) {
+        console.log('Key Type:', publishableKey.startsWith('pk_live_') ? 'Production' : publishableKey.startsWith('pk_test_') ? 'Test' : 'Unknown')
+        console.log('Environment:', process.env.NODE_ENV)
+      }
+      
       console.groupEnd()
+      
+      // Provide actionable next steps
+      if (!isLoaded && publishableKey) {
+        console.group('💡 Next Steps')
+        console.log('1. Open Network tab and filter by "clerk"')
+        console.log('2. Look for failed requests (red status)')
+        console.log('3. Check the failed request URL and status code')
+        console.log('4. Verify the publishable key is correct in Clerk Dashboard')
+        console.log('5. Check if CSP is blocking (look for CSP errors in console)')
+        console.groupEnd()
+      }
     }
 
     // In production, show error after 5 seconds if Clerk hasn't loaded

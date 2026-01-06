@@ -13,6 +13,7 @@ import { validateEnv } from "@/lib/envValidator"
 import logger from "@/lib/logger"
 import { ClerkDiagnostics } from "@/components/ClerkDiagnostics"
 import { ClerkKeyChecker } from "@/components/ClerkKeyChecker"
+import { ClerkNetworkChecker } from "@/components/ClerkNetworkChecker"
 
 // Validate environment variables at runtime (not during build)
 // The validateEnv function now handles build-time detection internally
@@ -184,6 +185,33 @@ export default function RootLayout({
       afterSignUpUrl="/"
     >
       <html lang="ar" dir="rtl" suppressHydrationWarning>
+        <head>
+          {/* Capture Clerk initialization errors */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function() {
+                  // Capture errors before Clerk loads
+                  window.__CLERK_ERRORS__ = [];
+                  const originalError = console.error;
+                  console.error = function(...args) {
+                    if (args.some(arg => typeof arg === 'string' && arg.includes('Clerk'))) {
+                      window.__CLERK_ERRORS__.push(args.join(' '));
+                    }
+                    originalError.apply(console, args);
+                  };
+                  
+                  // Also listen for unhandled errors
+                  window.addEventListener('error', function(e) {
+                    if (e.message && e.message.includes('Clerk')) {
+                      window.__CLERK_ERRORS__.push(e.message);
+                    }
+                  });
+                })();
+              `,
+            }}
+          />
+        </head>
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
           <ErrorBoundary>
           <StructuredData />
@@ -196,6 +224,7 @@ export default function RootLayout({
             {children}
             <Toaster/>
             <ClerkKeyChecker />
+            <ClerkNetworkChecker />
             <ClerkDiagnostics />
           </ThemeProvider>
           </ErrorBoundary>
