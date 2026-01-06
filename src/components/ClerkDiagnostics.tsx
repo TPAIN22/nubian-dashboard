@@ -42,8 +42,17 @@ export function ClerkDiagnostics() {
     const errors: string[] = []
 
     // Check if publishable key is set
-    if (!publishableKey || publishableKey.trim() === '' || publishableKey.includes('your_key')) {
-      errors.push('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is missing or invalid')
+    if (!publishableKey || publishableKey.trim() === '') {
+      errors.push('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is missing or empty')
+      errors.push('⚠️ This variable MUST be set during build time, not runtime!')
+    } else if (publishableKey.includes('your_key') || publishableKey.includes('pk_test_') && process.env.NODE_ENV === 'production') {
+      errors.push('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY appears to be a placeholder or test key')
+      errors.push('⚠️ In production, use your production publishable key (pk_live_...)')
+    } else {
+      // Validate key format
+      if (!publishableKey.startsWith('pk_')) {
+        errors.push('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY format appears invalid (should start with pk_)')
+      }
     }
 
     // Check if Clerk scripts are loaded
@@ -63,7 +72,7 @@ export function ClerkDiagnostics() {
     }
 
     setDiagnostics({
-      publishableKey,
+      publishableKey: publishableKey || null,
       clerkLoaded: isLoaded || clerkScriptLoaded,
       errors,
     })

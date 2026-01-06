@@ -12,6 +12,7 @@ import ErrorBoundary from "@/components/ErrorBoundary"
 import { validateEnv } from "@/lib/envValidator"
 import logger from "@/lib/logger"
 import { ClerkDiagnostics } from "@/components/ClerkDiagnostics"
+import { ClerkKeyChecker } from "@/components/ClerkKeyChecker"
 
 // Validate environment variables at runtime (not during build)
 // The validateEnv function now handles build-time detection internally
@@ -138,15 +139,22 @@ export default function RootLayout({
   // They are embedded into the client bundle during build, not at runtime
   const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 
-  // Validate Clerk key is present
-  if (!clerkPublishableKey || clerkPublishableKey.trim() === '' || clerkPublishableKey.includes('your_key')) {
+  // Validate Clerk key is present and valid
+  const isKeyValid = clerkPublishableKey && 
+    clerkPublishableKey.trim() !== '' && 
+    !clerkPublishableKey.includes('your_key') &&
+    clerkPublishableKey.startsWith('pk_')
+  
+  if (!isKeyValid) {
     if (typeof window === 'undefined') {
       // Server-side: Log error in production, warn in development
       if (process.env.NODE_ENV === 'production') {
         console.error('❌ CRITICAL: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is missing or invalid in production!')
+        console.error('Variable value:', clerkPublishableKey ? `"${clerkPublishableKey.substring(0, 10)}..."` : 'undefined')
         console.error('This variable MUST be set during the build process in your deployment platform.')
         console.error('For Vercel: Set it in Project Settings > Environment Variables')
         console.error('For other platforms: Ensure it is available during "next build" command')
+        console.error('After setting, you MUST trigger a new build/deployment for it to take effect.')
       } else {
         console.warn('⚠️ Clerk Warning: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is not set. Authentication will not work.')
         console.warn('Set this variable in your .env.local file for local development.')
@@ -185,6 +193,7 @@ export default function RootLayout({
           >       
             {children}
             <Toaster/>
+            <ClerkKeyChecker />
             <ClerkDiagnostics />
           </ThemeProvider>
           </ErrorBoundary>

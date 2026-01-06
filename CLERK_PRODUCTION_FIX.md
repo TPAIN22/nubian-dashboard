@@ -44,18 +44,32 @@ In Next.js, environment variables prefixed with `NEXT_PUBLIC_` are **embedded in
 
 After redeploying, check:
 
-1. **Browser Console**: Look for "✅ Clerk publishable key is configured" message
+1. **Browser Console**: 
+   - Look for "✅ Clerk publishable key is configured" message
+   - Look for "🔑 Clerk Key Check" - this shows if the key was embedded during build
+   - If you see "isBuildTimeEmbedded: false", the variable wasn't available during build
 2. **Network Tab**: Check if requests to `*.clerk.accounts.dev` or `*.clerk.com` are successful
 3. **Application**: Try signing in - Clerk should load properly
+
+### Quick Diagnostic Check
+
+Open your browser console in production and look for:
+- `🔑 Clerk Key Check` - Shows if the key is present in the client bundle
+- `🔍 Clerk Diagnostics` - Shows detailed diagnostic information
+- If the key shows as `undefined`, it means it wasn't set during build time
 
 ## Common Issues
 
 ### Issue: Variable is set but Clerk still doesn't load
 
 **Solution**: 
-- Clear your build cache and rebuild
-- In Vercel: Go to Deployments → Click the three dots → Redeploy
-- Check that you're using the correct key (production key for production, test key for preview/dev)
+1. **Verify the variable name is exactly**: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` (case-sensitive)
+2. **Check the browser console** for "🔑 Clerk Key Check" - if `isBuildTimeEmbedded: false`, the variable wasn't available during build
+3. **Clear your build cache and rebuild**:
+   - In Vercel: Go to Deployments → Click the three dots → Redeploy (with "Use existing Build Cache" unchecked)
+   - For other platforms: Clear build cache and trigger a fresh build
+4. **Verify the key format**: Should start with `pk_live_` for production or `pk_test_` for development
+5. **Check for whitespace**: Make sure there are no leading/trailing spaces in the environment variable value
 
 ### Issue: CSP (Content Security Policy) blocking Clerk
 
