@@ -78,7 +78,12 @@ export function ClerkDiagnostics() {
             console.log(`Script ${idx + 1}:`, scriptElement.src || 'Inline script')
             console.log('  - Async:', scriptElement.async)
             console.log('  - Defer:', scriptElement.defer)
-            console.log('  - Loaded:', scriptElement.complete || 'Unknown')
+            
+            // Check if script has loaded by checking if it's in the DOM
+            const scriptStatus = scriptElement.src ? 
+              (document.querySelector(`script[src="${scriptElement.src}"]`) !== null ? 'In DOM' : 'Not found') : 
+              'Inline script'
+            console.log('  - Status:', scriptStatus)
             
             // Check if script has an error handler
             scriptElement.addEventListener('error', (e) => {
@@ -89,10 +94,11 @@ export function ClerkDiagnostics() {
           console.groupEnd()
           
           // Check if scripts are in a blocked state
+          // For scripts, we check if they have src but the SDK object isn't available
           const blockedScripts = Array.from(clerkScripts).filter(script => {
             const scriptEl = script as HTMLScriptElement
-            // If script has src but hasn't loaded after 5 seconds, it might be blocked
-            return scriptEl.src && !scriptEl.complete
+            // If script has src but SDK isn't available, it might be blocked or failed
+            return scriptEl.src && typeof (window as any).Clerk === 'undefined'
           })
           
           if (blockedScripts.length > 0) {
