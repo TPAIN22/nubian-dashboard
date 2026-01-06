@@ -132,8 +132,17 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  // Get Clerk publishable key from environment
+  const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+
+  // Warn if Clerk key is missing (but don't break the app)
+  if (!clerkPublishableKey && typeof window === 'undefined') {
+    console.warn('⚠️ Clerk Warning: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is not set. Authentication will not work.')
+  }
+
   return (
      <ClerkProvider
+      publishableKey={clerkPublishableKey}
       appearance={{
         baseTheme: dark,
       }}
