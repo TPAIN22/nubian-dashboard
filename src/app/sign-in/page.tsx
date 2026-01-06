@@ -31,20 +31,30 @@ export default function SignInPage() {
     // If user is signed in, redirect based on role
     if (user && !hasRedirected.current) {
       hasRedirected.current = true
-      const role = user.publicMetadata?.role as string | undefined
+      
+      // Wait a bit longer for role metadata to be fully loaded
+      // This is especially important in production where metadata might take longer to sync
+      const checkRoleAndRedirect = () => {
+        const role = user.publicMetadata?.role as string | undefined
 
-      // Use window.location for a hard redirect to prevent loops
-      // Add a small delay to ensure Clerk state is fully settled
-      setTimeout(() => {
+        // Use window.location for a hard redirect to prevent loops
         if (role === 'admin') {
           window.location.href = '/business/dashboard'
         } else if (role === 'merchant') {
           window.location.href = '/merchant/dashboard'
         } else {
           // Regular users without special roles - redirect to home
+          // If role is undefined, still redirect to home to break the loop
           window.location.href = '/'
         }
-      }, 100)
+      }
+      
+      // Try immediately first
+      checkRoleAndRedirect()
+      
+      // Also set a timeout as fallback in case metadata is still loading
+      // This helps in production where metadata sync might be slower
+      setTimeout(checkRoleAndRedirect, 500)
     }
   }, [isLoaded, user, pathname])
 
@@ -89,8 +99,8 @@ export default function SignInPage() {
         <SignIn 
           routing="path"
           path="/sign-in"
-          afterSignInUrl="/sign-in"
-          afterSignUpUrl="/sign-in"
+          afterSignInUrl="/"
+          afterSignUpUrl="/"
           appearance={{
             elements: {
               rootBox: "mx-auto w-full",
@@ -99,7 +109,7 @@ export default function SignInPage() {
               headerSubtitle: "text-sm",
             }
           }}
-          fallbackRedirectUrl="/sign-in"
+          fallbackRedirectUrl="/"
         />
       </div>
     </div>
