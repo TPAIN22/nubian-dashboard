@@ -91,6 +91,16 @@ const nextConfig: NextConfig = {
   // Enable React strict mode
   reactStrictMode: true,
 
+  // Rewrite /business routes to /business (to match actual folder structure)
+  async rewrites() {
+    return [
+      {
+        source: '/business/:path*',
+        destination: '/business/:path*',
+      },
+    ];
+  },
+
   // Generate sitemap and robots.txt
   generateBuildId: async () => {
     // Generate a unique build ID

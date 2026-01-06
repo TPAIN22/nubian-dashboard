@@ -36,47 +36,47 @@ const data = {
   navMain: [
     {
       title: "لوحة التحكم",
-      url: "/buseniss/dashboard",
+      url: "/business/dashboard",
       icon: IconDashboard,
     },
     {
       title: "المنتجات",
-      url: "/buseniss/products",
+      url: "/business/products",
       icon: IconListDetails,
     },
     {
       title: "التجار",
-      url: "/buseniss/brands",
+      url: "/business/brands",
       icon: IconUsers,
     },
     {
       title: "طلبات التجار",
-      url: "/buseniss/merchants",
+      url: "/business/merchants",
       icon: IconUsers,
     },
     {
       title: "التصنيفات",
-      url: "/buseniss/categories",
+      url: "/business/categories",
       icon: IconTooltip,
     },
     {
       title: "الطلبات",
-      url: "/buseniss/orders",
+      url: "/business/orders",
       icon: IconFolder,
     },
     {
       title: "مركز الاشعارات",
-      url: "/buseniss/notifications",
+      url: "/business/notifications",
       icon: IconInnerShadowTop,
     },
     {
       title: "العروض",
-      url: "/buseniss/banners",
+      url: "/business/banners",
       icon: IconCamera,
     },
     {
       title: "كوبونات",
-      url: "/buseniss/coupons",
+      url: "/business/coupons",
       icon: IconFileDescription,
     },
   ],

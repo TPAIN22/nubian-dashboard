@@ -122,7 +122,7 @@ export default function DebugRolePage() {
           <CardContent>
             <div className="flex gap-4">
               <a
-                href="/buseniss/dashboard"
+                href="/business/dashboard"
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
               >
                 Try Admin Dashboard

@@ -91,7 +91,7 @@ export default function NewCategoryPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("تم إنشاء الفئة بنجاح!");
-      router.push("/buseniss/categories");
+      router.push("/business/categories");
       router.refresh();
     } catch (error) {
       toast.error("فشل إنشاء الفئة" , {

@@ -28,7 +28,7 @@
 
 1. Open your browser's Developer Tools (F12)
 2. Go to **Console** tab
-3. Try to access `/buseniss/dashboard`
+3. Try to access `/business/dashboard`
 4. Look for log messages that show:
    - Your `userId`
    - Your `role` value
@@ -40,7 +40,7 @@ Admin route check: {
   userId: "user_xxx",
   role: "admin",
   publicMetadata: { role: "admin" },
-  pathname: "/buseniss/dashboard"
+  pathname: "/business/dashboard"
 }
 ```
 
@@ -66,7 +66,7 @@ Admin route check: {
 1. Sign out completely from Clerk
 2. Clear browser cookies for localhost
 3. Sign in again
-4. Try accessing `/buseniss/dashboard`
+4. Try accessing `/business/dashboard`
 
 ### Step 5: Check Middleware Logs
 
@@ -154,7 +154,7 @@ CLERK_SECRET_KEY=sk_test_...
 ### Step 8: Check Network Tab
 
 1. Open Developer Tools → Network tab
-2. Try accessing `/buseniss/dashboard`
+2. Try accessing `/business/dashboard`
 3. Look for any failed requests
 4. Check the response headers
 

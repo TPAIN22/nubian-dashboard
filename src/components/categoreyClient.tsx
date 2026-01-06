@@ -84,11 +84,11 @@ export default function CategoryListClient({ categories: initialCategories }: Ca
   }, [initialCategories]);
 
   const handleAddNewCategory = () => {
-    router.push('/buseniss/categories/new');
+    router.push('/business/categories/new');
   };
 
   const handleEditCategory = (categoryId: string) => {
-    router.push(`/buseniss/categories/edit/${categoryId}`);
+    router.push(`/business/categories/edit/${categoryId}`);
   };
   
   const openDeleteDialog = (category: Category) => {

@@ -47,6 +47,15 @@ export default function MerchantDashboard() {
   useEffect(() => {
     if (!isLoaded) return
 
+    // Check if user has merchant role before making API calls
+    // This prevents unnecessary redirects to apply page
+    const userRole = user?.publicMetadata?.role as string | undefined
+    if (userRole !== 'merchant') {
+      // User doesn't have merchant role, redirect to apply
+      router.replace('/merchant/apply')
+      return
+    }
+
     const loadDashboardData = async () => {
       try {
         const token = await getToken()
@@ -69,7 +78,7 @@ export default function MerchantDashboard() {
           setMerchant(merchantData)
           
           if (merchantData.status !== 'APPROVED') {
-            router.push('/merchant/pending')
+            router.replace('/merchant/pending')
             return
           }
 
@@ -99,7 +108,8 @@ export default function MerchantDashboard() {
             logger.error('Error loading products', { error: error instanceof Error ? error.message : String(error) })
           }
         } else {
-          router.push('/merchant/apply')
+          // User has merchant role but no application - redirect to apply
+          router.replace('/merchant/apply')
           return
         }
       } catch (error: any) {
@@ -107,10 +117,14 @@ export default function MerchantDashboard() {
           error: error instanceof Error ? error.message : String(error),
           status: error.response?.status 
         })
+        // Only redirect to apply if it's a 404 (no application found)
+        // For other errors, show the error but don't redirect
         if (error.response?.status === 404) {
-          router.push('/merchant/apply')
+          router.replace('/merchant/apply')
           return
         }
+        // For other errors, just set loading to false and show error
+        // Don't redirect - let the user see the error
       } finally {
         setLoading(false)
       }
@@ -118,7 +132,7 @@ export default function MerchantDashboard() {
 
     loadDashboardData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoaded, router])
+  }, [isLoaded, user, router])
 
   if (!isLoaded || loading) {
     return (

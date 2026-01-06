@@ -2,18 +2,18 @@
 
 ## Admin Dashboard
 
-**Direct URL:** `http://localhost:3000/buseniss/dashboard`
+**Direct URL:** `http://localhost:3000/business/dashboard`
 
 ### Steps:
 1. Make sure your dev server is running: `npm run dev`
 2. Open your browser
-3. Go to: `http://localhost:3000/buseniss/dashboard`
+3. Go to: `http://localhost:3000/business/dashboard`
 4. Sign in with your Clerk account (if not already signed in)
 5. Make sure your Clerk user has `publicMetadata.role = "admin"`
 
 ### Alternative Access:
 - Sign in first at: `http://localhost:3000/sign-in`
-- If you're an admin, you'll be redirected to `/buseniss/dashboard`
+- If you're an admin, you'll be redirected to `/business/dashboard`
 
 ## Merchant Dashboard
 
@@ -49,7 +49,7 @@ This page shows:
    }
    ```
 5. Save and wait 10-30 seconds
-6. Try accessing `/buseniss/dashboard` again
+6. Try accessing `/business/dashboard` again
 
 ## Troubleshooting
 

@@ -13,26 +13,26 @@ export default function SignInPage() {
   const hasRedirected = useRef(false)
 
   useEffect(() => {
-    // Only run this effect once when user loads and we're on sign-in page
-    if (!isLoaded || hasRedirected.current || pathname !== '/sign-in') return
+    // Only run this effect when user loads and we're on sign-in page
+    if (!isLoaded || pathname !== '/sign-in') return
     
     // If user is signed in, redirect based on role
-    if (user) {
+    if (user && !hasRedirected.current) {
       hasRedirected.current = true
       const role = user.publicMetadata?.role as string | undefined
 
       // Use window.location for a hard redirect to prevent loops
-      if (role === 'admin') {
-        window.location.href = '/buseniss/dashboard'
-        return // Exit early to show redirecting state
-      } else if (role === 'merchant') {
-        window.location.href = '/merchant/dashboard'
-        return // Exit early to show redirecting state
-      } else {
-        // Regular users without special roles - redirect to home
-        window.location.href = '/'
-        return // Exit early to show redirecting state
-      }
+      // Add a small delay to ensure Clerk state is fully settled
+      setTimeout(() => {
+        if (role === 'admin') {
+          window.location.href = '/business/dashboard'
+        } else if (role === 'merchant') {
+          window.location.href = '/merchant/dashboard'
+        } else {
+          // Regular users without special roles - redirect to home
+          window.location.href = '/'
+        }
+      }, 100)
     }
   }, [isLoaded, user, pathname])
 
@@ -61,8 +61,8 @@ export default function SignInPage() {
       <SignIn 
         routing="path"
         path="/sign-in"
-        afterSignInUrl="/"
-        afterSignUpUrl="/"
+        afterSignInUrl="/sign-in"
+        afterSignUpUrl="/sign-in"
         appearance={{
           elements: {
             rootBox: "mx-auto",

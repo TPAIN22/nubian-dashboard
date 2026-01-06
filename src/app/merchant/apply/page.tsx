@@ -68,7 +68,8 @@ export default function MerchantApply() {
           const merchantData = response.data.merchant
           setMerchant(merchantData)
           if (merchantData.status === 'APPROVED') {
-            router.push('/merchant/dashboard')
+            // Use replace to avoid adding to history and prevent redirect loops
+            router.replace('/merchant/dashboard')
           } else {
             setSubmitted(true)
           }

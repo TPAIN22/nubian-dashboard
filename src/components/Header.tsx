@@ -1,7 +1,9 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useUser, useAuth } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -12,8 +14,91 @@ import {
 import { Menu } from 'lucide-react'; // أيقونة القائمة للجوال
 import { DropdownMenuSeparator } from '@radix-ui/react-dropdown-menu'; // تأكد من أن هذا الاستيراد صحيح
 import Image from 'next/image';
+import { axiosInstance } from '@/lib/axiosInstance';
 
 export default function Header() {
+  const { user, isLoaded } = useUser();
+  const { getToken } = useAuth();
+  const router = useRouter();
+  const [isRedirecting, setIsRedirecting] = useState(false);
+
+  const handleMerchantPlatformClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    if (isRedirecting) return;
+    setIsRedirecting(true);
+
+    try {
+      // If user is not loaded, wait or redirect to sign-in
+      if (!isLoaded) {
+        router.push('/sign-in');
+        return;
+      }
+
+      // If user is not signed in, redirect to sign-in
+      if (!user) {
+        router.push('/sign-in');
+        return;
+      }
+
+      // Check user role
+      const role = user.publicMetadata?.role as string | undefined;
+
+      // If user is admin, redirect to admin dashboard
+      if (role === 'admin') {
+        router.push('/business/dashboard');
+        return;
+      }
+
+      // If user is merchant, check their merchant status
+      if (role === 'merchant') {
+        try {
+          const token = await getToken();
+          if (!token) {
+            router.push('/sign-in');
+            return;
+          }
+
+          const response = await axiosInstance.get('/merchants/my-status', {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (response.data.hasApplication) {
+            const merchantData = response.data.merchant;
+            
+            // If merchant is approved, go to dashboard
+            if (merchantData.status === 'APPROVED') {
+              router.push('/merchant/dashboard');
+              return;
+            }
+            
+            // If merchant is pending or rejected, go to apply page (which will show status)
+            router.push('/merchant/apply');
+            return;
+          } else {
+            // No application, go to apply page
+            router.push('/merchant/apply');
+            return;
+          }
+        } catch (error: any) {
+          // If API call fails, still redirect to apply page
+          // The apply page will handle the error gracefully
+          router.push('/merchant/apply');
+          return;
+        }
+      }
+
+      // If user doesn't have merchant role, redirect to apply page
+      router.push('/merchant/apply');
+    } catch (error) {
+      // On any error, redirect to apply page
+      router.push('/merchant/apply');
+    } finally {
+      setIsRedirecting(false);
+    }
+  };
   return (
     <header className="sticky top-0 z-50 w-full backdrop-blur-md shadow-sm border-b border-slate-100 py-4" dir="rtl">
       <div className="container mx-auto flex items-center sm:justify-around justify-between px-6 md:px-12">
@@ -36,14 +121,14 @@ export default function Header() {
 
         {/* Auth Buttons */}
         <div className="hidden md:flex items-center gap-4">
-         <Link href="/merchant/apply">
           <Button
             size="sm"
+            onClick={handleMerchantPlatformClick}
+            disabled={isRedirecting}
             className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-md"
           >
-           منــصـــة التاجــر
+            {isRedirecting ? 'جاري التحميل...' : 'منــصـــة التاجــر'}
           </Button>
-          </Link>
         </div>
 
         {/* Mobile Navigation (Dropdown) */}
@@ -71,14 +156,14 @@ export default function Header() {
               <DropdownMenuItem asChild>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-              <Link href="/merchant/apply" className="block py-2 hover:bg-slate-50 rounded-md">
                 <Button
                   size="sm"
+                  onClick={handleMerchantPlatformClick}
+                  disabled={isRedirecting}
                   className="w-full text-center justify-end bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0 shadow-md"
                 >
-                  منـــــصــــة التــاجـــر 
+                  {isRedirecting ? 'جاري التحميل...' : 'منـــــصــــة التــاجـــر'}
                 </Button>
-                </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

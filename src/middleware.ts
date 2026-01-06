@@ -19,7 +19,8 @@ const isPublicRoute = createRouteMatcher([
 ])
 
 const isAdminRoute = createRouteMatcher([
-  '/buseniss(.*)',
+  '/business(.*)',
+  '/business(.*)', // Also check business route (actual folder name)
 ])
 
 const isMerchantRoute = createRouteMatcher([
@@ -101,29 +102,32 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Check merchant routes
   if (isMerchantRoute(req)) {
-    // Allow /merchant/apply for all authenticated users
-    if (pathname === '/merchant/apply') {
+    // Allow /merchant/apply and /merchant/pending for all authenticated users
+    // These pages will handle their own logic
+    if (pathname === '/merchant/apply' || pathname === '/merchant/pending') {
       return NextResponse.next()
     }
     
     try {
       const role = await getUserRole()
       
-      // Match backend logic: user.publicMetadata?.role !== 'merchant'
-      if (role !== 'merchant') {
-        // Redirect non-merchants away from merchant routes (except apply)
+      // Only redirect if we're CERTAIN the user is not a merchant
+      // If role is undefined (couldn't determine), let the page handle it
+      // This prevents redirects when role check is slow or fails
+      if (role !== undefined && role !== 'merchant') {
+        // User is definitely not a merchant, redirect to apply
         return NextResponse.redirect(new URL('/merchant/apply', req.url))
       }
       
-      // For merchant routes, also check if they're trying to access pending page
-      // If they're approved, redirect from /merchant/pending to /merchant/dashboard
-      if (pathname === '/merchant/pending') {
-        // Allow access to pending page - the page itself will check status
-        return NextResponse.next()
-      }
+      // If role is 'merchant' or undefined, let the request through
+      // The dashboard page will check merchant status and handle redirects appropriately
+      // This prevents premature redirects when role check is in progress
+      return NextResponse.next()
     } catch (error) {
-      // Error checking merchant role - redirect to sign in
-      return NextResponse.redirect(new URL('/sign-in', req.url))
+      // Error checking merchant role - don't redirect, let the page handle it
+      // This prevents redirect loops when there are temporary API issues
+      // If there's an error, allow the request through and let the page handle authentication
+      return NextResponse.next()
     }
   }
   

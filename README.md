@@ -97,7 +97,7 @@ nubian-dashboard/
 ├── src/
 │   ├── app/              # Next.js app router pages
 │   │   ├── api/          # API routes
-│   │   ├── buseniss/     # Business/dashboard pages
+│   │   ├── business/     # Business/dashboard pages
 │   │   └── ...
 │   ├── components/       # React components
 │   │   ├── ui/           # UI components (shadcn/ui)
@@ -148,7 +148,7 @@ ISC
 ## Dashboard Access
 
 ### Admin Dashboard
-- **URL**: `/buseniss/dashboard`
+- **URL**: `/business/dashboard`
 - **Requirements**: Clerk user with `publicMetadata.role = "admin"`
 - **Setup**: See [ADMIN_DASHBOARD_ACCESS.md](./ADMIN_DASHBOARD_ACCESS.md) for detailed instructions
 

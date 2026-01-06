@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth, useUser } from '@clerk/nextjs'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -49,9 +50,12 @@ interface Category {
 
 export function MerchantProductForm({ productId }: { productId?: string }) {
   const router = useRouter()
+  const { getToken } = useAuth()
+  const { user, isLoaded } = useUser()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(false)
   const [isEdit, setIsEdit] = useState(!!productId)
+  const [merchantStatus, setMerchantStatus] = useState<'checking' | 'approved' | 'not-approved'>('checking')
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -69,6 +73,43 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
   })
 
   useEffect(() => {
+    const checkMerchantStatus = async () => {
+      if (!isLoaded || !user) {
+        setMerchantStatus('not-approved')
+        return
+      }
+
+      // Check if user has merchant role
+      const role = user.publicMetadata?.role as string | undefined
+      if (role !== 'merchant') {
+        setMerchantStatus('not-approved')
+        return
+      }
+
+      try {
+        const token = await getToken()
+        if (!token) {
+          setMerchantStatus('not-approved')
+          return
+        }
+
+        const response = await axiosInstance.get('/merchants/my-status', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (response.data.hasApplication && response.data.merchant?.status === 'APPROVED') {
+          setMerchantStatus('approved')
+        } else {
+          setMerchantStatus('not-approved')
+        }
+      } catch (error) {
+        logger.error('Failed to check merchant status', { error: error instanceof Error ? error.message : String(error) })
+        setMerchantStatus('not-approved')
+      }
+    }
+
     const fetchCategories = async () => {
       try {
         const res = await axiosInstance.get('/categories')
@@ -78,12 +119,25 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
         toast.error('فشل تحميل الفئات')
       }
     }
+
+    checkMerchantStatus()
     fetchCategories()
 
     if (productId) {
       const fetchProduct = async () => {
         try {
-          const res = await axiosInstance.get(`/products/${productId}`)
+          const token = await getToken()
+          if (!token) {
+            toast.error('فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.')
+            router.push('/sign-in')
+            return
+          }
+
+          const res = await axiosInstance.get(`/products/${productId}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          })
           const product = res.data
           form.reset({
             name: product.name,
@@ -103,7 +157,8 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       }
       fetchProduct()
     }
-  }, [productId, form])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId, isLoaded, user])
 
   const handleUploadDone = useCallback((urls: string[]) => {
     form.setValue('images', urls, { shouldValidate: true })
@@ -117,17 +172,29 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
 
     setLoading(true)
     try {
+      // Get authentication token
+      const token = await getToken()
+      if (!token) {
+        toast.error('فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.')
+        router.push('/sign-in')
+        return
+      }
+
       const dataToSend = {
         ...values,
         discountPrice: values.discountPrice || 0,
       }
 
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      }
+
       if (isEdit && productId) {
-        await axiosInstance.put(`/products/${productId}`, dataToSend)
-        toast.success('Product updated successfully')
+        await axiosInstance.put(`/products/${productId}`, dataToSend, { headers })
+        toast.success('تم تحديث المنتج بنجاح')
       } else {
-        await axiosInstance.post('/products', dataToSend)
-        toast.success('Product created successfully')
+        await axiosInstance.post('/products', dataToSend, { headers })
+        toast.success('تم إنشاء المنتج بنجاح')
       }
 
       router.push('/merchant/products')
@@ -136,10 +203,51 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
         error: error instanceof Error ? error.message : String(error),
         status: error.response?.status 
       })
-      toast.error(error.response?.data?.message || 'فشل حفظ المنتج')
+      
+      // More specific error messages
+      if (error.response?.status === 401) {
+        toast.error('فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.')
+        router.push('/sign-in')
+      } else if (error.response?.status === 403) {
+        toast.error('ليس لديك صلاحية لإضافة منتجات. يرجى التأكد من أن حسابك معتمد.')
+      } else {
+        toast.error(error.response?.data?.message || 'فشل حفظ المنتج')
+      }
     } finally {
       setLoading(false)
     }
+  }
+
+  // Show loading while checking merchant status
+  if (merchantStatus === 'checking') {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="text-lg">جاري التحقق من حالة التاجر...</div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Show error if merchant is not approved
+  if (merchantStatus === 'not-approved') {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>غير مصرح لك بإضافة منتجات</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <p className="text-muted-foreground">
+              يجب أن يكون حسابك معتمداً كتاجر قبل إضافة المنتجات. يرجى التحقق من حالة طلبك.
+            </p>
+            <Button onClick={() => router.push('/merchant/apply')}>
+              التحقق من حالة الطلب
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (

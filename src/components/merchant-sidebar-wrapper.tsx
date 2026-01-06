@@ -1,6 +1,6 @@
 'use client'
 
-import { useUser } from '@clerk/nextjs'
+import { useUser, useAuth } from '@clerk/nextjs'
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { axiosInstance } from '@/lib/axiosInstance'
@@ -18,6 +18,7 @@ const NO_SIDEBAR_ROUTES = ['/merchant/apply', '/merchant/pending']
 
 export function MerchantSidebarWrapper({ children }: { children: React.ReactNode }) {
   const { user, isLoaded } = useUser()
+  const { getToken } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const [merchantStatus, setMerchantStatus] = useState<MerchantStatus | null>(null)
@@ -25,6 +26,11 @@ export function MerchantSidebarWrapper({ children }: { children: React.ReactNode
 
   useEffect(() => {
     if (!isLoaded) return
+    
+    // If pathname is not available yet, wait
+    if (!pathname) {
+      return
+    }
 
     // Don't show sidebar on apply/pending pages
     if (NO_SIDEBAR_ROUTES.includes(pathname)) {
@@ -34,11 +40,35 @@ export function MerchantSidebarWrapper({ children }: { children: React.ReactNode
 
     const checkMerchantStatus = async () => {
       try {
-        const response = await axiosInstance.get('/merchants/my-status')
+        // Safely get token
+        let token: string | null = null
+        try {
+          token = await getToken()
+        } catch (tokenError) {
+          // If getToken fails, just set no application
+          setMerchantStatus({ hasApplication: false })
+          setLoading(false)
+          return
+        }
+
+        if (!token) {
+          setMerchantStatus({ hasApplication: false })
+          setLoading(false)
+          return
+        }
+
+        const response = await axiosInstance.get('/merchants/my-status', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
         setMerchantStatus(response.data)
       } catch (error: any) {
         // If 404, no application exists
         if (error.response?.status === 404) {
+          setMerchantStatus({ hasApplication: false })
+        } else {
+          // For other errors, assume no application
           setMerchantStatus({ hasApplication: false })
         }
       } finally {
@@ -47,6 +77,7 @@ export function MerchantSidebarWrapper({ children }: { children: React.ReactNode
     }
 
     checkMerchantStatus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, pathname])
 
   // Show loading state
@@ -59,7 +90,7 @@ export function MerchantSidebarWrapper({ children }: { children: React.ReactNode
   }
 
   // Don't show sidebar on apply/pending pages
-  if (NO_SIDEBAR_ROUTES.includes(pathname)) {
+  if (pathname && NO_SIDEBAR_ROUTES.includes(pathname)) {
     return <>{children}</>
   }
 
