@@ -28,28 +28,23 @@ export default function SignInPage() {
     // Only run this effect when user loads and we're on sign-in page
     if (!isLoaded || pathname !== '/sign-in') return
     
-    // If user is signed in, redirect immediately - middleware should handle this too, but this is a backup
+    // If user is signed in, redirect based on role
     if (user && !hasRedirected.current) {
       hasRedirected.current = true
-      
-      // Use a more aggressive redirect approach
-      const redirectUser = () => {
-        const role = user.publicMetadata?.role as string | undefined
+      const role = user.publicMetadata?.role as string | undefined
 
-        // Use window.location.replace for a hard redirect that doesn't add to history
-        // This prevents back button from going back to sign-in
+      // Use window.location for a hard redirect to prevent loops
+      // Add a small delay to ensure Clerk state is fully settled
+      setTimeout(() => {
         if (role === 'admin') {
-          window.location.replace('/business/dashboard')
+          window.location.href = '/business/dashboard'
         } else if (role === 'merchant') {
-          window.location.replace('/merchant/dashboard')
+          window.location.href = '/merchant/dashboard'
         } else {
           // Regular users without special roles - redirect to home
-          window.location.replace('/')
+          window.location.href = '/'
         }
-      }
-      
-      // Redirect immediately - don't wait
-      redirectUser()
+      }, 100)
     }
   }, [isLoaded, user, pathname])
 
@@ -94,9 +89,8 @@ export default function SignInPage() {
         <SignIn 
           routing="path"
           path="/sign-in"
-          afterSignInUrl="/"
-          afterSignUpUrl="/"
-          forceRedirectUrl="/"
+          afterSignInUrl="/sign-in"
+          afterSignUpUrl="/sign-in"
           appearance={{
             elements: {
               rootBox: "mx-auto w-full",
@@ -105,6 +99,7 @@ export default function SignInPage() {
               headerSubtitle: "text-sm",
             }
           }}
+          fallbackRedirectUrl="/sign-in"
         />
       </div>
     </div>
