@@ -203,10 +203,10 @@ export default function MerchantApply() {
 
   if (!isLoaded || checking) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-50 via-white to-amber-50">
+      <div className="flex items-center justify-center h-screen bg-background dark:bg-slate-950">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
-          <div className="text-lg text-slate-600">جاري التحميل...</div>
+          <div className="text-lg text-foreground">جاري التحميل...</div>
         </div>
       </div>
     )
@@ -217,11 +217,11 @@ export default function MerchantApply() {
     // If merchant data is not available, show a generic success message
     if (!merchant) {
       return (
-        <div className="w-full bg-gradient-to-br from-slate-50 via-white to-amber-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="w-full bg-background dark:bg-slate-950 py-12 px-4 sm:px-6 lg:px-8 min-h-screen">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-8">
               <div className="flex justify-center mb-6">
-                <div className="relative w-24 h-24  rounded-full p-3 shadow-lg ring-4 ring-amber-100">
+                <div className="relative w-24 h-24 rounded-full p-3 shadow-lg ring-4 ring-amber-100 dark:ring-amber-900/30">
                   <Image 
                     src="/logo.png" 
                     alt="Nubian Logo" 
@@ -232,12 +232,12 @@ export default function MerchantApply() {
                   />
                 </div>
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
+              <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
                 تم إرسال الطلب بنجاح!
               </h1>
             </div>
 
-            <div className=" rounded-xl shadow-xl border border-slate-200 p-8 md:p-10">
+            <div className="rounded-xl shadow-xl border border-border bg-card p-8 md:p-10">
               <div className="text-center mb-6">
                 <div className="mx-auto w-20 h-20 rounded-full bg-success/10 dark:bg-success/20 flex items-center justify-center mb-4">
                   <CheckCircle2 className="w-10 h-10 text-success" />
@@ -290,12 +290,12 @@ export default function MerchantApply() {
 
     // Show detailed status if merchant data is available
     return (
-      <div className="w-full bg-gradient-to-br from-slate-50 via-white to-amber-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full bg-background dark:bg-slate-950 py-12 px-4 sm:px-6 lg:px-8 min-h-screen">
         <div className="max-w-4xl mx-auto">
           {/* Header Section with Logo */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-6">
-              <div className="relative w-24 h-24  rounded-full p-3 shadow-lg ring-4 ring-amber-100">
+              <div className="relative w-24 h-24 rounded-full p-3 shadow-lg ring-4 ring-amber-100 dark:ring-amber-900/30">
                 <Image 
                   src="/logo.png" 
                   alt="Nubian Logo" 
@@ -306,13 +306,13 @@ export default function MerchantApply() {
                 />
               </div>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
               حالة الطلب
             </h1>
           </div>
 
           {/* Status Display */}
-          <div className=" rounded-xl shadow-xl border border-slate-200 p-8 md:p-10">
+          <div className="rounded-xl shadow-xl border border-border bg-card p-8 md:p-10">
             {merchant.status === 'PENDING' && (
               <>
                 <div className="text-center mb-6">
@@ -339,15 +339,15 @@ export default function MerchantApply() {
                   </div>
                 </div>
 
-                <div className="border-t border-slate-200 pt-6">
+                <div className="border-t border-border pt-6">
                   <div className="grid md:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-slate-500 mb-1">اسم العمل</p>
-                      <p className="font-medium text-slate-900">{merchant.businessName}</p>
+                      <p className="text-muted-foreground mb-1">اسم العمل</p>
+                      <p className="font-medium text-foreground">{merchant.businessName}</p>
                     </div>
                     <div>
-                      <p className="text-slate-500 mb-1">تاريخ التقديم</p>
-                      <p className="font-medium text-slate-900">
+                      <p className="text-muted-foreground mb-1">تاريخ التقديم</p>
+                      <p className="font-medium text-foreground">
                         {new Date(merchant.appliedAt).toLocaleDateString('ar-SA', {
                           year: 'numeric',
                           month: 'long',
@@ -430,12 +430,12 @@ export default function MerchantApply() {
   }
 
   return (
-    <div className="w-full bg-gradient-to-br from-slate-50 via-white to-amber-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="w-full bg-background dark:bg-slate-950 py-12 px-4 sm:px-6 lg:px-8 min-h-screen">
       <div className="max-w-6xl mx-auto">
         {/* Header Section with Logo */}
         <div className="text-center mb-12">
           <div className="flex justify-center mb-6">
-            <div className="relative w-24 h-24  rounded-full p-3 shadow-lg ring-4 ring-amber-100">
+            <div className="relative w-24 h-24 rounded-full p-3 shadow-lg ring-4 ring-amber-100 dark:ring-amber-900/30">
               <Image 
                 src="/logo.png" 
                 alt="Nubian Logo" 
@@ -446,10 +446,10 @@ export default function MerchantApply() {
               />
             </div>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
+          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
             كن تاجراً في نوبيان
           </h1>
-          <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             انضم إلى آلاف التجار الناجحين الذين يبيعون على نوبيان. نمّي عملك ووصل إلى ملايين العملاء.
           </p>
         </div>
@@ -457,16 +457,16 @@ export default function MerchantApply() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Benefits Section */}
           <div className="lg:col-span-1 space-y-6">
-            <div className=" rounded-xl shadow-lg p-6 border border-slate-200">
-              <h2 className="text-2xl font-bold text-slate-900 mb-6">لماذا تنضم إلى نوبيان؟</h2>
+            <div className="rounded-xl shadow-lg p-6 border border-border bg-card">
+              <h2 className="text-2xl font-bold text-foreground mb-6">لماذا تنضم إلى نوبيان؟</h2>
               <div className="space-y-5">
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center">
                     <Store className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 mb-1">متجرك الخاص</h3>
-                    <p className="text-sm text-slate-600">أنشئ واجهة متجرك وعرض منتجاتك</p>
+                    <h3 className="font-semibold text-foreground mb-1">متجرك الخاص</h3>
+                    <p className="text-sm text-muted-foreground">أنشئ واجهة متجرك وعرض منتجاتك</p>
                   </div>
                 </div>
 
@@ -475,8 +475,8 @@ export default function MerchantApply() {
                     <TrendingUp className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 mb-1">نمّي مبيعاتك</h3>
-                    <p className="text-sm text-slate-600">وصل إلى ملايين العملاء وزد إيراداتك</p>
+                    <h3 className="font-semibold text-foreground mb-1">نمّي مبيعاتك</h3>
+                    <p className="text-sm text-muted-foreground">وصل إلى ملايين العملاء وزد إيراداتك</p>
                   </div>
                 </div>
 
@@ -485,8 +485,8 @@ export default function MerchantApply() {
                     <Shield className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 mb-1">منصة آمنة</h3>
-                    <p className="text-sm text-slate-600">معالجة دفع آمنة وموثوقة</p>
+                    <h3 className="font-semibold text-foreground mb-1">منصة آمنة</h3>
+                    <p className="text-sm text-muted-foreground">معالجة دفع آمنة وموثوقة</p>
                   </div>
                 </div>
 
@@ -495,8 +495,8 @@ export default function MerchantApply() {
                     <Clock className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 mb-1">موافقة سريعة</h3>
-                    <p className="text-sm text-slate-600">احصل على الموافقة خلال 1-2 يوم عمل</p>
+                    <h3 className="font-semibold text-foreground mb-1">موافقة سريعة</h3>
+                    <p className="text-sm text-muted-foreground">احصل على الموافقة خلال 1-2 يوم عمل</p>
                   </div>
                 </div>
               </div>
@@ -516,17 +516,17 @@ export default function MerchantApply() {
 
           {/* Application Form */}
           <div className="lg:col-span-2">
-            <div className=" rounded-xl shadow-xl border border-slate-200 p-8 md:p-10">
+            <div className="rounded-xl shadow-xl border border-border bg-card p-8 md:p-10">
               <div className="mb-8">
-                <h2 className="text-3xl font-bold text-slate-900 mb-2">نموذج الطلب</h2>
-                <p className="text-slate-600">
+                <h2 className="text-3xl font-bold text-foreground mb-2">نموذج الطلب</h2>
+                <p className="text-muted-foreground">
                   يرجى تقديم معلومات دقيقة عن عملك. جميع الحقول المميزة بـ * مطلوبة.
                 </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="businessName" className="text-slate-700 font-medium flex items-center gap-2">
+                  <Label htmlFor="businessName" className="text-foreground font-medium flex items-center gap-2">
                     <Building2 className="w-4 h-4 text-amber-500" />
                     اسم العمل *
                   </Label>
@@ -536,12 +536,12 @@ export default function MerchantApply() {
                     onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
                     required
                     placeholder="أدخل اسم عملك"
-                    className="h-11 border-slate-300 focus:border-amber-500 focus:ring-amber-500"
+                    className="h-11"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="businessEmail" className="text-slate-700 font-medium flex items-center gap-2">
+                  <Label htmlFor="businessEmail" className="text-foreground font-medium flex items-center gap-2">
                     <Mail className="w-4 h-4 text-amber-500" />
                     البريد الإلكتروني للعمل *
                   </Label>
@@ -552,12 +552,12 @@ export default function MerchantApply() {
                     onChange={(e) => setFormData({ ...formData, businessEmail: e.target.value })}
                     required
                     placeholder="business@example.com"
-                    className="h-11 border-slate-300 focus:border-amber-500 focus:ring-amber-500"
+                    className="h-11"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="businessPhone" className="text-slate-700 font-medium flex items-center gap-2">
+                  <Label htmlFor="businessPhone" className="text-foreground font-medium flex items-center gap-2">
                     <Phone className="w-4 h-4 text-amber-500" />
                     هاتف العمل
                   </Label>
@@ -567,12 +567,12 @@ export default function MerchantApply() {
                     value={formData.businessPhone}
                     onChange={(e) => setFormData({ ...formData, businessPhone: e.target.value })}
                     placeholder="+249123456789"
-                    className="h-11 border-slate-300 focus:border-amber-500 focus:ring-amber-500"
+                    className="h-11"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="businessDescription" className="text-slate-700 font-medium flex items-center gap-2">
+                  <Label htmlFor="businessDescription" className="text-foreground font-medium flex items-center gap-2">
                     <FileText className="w-4 h-4 text-amber-500" />
                     وصف العمل
                   </Label>
@@ -582,13 +582,13 @@ export default function MerchantApply() {
                     onChange={(e) => setFormData({ ...formData, businessDescription: e.target.value })}
                     placeholder="أخبرنا عن عملك ومنتجاتك وما يميزك..."
                     rows={4}
-                    className="border-slate-300 focus:border-amber-500 focus:ring-amber-500 resize-none"
+                    className="resize-none"
                   />
-                  <p className="text-xs text-slate-500">ساعدنا على فهم عملك بشكل أفضل</p>
+                  <p className="text-xs text-muted-foreground">ساعدنا على فهم عملك بشكل أفضل</p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="businessAddress" className="text-slate-700 font-medium flex items-center gap-2">
+                  <Label htmlFor="businessAddress" className="text-foreground font-medium flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-amber-500" />
                     عنوان العمل
                   </Label>
@@ -598,7 +598,7 @@ export default function MerchantApply() {
                     onChange={(e) => setFormData({ ...formData, businessAddress: e.target.value })}
                     placeholder="أدخل عنوان عملك"
                     rows={2}
-                    className="border-slate-300 focus:border-amber-500 focus:ring-amber-500 resize-none"
+                    className="resize-none"
                   />
                 </div>
 
@@ -620,7 +620,7 @@ export default function MerchantApply() {
                       </span>
                     )}
                   </Button>
-                  <p className="text-xs text-center text-slate-500 mt-4">
+                  <p className="text-xs text-center text-muted-foreground mt-4">
                     بالتقديم، أنت توافق على الشروط والأحكام. سنراجع طلبك خلال 1-2 يوم عمل.
                   </p>
                 </div>

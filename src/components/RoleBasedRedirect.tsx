@@ -37,9 +37,15 @@ export default function RoleBasedRedirect() {
       return
     }
 
+    // Allow users to browse the main site (home page) even when logged in
+    // Only redirect from other pages, not from the home page
+    if (pathname === '/' || pathname === '') {
+      return
+    }
+
     const role = user.publicMetadata?.role as string | undefined
 
-    // Only redirect if user has a role (admin or merchant)
+    // Only redirect if user has a role (admin or merchant) and they're not on the home page
     // Regular users without roles stay on the current page
     if (role === 'admin') {
       hasRedirected.current = true
