@@ -67,7 +67,8 @@ const nextConfig: NextConfig = {
       `font-src 'self' data: ${clerkDomainsString}`,
       // Clerk API connections - allow all Clerk API endpoints and custom domains
       // Include both with and without wildcard to ensure coverage
-      `connect-src 'self' http://localhost:* http://127.0.0.1:* ${clerkDomainsString} https://*.imagekit.io ${clerkWSSDomains}`,
+      // Also allow Render.com API endpoints for backend connections
+      `connect-src 'self' http://localhost:* http://127.0.0.1:* ${clerkDomainsString} https://*.imagekit.io https://*.onrender.com ${clerkWSSDomains}`,
       `frame-src 'self' ${clerkDomainsString}`,
       "object-src 'none'",
       "base-uri 'self'",
