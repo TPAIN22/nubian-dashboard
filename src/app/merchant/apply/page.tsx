@@ -221,7 +221,7 @@ export default function MerchantApply() {
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-8">
               <div className="flex justify-center mb-6">
-                <div className="relative w-24 h-24 bg-white rounded-full p-3 shadow-lg ring-4 ring-amber-100">
+                <div className="relative w-24 h-24  rounded-full p-3 shadow-lg ring-4 ring-amber-100">
                   <Image 
                     src="/logo.png" 
                     alt="Nubian Logo" 
@@ -237,7 +237,7 @@ export default function MerchantApply() {
               </h1>
             </div>
 
-            <div className="bg-white rounded-xl shadow-xl border border-slate-200 p-8 md:p-10">
+            <div className=" rounded-xl shadow-xl border border-slate-200 p-8 md:p-10">
               <div className="text-center mb-6">
                 <div className="mx-auto w-20 h-20 rounded-full bg-success/10 dark:bg-success/20 flex items-center justify-center mb-4">
                   <CheckCircle2 className="w-10 h-10 text-success" />
@@ -295,7 +295,7 @@ export default function MerchantApply() {
           {/* Header Section with Logo */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-6">
-              <div className="relative w-24 h-24 bg-white rounded-full p-3 shadow-lg ring-4 ring-amber-100">
+              <div className="relative w-24 h-24  rounded-full p-3 shadow-lg ring-4 ring-amber-100">
                 <Image 
                   src="/logo.png" 
                   alt="Nubian Logo" 
@@ -312,7 +312,7 @@ export default function MerchantApply() {
           </div>
 
           {/* Status Display */}
-          <div className="bg-white rounded-xl shadow-xl border border-slate-200 p-8 md:p-10">
+          <div className=" rounded-xl shadow-xl border border-slate-200 p-8 md:p-10">
             {merchant.status === 'PENDING' && (
               <>
                 <div className="text-center mb-6">
@@ -435,7 +435,7 @@ export default function MerchantApply() {
         {/* Header Section with Logo */}
         <div className="text-center mb-12">
           <div className="flex justify-center mb-6">
-            <div className="relative w-24 h-24 bg-white rounded-full p-3 shadow-lg ring-4 ring-amber-100">
+            <div className="relative w-24 h-24  rounded-full p-3 shadow-lg ring-4 ring-amber-100">
               <Image 
                 src="/logo.png" 
                 alt="Nubian Logo" 
@@ -457,7 +457,7 @@ export default function MerchantApply() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Benefits Section */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-slate-200">
+            <div className=" rounded-xl shadow-lg p-6 border border-slate-200">
               <h2 className="text-2xl font-bold text-slate-900 mb-6">لماذا تنضم إلى نوبيان؟</h2>
               <div className="space-y-5">
                 <div className="flex items-start gap-4">
@@ -516,7 +516,7 @@ export default function MerchantApply() {
 
           {/* Application Form */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-xl border border-slate-200 p-8 md:p-10">
+            <div className=" rounded-xl shadow-xl border border-slate-200 p-8 md:p-10">
               <div className="mb-8">
                 <h2 className="text-3xl font-bold text-slate-900 mb-2">نموذج الطلب</h2>
                 <p className="text-slate-600">
