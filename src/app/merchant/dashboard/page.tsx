@@ -281,14 +281,14 @@ export default function MerchantDashboard() {
 
   if (!isLoaded || loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen gap-4">
-        <div className="text-lg">جاري التحميل...</div>
+      <div className="flex flex-col items-center justify-center h-screen gap-6">
+        <div className="text-xl font-semibold text-foreground">جاري التحميل...</div>
         {loadingError && (
-          <div className="max-w-md p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-red-800 dark:text-red-200 text-sm">{loadingError}</p>
+          <div className="max-w-md p-6 bg-destructive/10 dark:bg-destructive/20 border border-destructive/30 dark:border-destructive/40 rounded-lg shadow-sm">
+            <p className="text-destructive dark:text-destructive-foreground text-base font-medium mb-4">{loadingError}</p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+              className="w-full px-4 py-2.5 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 font-medium text-sm transition-colors"
             >
               تحديث الصفحة
             </button>
@@ -301,12 +301,12 @@ export default function MerchantDashboard() {
   if (!merchant) {
     if (loadingError) {
       return (
-        <div className="flex flex-col items-center justify-center h-screen gap-4">
-          <div className="max-w-md p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-red-800 dark:text-red-200">{loadingError}</p>
+        <div className="flex flex-col items-center justify-center h-screen gap-6">
+          <div className="max-w-md p-6 bg-destructive/10 dark:bg-destructive/20 border border-destructive/30 dark:border-destructive/40 rounded-lg shadow-sm">
+            <p className="text-destructive dark:text-destructive-foreground text-base font-medium mb-4">{loadingError}</p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              className="w-full px-4 py-2.5 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 font-medium transition-colors"
             >
               تحديث الصفحة
             </button>
@@ -325,22 +325,22 @@ export default function MerchantDashboard() {
   }
 
   return (
-    <div className="flex flex-col gap-4 h-full sm:mx-12 mx-2 py-4">
-      <div>
-        <h1 className="text-2xl font-bold">لوحة تحكم التاجر</h1>
-        <p className="text-muted-foreground mt-2">
-          أهلاً بعودتك، {merchant.businessName}
+    <div className="flex flex-col gap-6 h-full sm:mx-12 mx-2 py-6">
+      <div className="space-y-1">
+        <h1 className="text-3xl font-bold text-foreground">لوحة تحكم التاجر</h1>
+        <p className="text-base text-muted-foreground">
+          أهلاً بعودتك، <span className="font-medium text-foreground">{merchant.businessName}</span>
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">إجمالي الطلبات</CardTitle>
+            <CardTitle className="text-sm font-semibold text-foreground">إجمالي الطلبات</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalOrders || 0}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-3xl font-bold text-foreground">{stats?.totalOrders || 0}</div>
+            <p className="text-sm text-muted-foreground mt-1">
               جميع الطلبات
             </p>
           </CardContent>
@@ -348,13 +348,13 @@ export default function MerchantDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">إجمالي الإيرادات</CardTitle>
+            <CardTitle className="text-sm font-semibold text-foreground">إجمالي الإيرادات</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-3xl font-bold text-green-600 dark:text-green-500">
               {stats ? formatCurrency(stats.totalRevenue) : '0.00 ج.س'}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground mt-1">
               من جميع الطلبات
             </p>
           </CardContent>
@@ -362,11 +362,11 @@ export default function MerchantDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">المنتجات</CardTitle>
+            <CardTitle className="text-sm font-semibold text-foreground">المنتجات</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{productsCount}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-3xl font-bold text-foreground">{productsCount}</div>
+            <p className="text-sm text-muted-foreground mt-1">
               منتجات نشطة
             </p>
           </CardContent>
@@ -374,11 +374,11 @@ export default function MerchantDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">الحالة</CardTitle>
+            <CardTitle className="text-sm font-semibold text-foreground">الحالة</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">نشط</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-3xl font-bold text-green-600 dark:text-green-500">نشط</div>
+            <p className="text-sm text-muted-foreground mt-1">
               التاجر معتمد
             </p>
           </CardContent>
@@ -389,29 +389,29 @@ export default function MerchantDashboard() {
         <div className="grid gap-4 md:grid-cols-2 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle>الطلبات حسب الحالة</CardTitle>
+              <CardTitle className="text-lg font-semibold text-foreground">الطلبات حسب الحالة</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>قيد الانتظار:</span>
-                  <span className="font-medium">{stats.statusStats.pending}</span>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-sm text-muted-foreground">قيد الانتظار:</span>
+                  <span className="text-base font-semibold text-foreground">{stats.statusStats.pending}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>مؤكد:</span>
-                  <span className="font-medium">{stats.statusStats.confirmed}</span>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-sm text-muted-foreground">مؤكد:</span>
+                  <span className="text-base font-semibold text-foreground">{stats.statusStats.confirmed}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>تم الشحن:</span>
-                  <span className="font-medium">{stats.statusStats.shipped}</span>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-sm text-muted-foreground">تم الشحن:</span>
+                  <span className="text-base font-semibold text-blue-600 dark:text-blue-400">{stats.statusStats.shipped}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>تم التسليم:</span>
-                  <span className="font-medium text-green-600">{stats.statusStats.delivered}</span>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-sm text-muted-foreground">تم التسليم:</span>
+                  <span className="text-base font-semibold text-green-600 dark:text-green-500">{stats.statusStats.delivered}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>ملغي:</span>
-                  <span className="font-medium text-red-600">{stats.statusStats.cancelled}</span>
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-sm text-muted-foreground">ملغي:</span>
+                  <span className="text-base font-semibold text-destructive">{stats.statusStats.cancelled}</span>
                 </div>
               </div>
             </CardContent>
@@ -419,31 +419,31 @@ export default function MerchantDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>الإيرادات حسب الحالة</CardTitle>
+              <CardTitle className="text-lg font-semibold text-foreground">الإيرادات حسب الحالة</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>تم التسليم:</span>
-                  <span className="font-medium text-green-600">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-sm text-muted-foreground">تم التسليم:</span>
+                  <span className="text-base font-semibold text-green-600 dark:text-green-500">
                     {formatCurrency(stats.revenueByStatus.delivered)}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span>تم الشحن:</span>
-                  <span className="font-medium">
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-sm text-muted-foreground">تم الشحن:</span>
+                  <span className="text-base font-semibold text-blue-600 dark:text-blue-400">
                     {formatCurrency(stats.revenueByStatus.shipped)}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span>مؤكد:</span>
-                  <span className="font-medium">
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-sm text-muted-foreground">مؤكد:</span>
+                  <span className="text-base font-semibold text-foreground">
                     {formatCurrency(stats.revenueByStatus.confirmed)}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span>قيد الانتظار:</span>
-                  <span className="font-medium">
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-sm text-muted-foreground">قيد الانتظار:</span>
+                  <span className="text-base font-semibold text-foreground">
                     {formatCurrency(stats.revenueByStatus.pending)}
                   </span>
                 </div>
@@ -455,22 +455,22 @@ export default function MerchantDashboard() {
 
       <Card className="mt-4">
         <CardHeader>
-          <CardTitle>إجراءات سريعة</CardTitle>
+          <CardTitle className="text-lg font-semibold text-foreground">إجراءات سريعة</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
             <Link href="/merchant/products">
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full h-11 text-base font-medium">
                 إدارة المنتجات
               </Button>
             </Link>
             <Link href="/merchant/orders">
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full h-11 text-base font-medium">
                 عرض الطلبات
               </Button>
             </Link>
             <Link href="/merchant/settings">
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full h-11 text-base font-medium">
                 إعدادات المتجر
               </Button>
             </Link>
