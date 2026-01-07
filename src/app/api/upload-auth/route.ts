@@ -90,6 +90,16 @@ export async function GET() {
             )
         }
 
+        // At this point, we know privateKey and publicKey are defined (we returned early if not)
+        // TypeScript needs explicit type assertion after the validation check
+        if (!privateKey || !publicKey) {
+            // This should never happen due to the check above, but TypeScript needs it
+            return NextResponse.json(
+                { error: "Internal server error: Configuration validation failed" },
+                { status: 500 }
+            )
+        }
+
         const { token, expire, signature } = getUploadAuthParams({
             privateKey: privateKey,
             publicKey: publicKey,
