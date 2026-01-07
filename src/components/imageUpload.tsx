@@ -196,7 +196,7 @@ export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
       setUploadStatus((prev) => ({ ...prev, [id]: "success" }));
       
       // Extract URL from ImageKit response - check multiple possible fields
-      const imageUrl = uploadResponse.url || uploadResponse.filePath || uploadResponse.fileUrl;
+      const imageUrl = uploadResponse.url || uploadResponse.filePath;
       
       if (!imageUrl) {
         throw new Error("Upload succeeded but no URL returned from ImageKit");

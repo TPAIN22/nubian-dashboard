@@ -123,7 +123,7 @@ export function SimpleImageUpload({ value, onChange }: SimpleImageUploadProps) {
       });
 
       // Extract URL from ImageKit response - check multiple possible fields
-      const imageUrl = uploadResponse.url || uploadResponse.filePath || uploadResponse.fileUrl;
+      const imageUrl = uploadResponse.url || uploadResponse.filePath;
       
       if (imageUrl) {
         // Ensure URL is absolute (starts with http:// or https://)
