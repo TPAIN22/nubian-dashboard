@@ -25,30 +25,56 @@ export async function GET() {
         const publicKey = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY
         const urlEndpoint = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT
 
-        if (!privateKey || !publicKey) {
-            const missingKeys = []
-            if (!privateKey) {
-                const isProduction = process.env.NODE_ENV === 'production'
-                missingKeys.push(
-                    isProduction 
-                        ? "IMAGEKIT_PRIVATE_KEY (required for production - do NOT use NEXT_PUBLIC_ prefix)" 
-                        : "IMAGEKIT_PRIVATE_KEY (or NEXT_PUBLIC_IMAGEKIT_PRIVATE_KEY for dev only)"
-                )
-            }
-            if (!publicKey) missingKeys.push("NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY")
+        // Check for required configuration
+        const missingKeys: string[] = []
+        const warnings: string[] = []
+        
+        if (!privateKey) {
+            const isProduction = process.env.NODE_ENV === 'production'
+            missingKeys.push(
+                isProduction 
+                    ? "IMAGEKIT_PRIVATE_KEY (required for production - do NOT use NEXT_PUBLIC_ prefix)" 
+                    : "IMAGEKIT_PRIVATE_KEY (or NEXT_PUBLIC_IMAGEKIT_PRIVATE_KEY for dev only)"
+            )
+        }
+        if (!publicKey) {
+            missingKeys.push("NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY")
+        }
+        if (!urlEndpoint) {
+            warnings.push("NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT (recommended but optional)")
+        }
+        
+        if (missingKeys.length > 0) {
+            const isProduction = process.env.NODE_ENV === 'production'
+            const errorMessage = isProduction
+                ? `ImageKit configuration missing in production. Missing: ${missingKeys.join(", ")}. Please set these environment variables in your production environment (e.g., Vercel, Render, etc.). ⚠️ For production, use IMAGEKIT_PRIVATE_KEY (without NEXT_PUBLIC_ prefix) for security.`
+                : `ImageKit configuration missing. Missing: ${missingKeys.join(", ")}. Please check your .env.local file.`
             
             logger.error("ImageKit configuration missing", { 
                 hasPrivateKey: !!privateKey, 
                 hasPublicKey: !!publicKey,
                 hasUrlEndpoint: !!urlEndpoint,
                 missingKeys,
-                isProduction: process.env.NODE_ENV === 'production'
+                warnings,
+                isProduction,
+                nodeEnv: process.env.NODE_ENV
             })
+            
             return NextResponse.json(
                 { 
                     error: "ImageKit configuration missing",
-                    message: `Missing environment variable(s): ${missingKeys.join(", ")}. ${process.env.NODE_ENV === 'production' ? '⚠️ For production, use IMAGEKIT_PRIVATE_KEY (without NEXT_PUBLIC_) for security.' : ''}`,
-                    missingKeys
+                    message: errorMessage,
+                    missingKeys,
+                    warnings: warnings.length > 0 ? warnings : undefined,
+                    help: isProduction 
+                        ? "To fix this, add the following environment variables in your production hosting platform (Vercel, Render, etc.):\n" +
+                          "1. IMAGEKIT_PRIVATE_KEY=your_private_key (server-side only, no NEXT_PUBLIC_ prefix)\n" +
+                          "2. NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY=your_public_key\n" +
+                          "3. NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_imagekit_id (recommended)"
+                        : "To fix this, add the following to your .env.local file:\n" +
+                          "1. IMAGEKIT_PRIVATE_KEY=your_private_key (or NEXT_PUBLIC_IMAGEKIT_PRIVATE_KEY for dev)\n" +
+                          "2. NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY=your_public_key\n" +
+                          "3. NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_imagekit_id"
                 },
                 { status: 500 }
             )

@@ -72,13 +72,18 @@ export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
       const response = await fetch("/api/upload-auth");
       if (!response.ok) {
         let errorMessage = `Request failed with status ${response.status}`;
+        let errorData: any = null;
+        
+        // Try to parse error response as JSON
         try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
+          const responseClone = response.clone(); // Clone to avoid consuming the body
+          errorData = await responseClone.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
         } catch {
           // If response is not JSON, try to get text
           try {
-            const errorText = await response.text();
+            const responseClone = response.clone();
+            const errorText = await responseClone.text();
             if (errorText) errorMessage = errorText;
           } catch {
             // Ignore parse errors
@@ -88,7 +93,17 @@ export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
         if (response.status === 401) {
           throw new Error("Unauthorized: Please sign in to upload files");
         } else if (response.status === 500) {
-          throw new Error(`Server error: ${errorMessage}. Please check ImageKit configuration.`);
+          // Build detailed error message from error data
+          let detailedMessage = errorMessage;
+          if (errorData) {
+            if (errorData.message) {
+              detailedMessage = errorData.message;
+            }
+            if (errorData.help) {
+              detailedMessage += `\n\n${errorData.help}`;
+            }
+          }
+          throw new Error(detailedMessage);
         }
         throw new Error(`Authentication failed: ${errorMessage}`);
       }
