@@ -152,8 +152,8 @@ export default function RootLayout({
         baseTheme: dark,
       }}
       // Add redirect URLs for better handling
-      afterSignInUrl="/"
-      afterSignUpUrl="/"
+      signInFallbackRedirectUrl="/"
+      signUpFallbackRedirectUrl="/"
     >
       <html lang="ar" dir="rtl" suppressHydrationWarning>
         <head>
