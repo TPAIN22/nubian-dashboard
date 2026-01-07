@@ -59,7 +59,7 @@ export default function MerchantApply() {
           return
         }
         
-        const response = await axiosInstance.get('/merchants/my-status', {
+        const response = await axiosInstance.get('/merchant/my-status', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -116,7 +116,7 @@ export default function MerchantApply() {
         apiUrl: process.env.NEXT_PUBLIC_API_URL || 'Not configured'
       })
       
-      const response = await axiosInstance.post('/merchants/apply', formData, {
+      const response = await axiosInstance.post('/merchant/apply', formData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -127,7 +127,7 @@ export default function MerchantApply() {
       
       // Fetch the merchant status to display
       try {
-        const statusResponse = await axiosInstance.get('/merchants/my-status', {
+        const statusResponse = await axiosInstance.get('/merchant/my-status', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -187,7 +187,7 @@ export default function MerchantApply() {
         if (!apiUrl) {
           toast.error('خادم API غير مُكوّن. يرجى تعيين NEXT_PUBLIC_API_URL في ملف .env.local')
         } else {
-          const fullUrl = `${apiUrl}/merchants/apply`
+          const fullUrl = `${apiUrl}/merchant/apply`
           toast.error(
             `خطأ في الشبكة: لا يمكن الاتصال بخادم API على ${fullUrl}. ` +
             `يرجى التأكد من: 1) تشغيل الخادم الخلفي، 2) صحة عنوان API في .env.local`
