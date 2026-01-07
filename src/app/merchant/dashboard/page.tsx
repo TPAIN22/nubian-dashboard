@@ -281,7 +281,7 @@ export default function MerchantDashboard() {
 
   if (!isLoaded || loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen gap-6">
+      <div className="flex flex-col items-center justify-center h-screen gap-6 bg-background dark:bg-slate-950">
         <div className="text-xl font-semibold text-foreground">جاري التحميل...</div>
         {loadingError && (
           <div className="max-w-md p-6 bg-destructive/10 dark:bg-destructive/20 border border-destructive/30 dark:border-destructive/40 rounded-lg shadow-sm">
@@ -301,7 +301,7 @@ export default function MerchantDashboard() {
   if (!merchant) {
     if (loadingError) {
       return (
-        <div className="flex flex-col items-center justify-center h-screen gap-6">
+        <div className="flex flex-col items-center justify-center h-screen gap-6 bg-background dark:bg-slate-950">
           <div className="max-w-md p-6 bg-destructive/10 dark:bg-destructive/20 border border-destructive/30 dark:border-destructive/40 rounded-lg shadow-sm">
             <p className="text-destructive dark:text-destructive-foreground text-base font-medium mb-4">{loadingError}</p>
             <button
@@ -325,7 +325,7 @@ export default function MerchantDashboard() {
   }
 
   return (
-    <div className="flex flex-col gap-6 h-full sm:mx-12 mx-2 py-6">
+    <div className="flex flex-col gap-6 h-full sm:mx-12 mx-2 py-6 bg-background dark:bg-slate-950 min-h-screen">
       <div className="space-y-1">
         <h1 className="text-3xl font-bold text-foreground">لوحة تحكم التاجر</h1>
         <p className="text-base text-muted-foreground">
