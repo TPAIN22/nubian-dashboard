@@ -116,7 +116,6 @@ export function SimpleImageUpload({ value, onChange }: SimpleImageUploadProps) {
         token,
         signature,
         publicKey,
-        urlEndpoint: urlEndpoint || process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT,
         file,
         fileName: file.name,
         // onProgress: (event) => { /* You can add a progress bar here if needed */ },

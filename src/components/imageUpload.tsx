@@ -184,7 +184,6 @@ export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
         token,
         signature,
         publicKey,
-        urlEndpoint: urlEndpoint || process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT,
         file,
         fileName: file.name,
         onProgress: (event) => {
