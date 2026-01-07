@@ -113,7 +113,6 @@ export default function ProductForm() {
         });
         setCategories(res.data);
       } catch (err) {
-        console.error("Failed to fetch categories:", err);
         setCategoriesError("فشل في تحميل التصنيفات. الرجاء المحاولة مرة أخرى.");
         toast.error("فشل في تحميل التصنيفات.");
       } finally {
@@ -156,7 +155,6 @@ export default function ProductForm() {
       form.reset();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "خطأ غير معروف";
-      console.error("Form submission error", errorMessage);
       toast.error(`فشل إرسال النموذج: ${errorMessage}`);
     }
   }

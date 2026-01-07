@@ -23,18 +23,6 @@ async function getProducts() {
   try {
     const response = await axiosInstance.get("/products");
     
-    // Debug: Log the response structure
-    if (process.env.NODE_ENV === 'development') {
-      console.log('📦 Products API Response Structure:', {
-        hasSuccess: !!response.data?.success,
-        hasData: !!response.data?.data,
-        dataIsArray: Array.isArray(response.data?.data),
-        hasProducts: !!response.data?.products,
-        productsIsArray: Array.isArray(response.data?.products),
-        responseKeys: Object.keys(response.data || {}),
-        dataLength: Array.isArray(response.data?.data) ? response.data.data.length : 'N/A',
-      });
-    }
     
     // Backend returns: { success: true, data: [...], meta: {...} }
     // Handle different response structures
@@ -54,18 +42,9 @@ async function getProducts() {
       products = response.data.data;
     }
     
-    if (process.env.NODE_ENV === 'development') {
-      console.log('✅ Products parsed:', products.length, 'items');
-    }
     
     return Array.isArray(products) ? products : [];
   } catch (error: any) {
-    console.error('❌ Error fetching products:', {
-      message: error?.message,
-      response: error?.response?.data,
-      status: error?.response?.status,
-      url: error?.config?.url,
-    });
     return [];
   }
 }

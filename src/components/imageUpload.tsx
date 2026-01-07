@@ -80,7 +80,6 @@ export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
       const { signature, expire, token, publicKey } = data;
       return { signature, expire, token, publicKey };
     } catch (error) {
-      console.error("Authentication error:", error);
       throw new Error("Authentication request failed");
     }
   };

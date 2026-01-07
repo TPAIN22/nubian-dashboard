@@ -41,8 +41,6 @@ async function getDashboardStats(): Promise<DashboardStats> {
         }
         return [];
       } else {
-        // Log rejected promise errors
-        console.error('API request failed:', result.reason?.message || result.reason);
         return [];
       }
     };
@@ -77,7 +75,6 @@ async function getDashboardStats(): Promise<DashboardStats> {
       pendingMerchants,
     };
   } catch (error) {
-    console.error('Error fetching dashboard stats:', error);
     return {
       totalProducts: 0,
       totalMerchants: 0,

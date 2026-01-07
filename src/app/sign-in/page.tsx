@@ -22,17 +22,13 @@ export default function SignInPage() {
       const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
       if (!publishableKey || publishableKey.includes('your_key') || publishableKey.trim() === '') {
         setClerkError('Clerk is not configured. Please set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY in your .env.local file.')
-        console.error('❌ Clerk Error: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is missing or invalid')
-        console.error('Current value:', publishableKey ? 'Set but invalid' : 'Not set')
         return
       }
-      console.log('✅ Clerk publishable key is configured')
       
       // Listen for Clerk load errors
       const handleClerkError = (event: ErrorEvent) => {
         if (event.message?.includes('Clerk') || event.message?.includes('clerk')) {
           setClerkLoadError('Failed to load Clerk. Please check your internet connection and try refreshing the page.')
-          console.error('Clerk load error:', event.message)
         }
       }
       
@@ -68,12 +64,6 @@ export default function SignInPage() {
       const role = user.publicMetadata?.role as string | undefined
       const redirectUrl = getRedirectUrl(role)
 
-      console.log('🔄 Redirecting authenticated user:', {
-        role: role || 'no role',
-        redirectUrl,
-        userId: user.id
-      })
-
       // Use Next.js router for better integration
       // Add a fallback timeout in case router doesn't work
       try {
@@ -81,13 +71,11 @@ export default function SignInPage() {
         
         // Fallback: if redirect doesn't happen within 2 seconds, use window.location
         const timeout = setTimeout(() => {
-          console.warn('⚠️ Router redirect timed out, using window.location as fallback')
           window.location.href = redirectUrl
         }, 2000)
         
         setRedirectTimeout(timeout)
       } catch (error) {
-        console.error('Redirect error:', error)
         // Fallback to window.location
         window.location.href = redirectUrl
       }
@@ -110,7 +98,6 @@ export default function SignInPage() {
       if (!isLoaded) {
         setLoadingTimeout(true)
         setClerkLoadError('Clerk is taking too long to load. This might be due to network issues or configuration problems.')
-        console.warn('⚠️ Clerk loading timeout - taking too long to load')
       }
     }, 8000) // 8 second timeout (reduced from 10)
 
@@ -123,7 +110,6 @@ export default function SignInPage() {
       // Show warning if redirect takes too long
       const timeout = setTimeout(() => {
         setRedirectTimeoutWarning(true)
-        console.warn('⚠️ Redirect taking longer than expected')
       }, 3000) // 3 second warning
 
       return () => clearTimeout(timeout)

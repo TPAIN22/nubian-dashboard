@@ -47,7 +47,6 @@ export function NotificationForm() {
         toast.error(`Failed to send notification. Status: ${res.status}`);
       }
     } catch (error) {
-      console.error('Error sending notification from frontend:', error);
       // التعامل مع الأخطاء من Axios (مثل 400, 500, أو أخطاء الشبكة)
       const errorMessage = error.response?.data?.error || 'Failed to send notification. Please try again.';
       toast.error(errorMessage);

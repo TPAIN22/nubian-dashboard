@@ -33,7 +33,6 @@ const useItemStore = create((set, get) => ({
         isProductsLoading: false,
       }));
     } catch (error) {
-      console.error(error); // ✅ أو احذف السطر لو ما تحتاجه
       set({ isProductsLoading: false });
     }
   }

@@ -10,10 +10,6 @@ import { Toaster } from '@/components/ui/sonner'
 import StructuredData from "@/components/StructuredData"
 import ErrorBoundary from "@/components/ErrorBoundary"
 import { validateEnv } from "@/lib/envValidator"
-import logger from "@/lib/logger"
-import { ClerkDiagnostics } from "@/components/ClerkDiagnostics"
-import { ClerkKeyChecker } from "@/components/ClerkKeyChecker"
-import { ClerkNetworkChecker } from "@/components/ClerkNetworkChecker"
 
 // Validate environment variables at runtime (not during build)
 // The validateEnv function now handles build-time detection internally
@@ -27,7 +23,6 @@ if (typeof window === 'undefined') {
     if (process.env.NODE_ENV === 'production') {
       throw error;
     }
-    logger.warn('Environment validation warning', { error: error instanceof Error ? error.message : String(error) });
   }
 }
 
@@ -145,30 +140,6 @@ export default function RootLayout({
     clerkPublishableKey.trim() !== '' && 
     !clerkPublishableKey.includes('your_key') &&
     clerkPublishableKey.startsWith('pk_')
-  
-  if (!isKeyValid) {
-    if (typeof window === 'undefined') {
-      // Server-side: Log error in production, warn in development
-      if (process.env.NODE_ENV === 'production') {
-        console.error('❌ CRITICAL: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is missing or invalid in production!')
-        console.error('Variable value:', clerkPublishableKey ? `"${clerkPublishableKey.substring(0, 10)}..."` : 'undefined')
-        console.error('This variable MUST be set during the build process in your deployment platform.')
-        console.error('For Vercel: Set it in Project Settings > Environment Variables')
-        console.error('For other platforms: Ensure it is available during "next build" command')
-        console.error('After setting, you MUST trigger a new build/deployment for it to take effect.')
-      } else {
-        console.warn('⚠️ Clerk Warning: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is not set. Authentication will not work.')
-        console.warn('Set this variable in your .env.local file for local development.')
-      }
-    }
-    
-    // In production, we should still try to render but Clerk won't work
-    // This prevents the entire app from breaking
-  } else {
-    if (typeof window === 'undefined') {
-      console.log('✅ Clerk publishable key is configured')
-    }
-  }
 
   // ClerkProvider requires a valid publishableKey
   // According to Clerk docs: https://clerk.com/docs
@@ -186,31 +157,6 @@ export default function RootLayout({
     >
       <html lang="ar" dir="rtl" suppressHydrationWarning>
         <head>
-          {/* Capture Clerk initialization errors */}
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                (function() {
-                  // Capture errors before Clerk loads
-                  window.__CLERK_ERRORS__ = [];
-                  const originalError = console.error;
-                  console.error = function(...args) {
-                    if (args.some(arg => typeof arg === 'string' && arg.includes('Clerk'))) {
-                      window.__CLERK_ERRORS__.push(args.join(' '));
-                    }
-                    originalError.apply(console, args);
-                  };
-                  
-                  // Also listen for unhandled errors
-                  window.addEventListener('error', function(e) {
-                    if (e.message && e.message.includes('Clerk')) {
-                      window.__CLERK_ERRORS__.push(e.message);
-                    }
-                  });
-                })();
-              `,
-            }}
-          />
         </head>
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
           <ErrorBoundary>
@@ -223,9 +169,6 @@ export default function RootLayout({
           >       
             {children}
             <Toaster/>
-            <ClerkKeyChecker />
-            <ClerkNetworkChecker />
-            <ClerkDiagnostics />
           </ThemeProvider>
           </ErrorBoundary>
         </body>

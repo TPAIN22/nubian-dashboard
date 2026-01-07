@@ -93,8 +93,6 @@ export default function BannerForm({ banner, onClose, onSuccess }: BannerFormPro
       }
       
     } catch (error) {
-      console.error("Banner form error:", error);
-      
       if (error instanceof Error && error.name === 'ZodError') {
         toast.error("يرجى التحقق من صحة البيانات المدخلة");
         return;

@@ -49,7 +49,6 @@ async function CategoriesPage() {
     }
 
   } catch (err) {
-    console.error("خطأ في جلب التصنيفات:", err);
     error = err instanceof Error ? err.message : "فشل في تحميل التصنيفات. يرجى المحاولة مرة أخرى.";
   }
 

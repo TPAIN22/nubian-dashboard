@@ -39,7 +39,6 @@ export const validateEnv = (options: { throwOnError?: boolean; skipBuildTime?: b
       (process.env.NODE_ENV === 'production' && !process.env.VERCEL && !process.env.RENDER && !process.env.NEXT_RUNTIME);
     
     if (isBuildTime) {
-      console.warn('⚠️  Environment validation skipped during build. Variables will be validated at runtime.');
       return;
     }
   }
@@ -59,21 +58,9 @@ export const validateEnv = (options: { throwOnError?: boolean; skipBuildTime?: b
     }
   }
 
-  // ImageKit validation: Warn if keys are partially configured (but don't fail build)
-  // ImageKit is optional - if not fully configured, image upload will fail at runtime
-  // This allows the build to succeed even if ImageKit is not configured
-  if (optionalEnvVars.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY && !optionalEnvVars.IMAGEKIT_PRIVATE_KEY) {
-    console.warn('⚠️  Warning: NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY is set but IMAGEKIT_PRIVATE_KEY is missing. Image upload functionality will not work. Set both keys or remove NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY.');
-  }
-
-  // Also warn if private key is set but public key is not
-  if (optionalEnvVars.IMAGEKIT_PRIVATE_KEY && !optionalEnvVars.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY) {
-    console.warn('⚠️  Warning: IMAGEKIT_PRIVATE_KEY is set but NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY is missing. Image upload functionality will not work. Set both keys or remove IMAGEKIT_PRIVATE_KEY.');
-  }
 
   if (missing.length > 0) {
     const errorMessage = `Missing required environment variables: ${missing.join(', ')}\nPlease check your .env.local file and ensure all required variables are set.`;
-    console.error(errorMessage);
     
     if (throwOnError) {
       throw new Error(errorMessage);

@@ -47,11 +47,6 @@ async function getMerchants() {
     // Filter only approved merchants for brands
     return merchants.filter((m: Merchant) => m.status === "APPROVED");
   } catch (error: any) {
-    console.error('❌ Error fetching merchants:', {
-      message: error?.message,
-      response: error?.response?.data,
-      status: error?.response?.status,
-    });
     return [];
   }
 }

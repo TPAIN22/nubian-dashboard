@@ -18,7 +18,6 @@ export default function DebugRolePage() {
           setLoading(false)
         })
         .catch(err => {
-          console.error('Error fetching role:', err)
           setLoading(false)
         })
     }

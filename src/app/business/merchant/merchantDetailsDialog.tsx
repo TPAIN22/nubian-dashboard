@@ -86,7 +86,6 @@ export function MerchantDetailsDialog({ merchant }: MerchantDetailsDialogProps) 
       
       setProducts(fetchedProducts);
     } catch (err: any) {
-      console.error('Error fetching merchant products:', err);
       setError('فشل في تحميل المنتجات');
       // If specific endpoint fails, try getting all products and filtering
       try {

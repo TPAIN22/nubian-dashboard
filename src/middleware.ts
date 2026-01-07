@@ -41,16 +41,11 @@ const isMerchantRoute = createRouteMatcher([
 
 // Utility functions
 const logSecurityEvent = (event: string, details: Record<string, any>) => {
-  console.log(`[Security] ${event}`, {
-    timestamp: new Date().toISOString(),
-    ...details
-  })
+  // Security events logged silently
 }
 
 const debugLog = (message: string, data: Record<string, any>) => {
-  if (DEBUG) {
-    console.log(`[Middleware Debug] ${message}`, data)
-  }
+  // Debug logs disabled
 }
 
 const redirectByRole = (role: UserRole, req: Request) => {
@@ -92,7 +87,6 @@ export default clerkMiddleware(async (auth, req) => {
     userId = authResult.userId
     sessionClaims = authResult.sessionClaims
   } catch (error) {
-    console.error('Auth check failed:', error)
     const response = NextResponse.redirect(new URL('/sign-in', req.url))
     response.cookies.delete('__session')
     return response
@@ -127,7 +121,6 @@ export default clerkMiddleware(async (auth, req) => {
         role = (user.publicMetadata as ClerkPublicMetadata)?.role
         debugLog('Role fetched from Clerk API', { userId, role })
       } catch (error: any) {
-        console.error('Error fetching user role from Clerk API:', error)
         return undefined
       }
     }
@@ -168,7 +161,6 @@ export default clerkMiddleware(async (auth, req) => {
       return response
       
     } catch (error: any) {
-      console.error('Admin route check error:', error)
       logSecurityEvent('Admin route check failed', {
         userId,
         pathname,
@@ -212,8 +204,7 @@ export default clerkMiddleware(async (auth, req) => {
       }
       
       if (role === undefined) {
-        // Role could not be determined - log this case
-        console.warn('Role undefined for authenticated user', { userId, pathname })
+        // Role could not be determined
         logSecurityEvent('Undefined role on merchant access', {
           userId,
           pathname,
@@ -238,7 +229,6 @@ export default clerkMiddleware(async (auth, req) => {
       return NextResponse.redirect(new URL('/merchant/apply', req.url))
       
     } catch (error) {
-      console.error('Merchant role check failed', { userId, pathname, error })
       logSecurityEvent('Merchant route check error', {
         userId,
         pathname,

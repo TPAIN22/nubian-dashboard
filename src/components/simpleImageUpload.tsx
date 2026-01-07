@@ -41,7 +41,6 @@ export function SimpleImageUpload({ value, onChange }: SimpleImageUploadProps) {
       const response = await fetch("/api/upload-auth"); // Call your backend API route
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("API response not OK:", response.status, errorText);
         throw new Error(
           `Request failed with status ${response.status}: ${errorText}`
         );
@@ -53,13 +52,11 @@ export function SimpleImageUpload({ value, onChange }: SimpleImageUploadProps) {
 
       // Validate if all required parameters are present
       if (!signature || !expire || !token || !publicKey) {
-        console.error("Missing authentication parameters:", { signature, expire, token, publicKey });
         throw new Error("One or more authentication parameters are missing from API response.");
       }
 
       return { signature, expire, token, publicKey };
     } catch (error) {
-      console.error("Authentication error in frontend authenticator:", error);
       toast.error("فشل المصادقة لرفع الصورة."); // Show a user-friendly error
       throw new Error("Authentication request failed");
     }

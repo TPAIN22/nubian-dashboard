@@ -130,7 +130,6 @@ export default function EditCategoryClient({ categoryId }: { categoryId: string 
           parent: parentValue,
         });
       } catch (error: unknown) {
-        console.error("Error fetching data:", error);
         toast.error("فشل في جلب البيانات.");
         router.push("/business/categories");
       } finally {
@@ -172,7 +171,6 @@ export default function EditCategoryClient({ categoryId }: { categoryId: string 
       router.push("/business/categories");
       router.refresh();
     } catch (error: unknown) {
-      console.error("Update error:", error);
       const errorMessage = error instanceof Error ? error.message : "خطأ غير معروف";
       toast.error(`فشل تحديث الفئة: ${errorMessage}`);
     }

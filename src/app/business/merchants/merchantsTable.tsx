@@ -113,13 +113,6 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
       const data = await response.json();
       
       if (!response.ok) {
-        // Log error details for debugging
-        console.error('Suspend merchant error:', {
-          status: response.status,
-          statusText: response.statusText,
-          data: data
-        });
-        
         // Handle specific error cases
         if (response.status === 404 && data.error === 'SUSPEND_ENDPOINT_NOT_FOUND') {
           const backendInfo = data.details?.backendRequired 
@@ -143,7 +136,6 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
       setSuspensionReason("");
       router.refresh();
     } catch (error: any) {
-      console.error('Error suspending merchant:', error);
       const errorMessage = error.message || "فشل في تعليق التاجر. يرجى المحاولة مرة أخرى.";
       toast.error(errorMessage);
     } finally {
