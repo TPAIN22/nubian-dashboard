@@ -45,6 +45,7 @@ interface AuthParams {
   expire: number;
   token: string;
   publicKey: string;
+  urlEndpoint?: string;
 }
 
 // --- ImageUpload Component ---
@@ -70,17 +71,43 @@ export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
     try {
       const response = await fetch("/api/upload-auth");
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Request failed with status ${response.status}: ${errorText}`
-        );
+        let errorMessage = `Request failed with status ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If response is not JSON, try to get text
+          try {
+            const errorText = await response.text();
+            if (errorText) errorMessage = errorText;
+          } catch {
+            // Ignore parse errors
+          }
+        }
+        
+        if (response.status === 401) {
+          throw new Error("Unauthorized: Please sign in to upload files");
+        } else if (response.status === 500) {
+          throw new Error(`Server error: ${errorMessage}. Please check ImageKit configuration.`);
+        }
+        throw new Error(`Authentication failed: ${errorMessage}`);
       }
 
       const data: AuthParams = await response.json();
-      const { signature, expire, token, publicKey } = data;
-      return { signature, expire, token, publicKey };
+      const { signature, expire, token, publicKey, urlEndpoint } = data;
+      
+      // Validate response data
+      if (!signature || !expire || !token || !publicKey) {
+        throw new Error("Invalid authentication response: Missing required parameters");
+      }
+      
+      return { signature, expire, token, publicKey, urlEndpoint };
     } catch (error) {
-      throw new Error("Authentication request failed");
+      // Re-throw with original message if it's already an Error with a message
+      if (error instanceof Error && error.message) {
+        throw error;
+      }
+      throw new Error("Authentication request failed: Unable to connect to upload service");
     }
   };
 
@@ -148,7 +175,7 @@ export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
 
     try {
       const authParams = await authenticator();
-      const { signature, expire, token, publicKey } = authParams;
+      const { signature, expire, token, publicKey, urlEndpoint } = authParams;
 
       const abortController = new AbortController();
 
@@ -157,6 +184,7 @@ export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
         token,
         signature,
         publicKey,
+        urlEndpoint: urlEndpoint || process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT,
         file,
         fileName: file.name,
         onProgress: (event) => {
@@ -167,8 +195,42 @@ export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
       });
 
       setUploadStatus((prev) => ({ ...prev, [id]: "success" }));
+      
+      // Extract URL from ImageKit response - check multiple possible fields
+      const imageUrl = uploadResponse.url || uploadResponse.filePath || uploadResponse.fileUrl;
+      
+      if (!imageUrl) {
+        throw new Error("Upload succeeded but no URL returned from ImageKit");
+      }
+      
+      // Ensure URL is absolute (starts with http:// or https://)
+      // ImageKit usually returns full URLs, but handle both cases
+      let absoluteUrl: string;
+      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        absoluteUrl = imageUrl;
+      } else {
+        // If relative URL, prepend with ImageKit URL endpoint
+        const urlEndpoint = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT;
+        if (urlEndpoint) {
+          const cleanPath = imageUrl.startsWith('/') ? imageUrl.slice(1) : imageUrl;
+          absoluteUrl = `${urlEndpoint}/${cleanPath}`;
+        } else {
+          absoluteUrl = imageUrl; // Fallback - should not happen
+        }
+      }
+      
+      // Ensure URL is a clean string
+      absoluteUrl = String(absoluteUrl).trim();
+      
+      console.log('Image uploaded successfully:', {
+        fileId: id,
+        fileName: file.name,
+        url: absoluteUrl,
+        uploadResponse: uploadResponse
+      });
+      
       setUploadedUrls((prev) =>
-        Object.assign({}, prev, { [id]: uploadResponse.url })
+        Object.assign({}, prev, { [id]: absoluteUrl })
       );
     } catch (error: any) {
       // Explicitly type error as 'any' or a more specific type if known
@@ -264,9 +326,22 @@ export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
   };
 
   useEffect(() => {
-    const urlsArray: string[] = Object.values(uploadedUrls);
+    // Convert uploaded URLs object to array of URL strings
+    const urlsArray: string[] = Object.values(uploadedUrls).filter(
+      (url): url is string => typeof url === 'string' && url.trim().length > 0 && (url.startsWith('http://') || url.startsWith('https://'))
+    );
+    
     setImageUrls(urlsArray);
-    onUploadComplete?.(urlsArray); // نمررها للي استدعى الكمبوننت
+    
+    console.log('ImageUpload: URLs updated', {
+      uploadedUrlsCount: Object.keys(uploadedUrls).length,
+      urlsArrayLength: urlsArray.length,
+      urlsArray: urlsArray,
+    });
+    
+    // Always call callback with current URLs (even if empty)
+    // This ensures form state is always in sync
+    onUploadComplete?.(urlsArray);
   }, [uploadedUrls, onUploadComplete]); // Add onUploadComplete to dependency array
 
   const stats = getOverallStats();

@@ -45,7 +45,25 @@ axiosInstance.interceptors.request.use(
                 url: config.url,
                 baseURL: config.baseURL,
                 fullUrl: fullUrl,
+                data: config.data, // Log request body
             });
+            
+            // Special logging for product creation/updates
+            if (config.url?.includes('/products') && (config.method === 'post' || config.method === 'put')) {
+                try {
+                    const requestData = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
+                    logger.info('Product Request Data', {
+                        url: config.url,
+                        method: config.method,
+                        imagesCount: Array.isArray(requestData?.images) ? requestData.images.length : 'not an array',
+                        images: requestData?.images,
+                        hasImages: !!requestData?.images,
+                        allFields: Object.keys(requestData || {}),
+                    });
+                } catch (e) {
+                    // Ignore parse errors
+                }
+            }
         }
         return config;
     },

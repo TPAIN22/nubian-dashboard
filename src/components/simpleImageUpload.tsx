@@ -23,6 +23,7 @@ interface AuthParams {
   expire: number;
   token: string;
   publicKey: string;
+  urlEndpoint?: string;
 }
 
 export function SimpleImageUpload({ value, onChange }: SimpleImageUploadProps) {
@@ -40,25 +41,52 @@ export function SimpleImageUpload({ value, onChange }: SimpleImageUploadProps) {
     try {
       const response = await fetch("/api/upload-auth"); // Call your backend API route
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Request failed with status ${response.status}: ${errorText}`
-        );
+        let errorMessage = `Request failed with status ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If response is not JSON, try to get text
+          try {
+            const errorText = await response.text();
+            if (errorText) errorMessage = errorText;
+          } catch {
+            // Ignore parse errors
+          }
+        }
+        
+        if (response.status === 401) {
+          toast.error("غير مصرح: يرجى تسجيل الدخول لرفع الصور");
+          throw new Error("Unauthorized: Please sign in to upload files");
+        } else if (response.status === 500) {
+          toast.error(`خطأ في الخادم: ${errorMessage}. يرجى التحقق من إعدادات ImageKit.`);
+          throw new Error(`Server error: ${errorMessage}. Please check ImageKit configuration.`);
+        }
+        toast.error(`فشل المصادقة: ${errorMessage}`);
+        throw new Error(`Authentication failed: ${errorMessage}`);
       }
 
       const data: AuthParams = await response.json();
 
-      const { signature, expire, token, publicKey } = data;
+      const { signature, expire, token, publicKey, urlEndpoint } = data;
 
       // Validate if all required parameters are present
       if (!signature || !expire || !token || !publicKey) {
+        toast.error("فشل المصادقة: معاملات المصادقة غير مكتملة.");
         throw new Error("One or more authentication parameters are missing from API response.");
       }
 
-      return { signature, expire, token, publicKey };
+      return { signature, expire, token, publicKey, urlEndpoint };
     } catch (error) {
-      toast.error("فشل المصادقة لرفع الصورة."); // Show a user-friendly error
-      throw new Error("Authentication request failed");
+      // Only show toast if not already shown above
+      if (error instanceof Error && !error.message.includes("Unauthorized") && !error.message.includes("Server error") && !error.message.includes("Authentication failed") && !error.message.includes("missing")) {
+        toast.error("فشل المصادقة لرفع الصورة."); // Show a user-friendly error
+      }
+      // Re-throw with original message if it's already an Error with a message
+      if (error instanceof Error && error.message) {
+        throw error;
+      }
+      throw new Error("Authentication request failed: Unable to connect to upload service");
     }
   };
 
@@ -80,7 +108,7 @@ export function SimpleImageUpload({ value, onChange }: SimpleImageUploadProps) {
 
     try {
       const authParams = await authenticator(); // Get auth parameters
-      const { signature, expire, token, publicKey } = authParams;
+      const { signature, expire, token, publicKey, urlEndpoint } = authParams;
 
       // Call ImageKit's upload function
       const uploadResponse = await upload({
@@ -88,15 +116,26 @@ export function SimpleImageUpload({ value, onChange }: SimpleImageUploadProps) {
         token,
         signature,
         publicKey,
+        urlEndpoint: urlEndpoint || process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT,
         file,
         fileName: file.name,
         // onProgress: (event) => { /* You can add a progress bar here if needed */ },
         // abortSignal: abortController.signal, // If you implement cancel functionality
       });
 
-      if (uploadResponse.url) {
-        setPreviewUrl(uploadResponse.url); // Update preview with the new URL
-        onChange(uploadResponse.url); // Notify parent component with the new URL
+      // Extract URL from ImageKit response - check multiple possible fields
+      const imageUrl = uploadResponse.url || uploadResponse.filePath || uploadResponse.fileUrl;
+      
+      if (imageUrl) {
+        // Ensure URL is absolute (starts with http:// or https://)
+        const absoluteUrl = imageUrl.startsWith('http://') || imageUrl.startsWith('https://') 
+          ? imageUrl 
+          : (process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT ? 
+              `${process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT}/${imageUrl.replace(/^\//, '')}` 
+              : imageUrl);
+        
+        setPreviewUrl(absoluteUrl); // Update preview with the new URL
+        onChange(absoluteUrl); // Notify parent component with the new URL
         toast.success("تم رفع الصورة بنجاح!"); // Success message
       } else {
         toast.error("فشل الرفع: لم يتم الحصول على رابط الصورة."); // Error if URL is missing

@@ -60,6 +60,10 @@ const redirectByRole = (role: UserRole, req: Request) => {
 
 export default clerkMiddleware(async (auth, req) => {
   const pathname = req.nextUrl.pathname
+  const userAgent = req.headers.get('user-agent') || ''
+  
+  // Detect search engine bots (Googlebot, Bingbot, etc.)
+  const isSearchEngineBot = /googlebot|bingbot|slurp|duckduckbot|baiduspider|yandexbot|sogou|exabot|facebookexternalhit|ia_archiver|msnbot|ahrefsbot|semrushbot|dotbot|mj12bot/i.test(userAgent)
   
   // Skip middleware for Next.js internal paths and static files
   if (
@@ -70,6 +74,16 @@ export default clerkMiddleware(async (auth, req) => {
     /\.(svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|eot|otf)$/.test(pathname)
   ) {
     return NextResponse.next()
+  }
+  
+  // Allow search engine bots to access public routes without authentication
+  // This ensures proper crawling and indexing
+  if (isSearchEngineBot && isPublicRoute(req)) {
+    debugLog('Search engine bot accessing public route', { pathname, userAgent })
+    const response = NextResponse.next()
+    // Add headers to indicate this is a bot request
+    response.headers.set('x-bot-request', 'true')
+    return response
   }
   
   // Handle public routes (including root route) - no auth needed
@@ -87,6 +101,11 @@ export default clerkMiddleware(async (auth, req) => {
     userId = authResult.userId
     sessionClaims = authResult.sessionClaims
   } catch (error) {
+    // For API routes, let them handle their own authentication errors (return JSON)
+    // For page routes, redirect to sign-in
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.next()
+    }
     const response = NextResponse.redirect(new URL('/sign-in', req.url))
     response.cookies.delete('__session')
     return response
@@ -94,6 +113,11 @@ export default clerkMiddleware(async (auth, req) => {
   
   if (!userId) {
     debugLog('Unauthenticated user redirected', { pathname })
+    // For API routes, let them handle their own authentication errors (return JSON)
+    // For page routes, redirect to sign-in
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.next()
+    }
     // Only redirect to sign-in if not already there to prevent loops
     if (pathname !== '/sign-in') {
       return NextResponse.redirect(new URL('/sign-in', req.url))

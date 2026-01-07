@@ -56,20 +56,23 @@ const nextConfig: NextConfig = {
     
     const cspDirectives = [
       // Default source - allow self and Clerk domains for fallback
-      `default-src 'self' ${clerkDomainsString}`,
+      // Also allow Googlebot and search engine resources
+      `default-src 'self' ${clerkDomainsString} https://www.google.com https://www.gstatic.com https://www.google-analytics.com https://www.googletagmanager.com`,
       // Clerk script sources - allow all Clerk domains, CDNs, and custom domains
       // script-src-elem is more specific and takes precedence for <script> elements
-      `script-src 'self' 'unsafe-eval' 'unsafe-inline' ${clerkDomainsString} blob:`,
-      `script-src-elem 'self' 'unsafe-inline' ${clerkDomainsString} blob:`,
+      // Allow Googlebot resources for proper page rendering during crawl
+      `script-src 'self' 'unsafe-eval' 'unsafe-inline' ${clerkDomainsString} blob: https://www.google.com https://www.gstatic.com https://www.google-analytics.com https://www.googletagmanager.com`,
+      `script-src-elem 'self' 'unsafe-inline' ${clerkDomainsString} blob: https://www.google.com https://www.gstatic.com https://www.google-analytics.com https://www.googletagmanager.com`,
       `worker-src 'self' blob: ${clerkDomainsString}`,
-      `style-src 'self' 'unsafe-inline' ${clerkDomainsString}`,
+      `style-src 'self' 'unsafe-inline' ${clerkDomainsString} https://fonts.googleapis.com`,
       "img-src 'self' data: https: blob:",
-      `font-src 'self' data: ${clerkDomainsString}`,
+      `font-src 'self' data: ${clerkDomainsString} https://fonts.gstatic.com`,
       // Clerk API connections - allow all Clerk API endpoints and custom domains
       // Include both with and without wildcard to ensure coverage
       // Also allow Render.com API endpoints for backend connections
-      `connect-src 'self' http://localhost:* http://127.0.0.1:* ${clerkDomainsString} https://*.imagekit.io https://*.onrender.com ${clerkWSSDomains}`,
-      `frame-src 'self' ${clerkDomainsString}`,
+      // Allow Google Analytics and Tag Manager connections
+      `connect-src 'self' http://localhost:* http://127.0.0.1:* ${clerkDomainsString} https://*.imagekit.io https://*.onrender.com https://www.google-analytics.com https://www.googletagmanager.com https://www.google.com ${clerkWSSDomains}`,
+      `frame-src 'self' ${clerkDomainsString} https://www.google.com https://www.google-analytics.com`,
       "object-src 'none'",
       "base-uri 'self'",
       `form-action 'self' ${clerkDomainsString}`,
@@ -85,6 +88,33 @@ const nextConfig: NextConfig = {
     }
 
     return [
+      // Exclude robots.txt and sitemap.xml from CSP to ensure search engines can access them
+      {
+        source: '/robots.txt',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'text/plain',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, s-maxage=86400',
+          },
+        ],
+      },
+      {
+        source: '/sitemap.xml',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/xml',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, s-maxage=86400',
+          },
+        ],
+      },
       {
         source: '/:path*',
         headers: [

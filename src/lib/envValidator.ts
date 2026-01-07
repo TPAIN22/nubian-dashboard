@@ -13,7 +13,9 @@ const requiredEnvVars = {
 // Optional environment variables (used only in specific routes)
 const optionalEnvVars = {
   NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY: process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY,
-  IMAGEKIT_PRIVATE_KEY: process.env.IMAGEKIT_PRIVATE_KEY,
+  IMAGEKIT_PRIVATE_KEY: process.env.IMAGEKIT_PRIVATE_KEY, // Required for production - server-side only
+  NEXT_PUBLIC_IMAGEKIT_PRIVATE_KEY: process.env.NEXT_PUBLIC_IMAGEKIT_PRIVATE_KEY, // DEV ONLY - security risk in production
+  NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT: process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT,
 };
 
 /**

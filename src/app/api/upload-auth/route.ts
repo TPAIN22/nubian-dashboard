@@ -16,17 +16,40 @@ export async function GET() {
             )
         }
 
-        // Get private key from server-side environment variable (not NEXT_PUBLIC_)
-        const privateKey = process.env.IMAGEKIT_PRIVATE_KEY
+        // Get ImageKit configuration from environment variables
+        // SECURITY: Always prefer IMAGEKIT_PRIVATE_KEY (without NEXT_PUBLIC_) for production
+        // NEXT_PUBLIC_ prefix exposes the key to client-side, which is a security risk
+        // Check secure version first, fallback to NEXT_PUBLIC_ only for development compatibility
+        const privateKey = process.env.IMAGEKIT_PRIVATE_KEY || 
+            (process.env.NODE_ENV === 'development' ? process.env.NEXT_PUBLIC_IMAGEKIT_PRIVATE_KEY : undefined)
         const publicKey = process.env.NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY
+        const urlEndpoint = process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT
 
         if (!privateKey || !publicKey) {
+            const missingKeys = []
+            if (!privateKey) {
+                const isProduction = process.env.NODE_ENV === 'production'
+                missingKeys.push(
+                    isProduction 
+                        ? "IMAGEKIT_PRIVATE_KEY (required for production - do NOT use NEXT_PUBLIC_ prefix)" 
+                        : "IMAGEKIT_PRIVATE_KEY (or NEXT_PUBLIC_IMAGEKIT_PRIVATE_KEY for dev only)"
+                )
+            }
+            if (!publicKey) missingKeys.push("NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY")
+            
             logger.error("ImageKit configuration missing", { 
                 hasPrivateKey: !!privateKey, 
-                hasPublicKey: !!publicKey 
+                hasPublicKey: !!publicKey,
+                hasUrlEndpoint: !!urlEndpoint,
+                missingKeys,
+                isProduction: process.env.NODE_ENV === 'production'
             })
             return NextResponse.json(
-                { error: "ImageKit configuration missing" },
+                { 
+                    error: "ImageKit configuration missing",
+                    message: `Missing environment variable(s): ${missingKeys.join(", ")}. ${process.env.NODE_ENV === 'production' ? '⚠️ For production, use IMAGEKIT_PRIVATE_KEY (without NEXT_PUBLIC_) for security.' : ''}`,
+                    missingKeys
+                },
                 { status: 500 }
             )
         }
@@ -42,7 +65,8 @@ export async function GET() {
             token, 
             expire, 
             signature, 
-            publicKey: publicKey 
+            publicKey: publicKey,
+            urlEndpoint: urlEndpoint || undefined // Include URL endpoint if available
         })
     } catch (error) {
         logger.error("Error generating upload auth", { 
