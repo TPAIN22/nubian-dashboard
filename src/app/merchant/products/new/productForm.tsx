@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth, useUser } from '@clerk/nextjs'
 import { useForm } from 'react-hook-form'
@@ -56,6 +56,7 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
   const [loading, setLoading] = useState(false)
   const [isEdit, setIsEdit] = useState(!!productId)
   const [merchantStatus, setMerchantStatus] = useState<'checking' | 'approved' | 'not-approved'>('checking')
+  const isSubmittingRef = useRef(false) // Prevent double submission
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -194,6 +195,19 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
   }, [form])
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    // Prevent double submission
+    if (isSubmittingRef.current || loading) {
+      logger.warn('Form submission blocked - already submitting', {
+        isSubmitting: isSubmittingRef.current,
+        loading,
+      })
+      return
+    }
+
+    // Mark as submitting
+    isSubmittingRef.current = true
+    setLoading(true)
+
     // Log form values before processing
     logger.info('Form submission started', {
       formValues: {
@@ -217,10 +231,11 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
         formImages: form.getValues('images'),
         currentImages
       })
+      isSubmittingRef.current = false
+      setLoading(false)
       return
     }
 
-    setLoading(true)
     try {
       // Get authentication token
       const token = await getToken()
@@ -243,6 +258,7 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
 
       if (validImages.length === 0) {
         toast.error('يرجى رفع صورة واحدة على الأقل بصيغة صحيحة')
+        isSubmittingRef.current = false
         setLoading(false)
         return
       }
@@ -250,6 +266,7 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       // Validate description (model requires it, even though validator allows optional)
       if (!values.description || String(values.description).trim().length === 0) {
         toast.error('يرجى إدخال وصف للمنتج')
+        isSubmittingRef.current = false
         setLoading(false)
         return
       }
@@ -257,6 +274,7 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       // Validate category (must be MongoDB ObjectId)
       if (!values.category || String(values.category).trim().length === 0) {
         toast.error('يرجى اختيار فئة للمنتج')
+        isSubmittingRef.current = false
         setLoading(false)
         return
       }
@@ -265,6 +283,7 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       const price = parseFloat(String(values.price))
       if (isNaN(price) || price <= 0) {
         toast.error('يرجى إدخال سعر صحيح (أكبر من 0)')
+        isSubmittingRef.current = false
         setLoading(false)
         return
       }
@@ -273,6 +292,7 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       const stock = parseInt(String(values.stock), 10)
       if (isNaN(stock) || stock < 0) {
         toast.error('يرجى إدخال مخزون صحيح (رقم صحيح أكبر من أو يساوي 0)')
+        isSubmittingRef.current = false
         setLoading(false)
         return
       }
@@ -305,6 +325,7 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
           formImagesType: typeof currentFormImages,
           formImagesIsArray: Array.isArray(currentFormImages),
         })
+        isSubmittingRef.current = false
         setLoading(false)
         return
       }
@@ -364,8 +385,15 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
         toast.success('تم إنشاء المنتج بنجاح')
       }
 
+      // Reset submission flag before navigation
+      isSubmittingRef.current = false
+      setLoading(false)
+      
       router.push('/merchant/products')
     } catch (error: any) {
+      // Reset submission flag on error
+      isSubmittingRef.current = false
+      
       logger.error('Error saving product', { 
         error: error instanceof Error ? error.message : String(error),
         status: error.response?.status,
@@ -421,6 +449,11 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
         toast.error(error.response?.data?.message || 'فشل حفظ المنتج')
       }
     } finally {
+      // Ensure we reset submission flag in finally block as well
+      // (though it should already be reset in try/catch)
+      if (isSubmittingRef.current) {
+        isSubmittingRef.current = false
+      }
       setLoading(false)
     }
   }
@@ -464,7 +497,17 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault()
+              // Prevent double submission at form level
+              if (isSubmittingRef.current || loading) {
+                return
+              }
+              form.handleSubmit(onSubmit)(e)
+            }} 
+            className="space-y-6"
+          >
             <FormField
               control={form.control}
               name="name"
