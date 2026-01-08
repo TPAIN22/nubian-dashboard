@@ -41,7 +41,7 @@ const formSchema = z.object({
   images: z.array(z.string()).min(1, 'At least one image is required'),
   
   // Product type: 'simple' or 'with_variants'
-  productType: z.enum(['simple', 'with_variants']).default('simple'),
+  productType: z.enum(['simple', 'with_variants']),
   
   // For simple products
   price: z.number().min(0.01).optional(),
