@@ -89,7 +89,9 @@ interface ProductsTableProps {
 }
 
 function ProductDetailsDialog({ product }: { product: Product }) {
-  const categoryName = (typeof product.category === 'object' ? product.category?.name : product.category) || 'غير محدد';
+  const categoryName = (typeof product.category === 'object' && product.category !== null && 'name' in product.category
+    ? product.category.name
+    : typeof product.category === 'string' ? product.category : null) || 'غير محدد';
   
   return (
     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -323,7 +325,9 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
       header: "التصنيف",
       cell: ({ row }) => {
         const category = row.getValue("category")
-        const categoryName = (typeof category === 'object' ? category?.name : category) || 'غير محدد'
+        const categoryName = (typeof category === 'object' && category !== null && 'name' in category 
+          ? category.name 
+          : typeof category === 'string' ? category : null) || 'غير محدد'
         return <div>{categoryName}</div>
       },
     },
@@ -618,7 +622,9 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
         product.discountPrice || '',
         product.stock,
         product.isActive ? 'نشط' : 'غير نشط',
-        (typeof product.category === 'object' ? product.category?.name : product.category) || '',
+        (typeof product.category === 'object' && product.category !== null && 'name' in product.category
+          ? product.category.name
+          : typeof product.category === 'string' ? product.category : '') || '',
         new Date(product.createdAt).toLocaleDateString('ar-SA')
       ].map(escapeCsvField).join(','))
     ].join('\n')
