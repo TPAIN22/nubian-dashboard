@@ -157,7 +157,7 @@ export function VariantManager({ attributes, variants, onChange }: VariantManage
                     const attr = attributes.find(a => a.name === key)
                     return (
                       <Badge key={key} variant="secondary">
-                        {attr?.displayName || key}: {value}
+                        {attr?.displayName || key}: {String(value)}
                       </Badge>
                     )
                   })}
