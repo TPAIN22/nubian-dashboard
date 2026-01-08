@@ -139,8 +139,8 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                  values.stock !== undefined && values.stock >= 0
         } else {
           form.trigger(['attributes', 'variants'])
-          const hasAttributes = values.attributes && Array.isArray(values.attributes) && values.attributes.length > 0
-          const hasVariants = values.variants && Array.isArray(values.variants) && values.variants.length > 0
+          const hasAttributes = !!(values.attributes && Array.isArray(values.attributes) && values.attributes.length > 0)
+          const hasVariants = !!(values.variants && Array.isArray(values.variants) && values.variants.length > 0)
           return hasAttributes && hasVariants
         }
       
