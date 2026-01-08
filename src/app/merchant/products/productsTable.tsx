@@ -318,9 +318,12 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
       header: "التصنيف",
       cell: ({ row }) => {
         const category = row.getValue("category")
-        const categoryName = (typeof category === 'object' && category !== null && 'name' in category 
-          ? category.name 
-          : typeof category === 'string' ? category : null) || 'غير محدد'
+        let categoryName: string = 'غير محدد'
+        if (typeof category === 'object' && category !== null && 'name' in category) {
+          categoryName = category.name || 'غير محدد'
+        } else if (typeof category === 'string') {
+          categoryName = category || 'غير محدد'
+        }
         return <div>{categoryName}</div>
       },
     },
