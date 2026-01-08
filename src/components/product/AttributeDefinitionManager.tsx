@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,6 +21,9 @@ interface AttributeDefinitionManagerProps {
 }
 
 export function AttributeDefinitionManager({ attributes, onChange }: AttributeDefinitionManagerProps) {
+  // Store temporary input values for adding options
+  const [tempOptions, setTempOptions] = useState<Record<number, string>>({})
+  const [bulkOptions, setBulkOptions] = useState<Record<number, string>>({})
   const addAttribute = () => {
     onChange([
       ...attributes,
@@ -41,6 +45,10 @@ export function AttributeDefinitionManager({ attributes, onChange }: AttributeDe
 
   const removeAttribute = (index: number) => {
     onChange(attributes.filter((_, i) => i !== index))
+    // Clear all temporary state since indices will shift after removal
+    // This is simpler and safer than trying to reindex
+    setTempOptions({})
+    setBulkOptions({})
   }
 
   return (
@@ -117,23 +125,119 @@ export function AttributeDefinitionManager({ attributes, onChange }: AttributeDe
           </div>
           
           {attr.type === 'select' && (
-            <div>
+            <div className="space-y-2">
               <Label className="text-sm">الخيارات المتاحة (Options) *</Label>
-              <Textarea
-                placeholder="اكتب كل خيار في سطر منفصل&#10;مثال:&#10;S&#10;M&#10;L&#10;XL"
-                value={attr.options?.join('\n') || ''}
-                onChange={(e) => {
-                  const options = e.target.value.split('\n')
-                    .map(o => o.trim())
-                    .filter(o => o.length > 0)
-                  updateAttribute(index, { options })
-                }}
-                rows={4}
-                className="mt-1 font-mono text-sm"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                {attr.options?.length || 0} خيار محدد
-              </p>
+              <div className="space-y-2">
+                {/* Display existing options */}
+                {attr.options && attr.options.length > 0 && (
+                  <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-muted/50">
+                    {attr.options.map((option, optIndex) => (
+                      <div
+                        key={optIndex}
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-background border rounded-md text-sm"
+                      >
+                        <span>{option}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updatedOptions = attr.options?.filter((_, i) => i !== optIndex) || []
+                            updateAttribute(index, { options: updatedOptions })
+                          }}
+                          className="text-destructive hover:text-destructive/80 ml-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* Input field for adding new options */}
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    placeholder="أدخل خياراً جديداً واضغط Enter أو اضغط إضافة"
+                    value={tempOptions[index] || ''}
+                    onChange={(e) => {
+                      setTempOptions({ ...tempOptions, [index]: e.target.value })
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                        e.preventDefault()
+                        const newOption = e.currentTarget.value.trim()
+                        const existingOptions = attr.options || []
+                        if (!existingOptions.includes(newOption)) {
+                          updateAttribute(index, { 
+                            options: [...existingOptions, newOption]
+                          })
+                        }
+                        // Clear input
+                        setTempOptions({ ...tempOptions, [index]: '' })
+                      }
+                    }}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const tempOption = tempOptions[index]
+                      if (tempOption && tempOption.trim()) {
+                        const newOption = tempOption.trim()
+                        const existingOptions = attr.options || []
+                        if (!existingOptions.includes(newOption)) {
+                          updateAttribute(index, { 
+                            options: [...existingOptions, newOption]
+                          })
+                        }
+                        // Clear input
+                        setTempOptions({ ...tempOptions, [index]: '' })
+                      }
+                    }}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    إضافة
+                  </Button>
+                </div>
+                {/* Alternative: Textarea for bulk entry */}
+                <details className="mt-2">
+                  <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                    أو أدخل خيارات متعددة في سطر منفصل لكل خيار
+                  </summary>
+                  <Textarea
+                    placeholder="اكتب كل خيار في سطر منفصل&#10;مثال:&#10;S&#10;M&#10;L&#10;XL"
+                    value={bulkOptions[index] || ''}
+                    onChange={(e) => {
+                      setBulkOptions({ ...bulkOptions, [index]: e.target.value })
+                    }}
+                    onBlur={(e) => {
+                      const bulkText = e.target.value
+                      if (bulkText.trim()) {
+                        const newOptions = bulkText
+                          .split('\n')
+                          .map(o => o.trim())
+                          .filter(o => o.length > 0)
+                          .filter((o, i, arr) => arr.indexOf(o) === i) // Remove duplicates
+                        const existingOptions = attr.options || []
+                        const allOptions = [...new Set([...existingOptions, ...newOptions])] // Merge and deduplicate
+                        updateAttribute(index, { 
+                          options: allOptions
+                        })
+                        // Clear bulk input
+                        setBulkOptions({ ...bulkOptions, [index]: '' })
+                      }
+                    }}
+                    rows={3}
+                    className="mt-2 font-mono text-sm"
+                  />
+                </details>
+                <p className="text-xs text-muted-foreground">
+                  {attr.options?.length || 0} خيار محدد
+                  {attr.options && attr.options.length === 0 && (
+                    <span className="text-destructive"> - يجب إضافة خيار واحد على الأقل</span>
+                  )}
+                </p>
+              </div>
             </div>
           )}
           

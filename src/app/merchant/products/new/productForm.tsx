@@ -44,9 +44,9 @@ const formSchema = z.object({
   productType: z.enum(['simple', 'with_variants']),
   
   // For simple products
-  price: z.number().min(0.01).optional(),
-  discountPrice: z.number().min(0).optional(),
-  stock: z.number().int().min(0).optional(),
+  price: z.number().min(0.01, 'Price must be greater than 0').optional(),
+  discountPrice: z.number().min(0, 'Discount price cannot be negative').optional(),
+  stock: z.number().int().min(0, 'Stock cannot be negative').optional(),
   
   // For variant-based products
   attributes: z.array(z.object({
@@ -75,18 +75,25 @@ const formSchema = z.object({
 }).refine((data) => {
   // If simple product, price and stock are required
   if (data.productType === 'simple') {
-    return data.price !== undefined && data.stock !== undefined
+    return data.price !== undefined && 
+           data.price !== null && 
+           data.price >= 0.01 &&
+           data.stock !== undefined && 
+           data.stock !== null &&
+           data.stock >= 0
   }
   // If variant product, attributes and variants are required
   if (data.productType === 'with_variants') {
     return data.attributes !== undefined && 
+           Array.isArray(data.attributes) &&
            data.attributes.length > 0 &&
            data.variants !== undefined &&
+           Array.isArray(data.variants) &&
            data.variants.length > 0
   }
   return true
 }, {
-  message: 'Invalid product configuration',
+  message: 'Invalid product configuration. For simple products, price (>= 0.01) and stock (>= 0) are required. For variant products, at least one attribute and one variant are required.',
   path: ['productType']
 })
 
@@ -107,14 +114,15 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    mode: 'onChange', // Validate on change to show errors immediately
     defaultValues: {
       name: '',
       description: '',
       productType: 'simple',
-      price: 0,
+      price: undefined, // Changed from 0 to undefined so validation can properly detect it's missing
       discountPrice: undefined,
       category: '',
-      stock: 0,
+      stock: undefined, // Changed from 0 to undefined so validation can properly detect it's missing
       attributes: [],
       variants: [],
       sizes: [],
@@ -578,9 +586,59 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
               e.preventDefault()
               // Prevent double submission at form level
               if (isSubmittingRef.current || loading) {
+                logger.warn('Form submission blocked at form level', {
+                  isSubmitting: isSubmittingRef.current,
+                  loading,
+                })
                 return
               }
-              form.handleSubmit(onSubmit)(e)
+              
+              // Log form state before submission
+              const formValues = form.getValues()
+              const formErrors = form.formState.errors
+              const isValid = form.formState.isValid
+              
+              logger.info('Form submit triggered', {
+                formValues: {
+                  ...formValues,
+                  imagesCount: formValues.images?.length || 0,
+                },
+                formErrors,
+                isValid,
+                errorsCount: Object.keys(formErrors).length,
+              })
+              
+              // Check for validation errors and log them
+              if (!isValid && Object.keys(formErrors).length > 0) {
+                logger.warn('Form validation errors detected', {
+                  errors: formErrors,
+                })
+                // Show first error to user
+                const firstErrorKey = Object.keys(formErrors)[0]
+                const firstError = formErrors[firstErrorKey as keyof typeof formErrors]
+                if (firstError?.message) {
+                  toast.error(`خطأ في التحقق: ${firstError.message}`)
+                } else {
+                  toast.error('يرجى التحقق من جميع الحقول المطلوبة')
+                }
+                return
+              }
+              
+              // Submit the form
+              form.handleSubmit(onSubmit, (errors) => {
+                logger.error('Form validation failed', {
+                  errors,
+                  formValues: form.getValues(),
+                })
+                // Show validation errors
+                const errorMessages = Object.entries(errors).map(([key, error]) => {
+                  if (error?.message) {
+                    return `${key}: ${error.message}`
+                  }
+                  return key
+                })
+                toast.error(`خطأ في التحقق: ${errorMessages.join(', ')}`)
+              })(e)
             }} 
             className="space-y-6"
           >
@@ -677,7 +735,16 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                           step="0.01"
                           placeholder="0.00"
                           {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          value={field.value ?? ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            if (value === '' || value === null || value === undefined) {
+                              field.onChange(undefined)
+                            } else {
+                              const numValue = parseFloat(value)
+                              field.onChange(isNaN(numValue) ? undefined : numValue)
+                            }
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -720,7 +787,16 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                         type="number"
                         placeholder="0"
                         {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        value={field.value ?? ''}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          if (value === '' || value === null || value === undefined) {
+                            field.onChange(undefined)
+                          } else {
+                            const intValue = parseInt(value, 10)
+                            field.onChange(isNaN(intValue) ? undefined : intValue)
+                          }
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -779,8 +855,30 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
             </div>
 
             <div className="flex gap-4">
-              <Button type="submit" disabled={loading}>
-                {loading ? 'جاري الحفظ...' : isEdit ? 'تحديث المنتج' : 'إنشاء المنتج'}
+              <Button 
+                type="submit" 
+                disabled={loading || isSubmittingRef.current}
+                onClick={(e) => {
+                  // Debug: Log button click
+                  console.log('Submit button clicked', {
+                    loading,
+                    isSubmitting: isSubmittingRef.current,
+                    formValid: form.formState.isValid,
+                    formErrors: form.formState.errors,
+                    formValues: form.getValues(),
+                  })
+                  
+                  // If button is disabled, don't do anything
+                  if (loading || isSubmittingRef.current) {
+                    e.preventDefault()
+                    return
+                  }
+                  
+                  // Let the form's onSubmit handle the rest
+                  // The form's onSubmit will validate and submit
+                }}
+              >
+                {loading || isSubmittingRef.current ? 'جاري الحفظ...' : isEdit ? 'تحديث المنتج' : 'إنشاء المنتج'}
               </Button>
               <Button
                 type="button"
