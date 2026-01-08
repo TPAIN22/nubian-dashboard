@@ -30,9 +30,11 @@ import {
 } from '@/components/ui/select'
 import ImageUpload from '@/components/imageUpload'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Stepper } from '@/components/ui/stepper'
 import { AttributeDefinitionManager } from '@/components/product/AttributeDefinitionManager'
 import { VariantManager } from '@/components/product/VariantManager'
 import { ProductAttribute, ProductVariant } from '@/types/product.types'
+import { ChevronRight, ChevronLeft } from 'lucide-react'
 
 const formSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -111,6 +113,89 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
   const [isEdit, setIsEdit] = useState(!!productId)
   const [merchantStatus, setMerchantStatus] = useState<'checking' | 'approved' | 'not-approved'>('checking')
   const isSubmittingRef = useRef(false) // Prevent double submission
+  const [currentStep, setCurrentStep] = useState(1)
+  const maxStep = 5 // Total number of steps
+
+  // Stage validation functions
+  const validateStep = (step: number): boolean => {
+    const values = form.getValues()
+    const errors = form.formState.errors
+
+    switch (step) {
+      case 1: // Basic Info: name, description, category
+        form.trigger(['name', 'description', 'category'])
+        return !errors.name && !errors.description && !errors.category &&
+               !!values.name?.trim() && !!values.description?.trim() && !!values.category?.trim()
+      
+      case 2: // Product Type
+        form.trigger(['productType'])
+        return !errors.productType && !!values.productType
+      
+      case 3: // Product Details
+        if (values.productType === 'simple') {
+          form.trigger(['price', 'stock'])
+          return !errors.price && !errors.stock &&
+                 values.price !== undefined && values.price >= 0.01 &&
+                 values.stock !== undefined && values.stock >= 0
+        } else {
+          form.trigger(['attributes', 'variants'])
+          const hasAttributes = values.attributes && Array.isArray(values.attributes) && values.attributes.length > 0
+          const hasVariants = values.variants && Array.isArray(values.variants) && values.variants.length > 0
+          return hasAttributes && hasVariants
+        }
+      
+      case 4: // Images
+        form.trigger(['images'])
+        const images = values.images || []
+        return !errors.images && Array.isArray(images) && images.length > 0
+      
+      case 5: // Review (always enabled if we got here)
+        return true
+      
+      default:
+        return false
+    }
+  }
+
+  // Check if a step is enabled (all previous steps must be completed)
+  const isStepEnabled = (step: number): boolean => {
+    if (step === 1) return true // First step is always enabled
+    for (let i = 1; i < step; i++) {
+      if (!validateStep(i)) return false
+    }
+    return true
+  }
+
+  // Check if a step is completed
+  const isStepCompleted = (step: number): boolean => {
+    return validateStep(step)
+  }
+
+  // Navigate to next step
+  const goToNextStep = () => {
+    if (currentStep < maxStep) {
+      if (validateStep(currentStep)) {
+        setCurrentStep(currentStep + 1)
+      } else {
+        toast.error('يرجى إكمال جميع الحقول المطلوبة في هذه المرحلة')
+        form.trigger() // Trigger validation to show errors
+      }
+    }
+  }
+
+  // Navigate to previous step
+  const goToPreviousStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
+  // Navigate to specific step (only if enabled)
+  const goToStep = (step: number) => {
+    if (isStepEnabled(step)) {
+      setCurrentStep(step)
+    }
+  }
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -574,177 +659,111 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
     )
   }
 
+  // Define steps for the stepper
+  const steps = [
+    {
+      title: 'المعلومات الأساسية',
+      description: 'الاسم والوصف والفئة',
+      isCompleted: isStepCompleted(1),
+      isActive: currentStep === 1,
+      isEnabled: isStepEnabled(1),
+    },
+    {
+      title: 'نوع المنتج',
+      description: 'بسيط أو متغيرات',
+      isCompleted: isStepCompleted(2),
+      isActive: currentStep === 2,
+      isEnabled: isStepEnabled(2),
+    },
+    {
+      title: 'تفاصيل المنتج',
+      description: form.watch('productType') === 'simple' ? 'السعر والمخزون' : 'الخصائص والمتغيرات',
+      isCompleted: isStepCompleted(3),
+      isActive: currentStep === 3,
+      isEnabled: isStepEnabled(3),
+    },
+    {
+      title: 'الصور',
+      description: 'رفع صور المنتج',
+      isCompleted: isStepCompleted(4),
+      isActive: currentStep === 4,
+      isEnabled: isStepEnabled(4),
+    },
+    {
+      title: 'المراجعة',
+      description: 'مراجعة وإرسال',
+      isCompleted: false,
+      isActive: currentStep === 5,
+      isEnabled: isStepEnabled(5),
+    },
+  ]
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>{isEdit ? 'تعديل المنتج' : 'إنشاء منتج'}</CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Stepper */}
+        <div className="mb-8">
+          <Stepper steps={steps} />
+        </div>
+
         <Form {...form}>
           <form 
             onSubmit={(e) => {
               e.preventDefault()
-              // Prevent double submission at form level
-              if (isSubmittingRef.current || loading) {
-                logger.warn('Form submission blocked at form level', {
-                  isSubmitting: isSubmittingRef.current,
-                  loading,
-                })
-                return
-              }
-              
-              // Log form state before submission
-              const formValues = form.getValues()
-              const formErrors = form.formState.errors
-              const isValid = form.formState.isValid
-              
-              logger.info('Form submit triggered', {
-                formValues: {
-                  ...formValues,
-                  imagesCount: formValues.images?.length || 0,
-                },
-                formErrors,
-                isValid,
-                errorsCount: Object.keys(formErrors).length,
-              })
-              
-              // Check for validation errors and log them
-              if (!isValid && Object.keys(formErrors).length > 0) {
-                logger.warn('Form validation errors detected', {
-                  errors: formErrors,
-                })
-                // Show first error to user
-                const firstErrorKey = Object.keys(formErrors)[0]
-                const firstError = formErrors[firstErrorKey as keyof typeof formErrors]
-                if (firstError?.message) {
-                  toast.error(`خطأ في التحقق: ${firstError.message}`)
-                } else {
-                  toast.error('يرجى التحقق من جميع الحقول المطلوبة')
+              // On step 5, submit the form
+              if (currentStep === 5) {
+                if (isSubmittingRef.current || loading) {
+                  return
                 }
-                return
+                form.handleSubmit(onSubmit, (errors) => {
+                  logger.error('Form validation failed', { errors })
+                  const errorMessages = Object.entries(errors).map(([key, error]) => {
+                    if (error?.message) {
+                      return `${key}: ${error.message}`
+                    }
+                    return key
+                  })
+                  toast.error(`خطأ في التحقق: ${errorMessages.join(', ')}`)
+                })(e)
+              } else {
+                // Otherwise, go to next step
+                goToNextStep()
               }
-              
-              // Submit the form
-              form.handleSubmit(onSubmit, (errors) => {
-                logger.error('Form validation failed', {
-                  errors,
-                  formValues: form.getValues(),
-                })
-                // Show validation errors
-                const errorMessages = Object.entries(errors).map(([key, error]) => {
-                  if (error?.message) {
-                    return `${key}: ${error.message}`
-                  }
-                  return key
-                })
-                toast.error(`خطأ في التحقق: ${errorMessages.join(', ')}`)
-              })(e)
             }} 
             className="space-y-6"
           >
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>اسم المنتج *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="أدخل اسم المنتج" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>الوصف</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="أدخل وصف المنتج"
-                      rows={4}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>الفئة *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر فئة" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category._id} value={category._id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="productType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>نوع المنتج *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر نوع المنتج" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="simple">منتج بسيط (سعر ومخزون واحد)</SelectItem>
-                      <SelectItem value="with_variants">منتج بمتغيرات (أحجام، ألوان، إلخ)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {form.watch('productType') === 'simple' && (
-              <div className="grid grid-cols-2 gap-4">
+            {/* Step 1: Basic Information */}
+            {currentStep === 1 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold mb-4">المعلومات الأساسية</h3>
                 <FormField
                   control={form.control}
-                  name="price"
+                  name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>السعر *</FormLabel>
+                      <FormLabel>اسم المنتج *</FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
+                        <Input placeholder="أدخل اسم المنتج" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>الوصف *</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="أدخل وصف المنتج"
+                          rows={4}
                           {...field}
-                          value={field.value ?? ''}
-                          onChange={(e) => {
-                            const value = e.target.value
-                            if (value === '' || value === null || value === undefined) {
-                              field.onChange(undefined)
-                            } else {
-                              const numValue = parseFloat(value)
-                              field.onChange(isNaN(numValue) ? undefined : numValue)
-                            }
-                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -754,20 +773,24 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
 
                 <FormField
                   control={form.control}
-                  name="discountPrice"
+                  name="category"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>السعر الأصلي (اختياري)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          {...field}
-                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                          value={field.value || ''}
-                        />
-                      </FormControl>
+                      <FormLabel>الفئة *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر فئة" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category._id} value={category._id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -775,118 +798,271 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
               </div>
             )}
 
-            {form.watch('productType') === 'simple' && (
-              <FormField
-                control={form.control}
-                name="stock"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>المخزون *</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="0"
-                        {...field}
-                        value={field.value ?? ''}
-                        onChange={(e) => {
-                          const value = e.target.value
-                          if (value === '' || value === null || value === undefined) {
-                            field.onChange(undefined)
-                          } else {
-                            const intValue = parseInt(value, 10)
-                            field.onChange(isNaN(intValue) ? undefined : intValue)
-                          }
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            {/* Step 2: Product Type */}
+            {currentStep === 2 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold mb-4">اختر نوع المنتج</h3>
+                <FormField
+                  control={form.control}
+                  name="productType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>نوع المنتج *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر نوع المنتج" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="simple">منتج بسيط (سعر ومخزون واحد)</SelectItem>
+                          <SelectItem value="with_variants">منتج بمتغيرات (أحجام، ألوان، إلخ)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                      <p className="text-sm text-muted-foreground mt-2">
+                        اختر &quot;منتج بسيط&quot; للمنتجات التي لها سعر ومخزون واحد، أو &quot;منتج بمتغيرات&quot; للمنتجات التي لها أحجام أو ألوان مختلفة.
+                      </p>
+                    </FormItem>
+                  )}
+                />
+              </div>
             )}
 
-            {form.watch('productType') === 'with_variants' && (
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>تعريف الخصائص</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <AttributeDefinitionManager
-                      attributes={form.watch('attributes') || []}
-                      onChange={(attrs) => form.setValue('attributes', attrs)}
-                    />
-                  </CardContent>
-                </Card>
-
-                {form.watch('attributes') && form.watch('attributes')!.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>المتغيرات</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <VariantManager
-                        attributes={form.watch('attributes') || []}
-                        variants={(form.watch('variants') || []).map(v => ({
-                          ...v,
-                          isActive: v.isActive !== false, // Ensure boolean, default to true
-                        }))}
-                        onChange={(vars) => form.setValue('variants', vars)}
+            {/* Step 3: Product Details */}
+            {currentStep === 3 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold mb-4">
+                  {form.watch('productType') === 'simple' ? 'السعر والمخزون' : 'الخصائص والمتغيرات'}
+                </h3>
+                
+                {form.watch('productType') === 'simple' ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="price"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>السعر *</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                {...field}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value
+                                  if (value === '' || value === null || value === undefined) {
+                                    field.onChange(undefined)
+                                  } else {
+                                    const numValue = parseFloat(value)
+                                    field.onChange(isNaN(numValue) ? undefined : numValue)
+                                  }
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </CardContent>
-                  </Card>
+
+                      <FormField
+                        control={form.control}
+                        name="discountPrice"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>السعر الأصلي (اختياري)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                value={field.value || ''}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="stock"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>المخزون *</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              {...field}
+                              value={field.value ?? ''}
+                              onChange={(e) => {
+                                const value = e.target.value
+                                if (value === '' || value === null || value === undefined) {
+                                  field.onChange(undefined)
+                                } else {
+                                  const intValue = parseInt(value, 10)
+                                  field.onChange(isNaN(intValue) ? undefined : intValue)
+                                }
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                ) : (
+                  <div className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>تعريف الخصائص</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <AttributeDefinitionManager
+                          attributes={form.watch('attributes') || []}
+                          onChange={(attrs) => form.setValue('attributes', attrs)}
+                        />
+                      </CardContent>
+                    </Card>
+
+                    {form.watch('attributes') && form.watch('attributes')!.length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>المتغيرات</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <VariantManager
+                            attributes={form.watch('attributes') || []}
+                            variants={(form.watch('variants') || []).map(v => ({
+                              ...v,
+                              isActive: v.isActive !== false,
+                            }))}
+                            onChange={(vars) => form.setValue('variants', vars)}
+                          />
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
                 )}
               </div>
             )}
 
-            <div>
-              <Label className="mb-2 block">صور المنتج *</Label>
-              <ImageUpload onUploadComplete={handleUploadDone} />
-              {form.watch('images') && form.watch('images').length > 0 && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  تم رفع {form.watch('images').length} صورة
-                </p>
-              )}
-              {form.formState.errors.images && (
-                <p className="text-sm font-medium text-destructive mt-1">
-                  {form.formState.errors.images.message}
-                </p>
-              )}
-            </div>
+            {/* Step 4: Images */}
+            {currentStep === 4 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold mb-4">صور المنتج</h3>
+                <div>
+                  <Label className="mb-2 block">صور المنتج *</Label>
+                  <ImageUpload onUploadComplete={handleUploadDone} />
+                  {form.watch('images') && form.watch('images').length > 0 && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      تم رفع {form.watch('images').length} صورة
+                    </p>
+                  )}
+                  {form.formState.errors.images && (
+                    <p className="text-sm font-medium text-destructive mt-1">
+                      {form.formState.errors.images.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
-            <div className="flex gap-4">
-              <Button 
-                type="submit" 
-                disabled={loading || isSubmittingRef.current}
-                onClick={(e) => {
-                  // Debug: Log button click
-                  console.log('Submit button clicked', {
-                    loading,
-                    isSubmitting: isSubmittingRef.current,
-                    formValid: form.formState.isValid,
-                    formErrors: form.formState.errors,
-                    formValues: form.getValues(),
-                  })
-                  
-                  // If button is disabled, don't do anything
-                  if (loading || isSubmittingRef.current) {
-                    e.preventDefault()
-                    return
-                  }
-                  
-                  // Let the form's onSubmit handle the rest
-                  // The form's onSubmit will validate and submit
-                }}
-              >
-                {loading || isSubmittingRef.current ? 'جاري الحفظ...' : isEdit ? 'تحديث المنتج' : 'إنشاء المنتج'}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.push('/merchant/products')}
-              >
-                إلغاء
-              </Button>
+            {/* Step 5: Review */}
+            {currentStep === 5 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold mb-4">مراجعة المعلومات</h3>
+                <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+                  <div>
+                    <Label className="text-sm font-semibold">اسم المنتج:</Label>
+                    <p className="text-sm">{form.watch('name') || 'غير محدد'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold">الوصف:</Label>
+                    <p className="text-sm">{form.watch('description') || 'غير محدد'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold">الفئة:</Label>
+                    <p className="text-sm">
+                      {categories.find(c => c._id === form.watch('category'))?.name || 'غير محدد'}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold">نوع المنتج:</Label>
+                    <p className="text-sm">
+                      {form.watch('productType') === 'simple' ? 'منتج بسيط' : 'منتج بمتغيرات'}
+                    </p>
+                  </div>
+                  {form.watch('productType') === 'simple' && (
+                    <>
+                      <div>
+                        <Label className="text-sm font-semibold">السعر:</Label>
+                        <p className="text-sm">{form.watch('price') || 'غير محدد'} ر.س</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-semibold">المخزون:</Label>
+                        <p className="text-sm">{form.watch('stock') ?? 'غير محدد'}</p>
+                      </div>
+                    </>
+                  )}
+                  <div>
+                    <Label className="text-sm font-semibold">عدد الصور:</Label>
+                    <p className="text-sm">{form.watch('images')?.length || 0}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Navigation Buttons */}
+            <div className="flex justify-between gap-4 pt-6 border-t">
+              <div className="flex gap-2">
+                {currentStep > 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={goToPreviousStep}
+                  >
+                    <ChevronRight className="w-4 h-4 ml-2" />
+                    السابق
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => router.push('/merchant/products')}
+                >
+                  إلغاء
+                </Button>
+              </div>
+              
+              <div className="flex gap-2">
+                {currentStep < maxStep ? (
+                  <Button
+                    type="submit"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      goToNextStep()
+                    }}
+                  >
+                    التالي
+                    <ChevronLeft className="w-4 h-4 mr-2" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    disabled={loading || isSubmittingRef.current}
+                  >
+                    {loading || isSubmittingRef.current ? 'جاري الحفظ...' : isEdit ? 'تحديث المنتج' : 'إنشاء المنتج'}
+                  </Button>
+                )}
+              </div>
             </div>
           </form>
         </Form>
