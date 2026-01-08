@@ -86,9 +86,12 @@ interface ProductsTableProps {
 }
 
 function ProductDetailsDialog({ product }: { product: Product }) {
-  const categoryName = (typeof product.category === 'object' && product.category !== null && 'name' in product.category
-    ? product.category.name
-    : typeof product.category === 'string' ? product.category : null) || 'غير محدد';
+  let categoryName: string = 'غير محدد'
+  if (typeof product.category === 'object' && product.category !== null && 'name' in product.category) {
+    categoryName = (product.category as { name: string }).name || 'غير محدد'
+  } else if (typeof product.category === 'string') {
+    categoryName = product.category || 'غير محدد'
+  }
   
   return (
     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -320,7 +323,7 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
         const category = row.getValue("category")
         let categoryName: string = 'غير محدد'
         if (typeof category === 'object' && category !== null && 'name' in category) {
-          categoryName = category.name || 'غير محدد'
+          categoryName = (category as { name: string }).name || 'غير محدد'
         } else if (typeof category === 'string') {
           categoryName = category || 'غير محدد'
         }
