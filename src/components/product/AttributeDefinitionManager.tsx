@@ -55,7 +55,7 @@ export function AttributeDefinitionManager({ attributes, onChange }: AttributeDe
       
       {attributes.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-4">
-          لا توجد خصائص محددة. اضغط على "إضافة خاصية" لبدء إضافة خصائص المنتج (مثل الحجم، اللون، المادة، إلخ).
+          لا توجد خصائص محددة. اضغط على &quot;إضافة خاصية&quot; لبدء إضافة خصائص المنتج (مثل الحجم، اللون، المادة، إلخ).
         </p>
       )}
       

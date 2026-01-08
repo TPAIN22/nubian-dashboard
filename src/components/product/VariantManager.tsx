@@ -139,7 +139,7 @@ export function VariantManager({ attributes, variants, onChange }: VariantManage
       
       {variants.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-4 border rounded-lg">
-          لا توجد متغيرات محددة. استخدم "إنشاء جميع التركيبات" لإنشاء متغيرات تلقائياً من الخصائص، أو أضف متغيرات يدوياً.
+          لا توجد متغيرات محددة. استخدم &quot;إنشاء جميع التركيبات&quot; لإنشاء متغيرات تلقائياً من الخصائص، أو أضف متغيرات يدوياً.
         </p>
       )}
       
