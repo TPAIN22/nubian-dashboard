@@ -30,17 +30,64 @@ import {
 } from '@/components/ui/select'
 import ImageUpload from '@/components/imageUpload'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AttributeDefinitionManager } from '@/components/product/AttributeDefinitionManager'
+import { VariantManager } from '@/components/product/VariantManager'
+import { ProductAttribute, ProductVariant } from '@/types/product.types'
 
 const formSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
   description: z.string().min(1, 'Description is required'), // Model requires description
-  price: z.number().min(0.01, 'Price must be greater than 0'),
-  discountPrice: z.number().min(0).optional(),
   category: z.string().min(1, 'Category is required'),
-  stock: z.number().int().min(0, 'Stock cannot be negative'), // Must be integer
-  sizes: z.array(z.string()).optional(),
   images: z.array(z.string()).min(1, 'At least one image is required'),
+  
+  // Product type: 'simple' or 'with_variants'
+  productType: z.enum(['simple', 'with_variants']).default('simple'),
+  
+  // For simple products
+  price: z.number().min(0.01).optional(),
+  discountPrice: z.number().min(0).optional(),
+  stock: z.number().int().min(0).optional(),
+  
+  // For variant-based products
+  attributes: z.array(z.object({
+    name: z.string().min(1),
+    displayName: z.string().min(1),
+    type: z.enum(['select', 'text', 'number']),
+    required: z.boolean(),
+    options: z.array(z.string()).optional(),
+  })).optional(),
+  
+  variants: z.array(z.object({
+    sku: z.string().min(1),
+    attributes: z.record(z.string()),
+    price: z.number().min(0.01),
+    discountPrice: z.number().min(0).optional(),
+    stock: z.number().int().min(0),
+    images: z.array(z.string()).optional(),
+    isActive: z.boolean().optional(),
+  })).optional(),
+  
+  // Legacy fields (for backward compatibility)
+  sizes: z.array(z.string()).optional(),
+  colors: z.array(z.string()).optional(),
+  
   isActive: z.boolean().optional(),
+}).refine((data) => {
+  // If simple product, price and stock are required
+  if (data.productType === 'simple') {
+    return data.price !== undefined && data.stock !== undefined
+  }
+  // If variant product, attributes and variants are required
+  if (data.productType === 'with_variants') {
+    return data.attributes !== undefined && 
+           data.attributes.length > 0 &&
+           data.variants !== undefined &&
+           data.variants.length > 0
+  }
+  return true
+}, {
+  message: 'Invalid product configuration',
+  path: ['productType']
 })
 
 interface Category {
@@ -63,11 +110,15 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
     defaultValues: {
       name: '',
       description: '',
+      productType: 'simple',
       price: 0,
       discountPrice: undefined,
       category: '',
       stock: 0,
+      attributes: [],
+      variants: [],
       sizes: [],
+      colors: [],
       images: [],
       isActive: true,
     },
@@ -140,14 +191,22 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
             },
           })
           const product = res.data
+          const hasVariants = product.variants && product.variants.length > 0
           form.reset({
             name: product.name,
             description: product.description || '',
+            productType: hasVariants ? 'with_variants' : 'simple',
             price: product.price,
             discountPrice: product.discountPrice || undefined,
             category: product.category?._id || product.category || '',
             stock: product.stock,
+            attributes: product.attributes || [],
+            variants: product.variants ? product.variants.map((v: any) => ({
+              ...v,
+              attributes: v.attributes instanceof Map ? Object.fromEntries(v.attributes) : v.attributes
+            })) : [],
             sizes: product.sizes || [],
+            colors: product.colors || [],
             images: product.images || [],
             isActive: product.isActive !== false,
           })
@@ -330,16 +389,32 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
         return
       }
 
-      const dataToSend = {
+      // Build data based on product type
+      const dataToSend: any = {
         name: String(values.name).trim(),
-        description: String(values.description).trim(), // Required by model
-        price: price,
-        discountPrice: values.discountPrice ? parseFloat(String(values.discountPrice)) : 0,
-        category: String(values.category).trim(), // Must be MongoDB ObjectId
-        stock: stock, // Must be integer
-        images: imagesArray, // Array of valid URLs - MUST be array with at least 1 item
-        sizes: filteredSizes, // Filtered to match enum
+        description: String(values.description).trim(),
+        category: String(values.category).trim(),
+        images: imagesArray,
         isActive: values.isActive !== false,
+      }
+
+      if (values.productType === 'simple') {
+        // Simple product
+        dataToSend.price = price
+        dataToSend.discountPrice = values.discountPrice ? parseFloat(String(values.discountPrice)) : 0
+        dataToSend.stock = stock
+        // Keep legacy sizes for backward compatibility
+        if (filteredSizes.length > 0) {
+          dataToSend.sizes = filteredSizes
+        }
+      } else {
+        // Variant-based product
+        dataToSend.attributes = values.attributes || []
+        dataToSend.variants = (values.variants || []).map(v => ({
+          ...v,
+          discountPrice: v.discountPrice || 0,
+          isActive: v.isActive !== false,
+        }))
       }
 
       // Log the data being sent for debugging - BEFORE stringification
@@ -540,75 +615,99 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>السعر *</FormLabel>
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>الفئة *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                      />
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر فئة" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category._id} value={category._id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="discountPrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>السعر الأصلي (اختياري)</FormLabel>
+            <FormField
+              control={form.control}
+              name="productType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>نوع المنتج *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        {...field}
-                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                        value={field.value || ''}
-                      />
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر نوع المنتج" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                    <SelectContent>
+                      <SelectItem value="simple">منتج بسيط (سعر ومخزون واحد)</SelectItem>
+                      <SelectItem value="with_variants">منتج بمتغيرات (أحجام، ألوان، إلخ)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>الفئة *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+            {form.watch('productType') === 'simple' && (
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="price"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>السعر *</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="اختر فئة" />
-                        </SelectTrigger>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
                       </FormControl>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category._id} value={category._id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
+                <FormField
+                  control={form.control}
+                  name="discountPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>السعر الأصلي (اختياري)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
+
+            {form.watch('productType') === 'simple' && (
               <FormField
                 control={form.control}
                 name="stock"
@@ -627,7 +726,38 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                   </FormItem>
                 )}
               />
-            </div>
+            )}
+
+            {form.watch('productType') === 'with_variants' && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>تعريف الخصائص</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <AttributeDefinitionManager
+                      attributes={form.watch('attributes') || []}
+                      onChange={(attrs) => form.setValue('attributes', attrs)}
+                    />
+                  </CardContent>
+                </Card>
+
+                {form.watch('attributes') && form.watch('attributes')!.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>المتغيرات</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <VariantManager
+                        attributes={form.watch('attributes') || []}
+                        variants={form.watch('variants') || []}
+                        onChange={(vars) => form.setValue('variants', vars)}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
 
             <div>
               <Label className="mb-2 block">صور المنتج *</Label>
