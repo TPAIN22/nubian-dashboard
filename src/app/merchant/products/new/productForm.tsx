@@ -64,7 +64,7 @@ const formSchema = z.object({
     discountPrice: z.number().min(0).optional(),
     stock: z.number().int().min(0),
     images: z.array(z.string()).optional(),
-    isActive: z.boolean().optional(),
+    isActive: z.boolean(),
   })).optional(),
   
   // Legacy fields (for backward compatibility)
@@ -203,7 +203,8 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
             attributes: product.attributes || [],
             variants: product.variants ? product.variants.map((v: any) => ({
               ...v,
-              attributes: v.attributes instanceof Map ? Object.fromEntries(v.attributes) : v.attributes
+              attributes: v.attributes instanceof Map ? Object.fromEntries(v.attributes) : v.attributes,
+              isActive: v.isActive !== false, // Ensure boolean, default to true
             })) : [],
             sizes: product.sizes || [],
             colors: product.colors || [],
@@ -750,7 +751,10 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                     <CardContent>
                       <VariantManager
                         attributes={form.watch('attributes') || []}
-                        variants={form.watch('variants') || []}
+                        variants={(form.watch('variants') || []).map(v => ({
+                          ...v,
+                          isActive: v.isActive !== false, // Ensure boolean, default to true
+                        }))}
                         onChange={(vars) => form.setValue('variants', vars)}
                       />
                     </CardContent>
