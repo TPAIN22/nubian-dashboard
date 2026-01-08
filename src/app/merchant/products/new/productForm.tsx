@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth, useUser } from '@clerk/nextjs'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { toast } from 'sonner'
@@ -116,90 +116,10 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
   const [currentStep, setCurrentStep] = useState(1)
   const maxStep = 5 // Total number of steps
 
-  // Stage validation functions
-  const validateStep = (step: number): boolean => {
-    const values = form.getValues()
-    const errors = form.formState.errors
-
-    switch (step) {
-      case 1: // Basic Info: name, description, category
-        form.trigger(['name', 'description', 'category'])
-        return !errors.name && !errors.description && !errors.category &&
-               !!values.name?.trim() && !!values.description?.trim() && !!values.category?.trim()
-      
-      case 2: // Product Type
-        form.trigger(['productType'])
-        return !errors.productType && !!values.productType
-      
-      case 3: // Product Details
-        if (values.productType === 'simple') {
-          form.trigger(['price', 'stock'])
-          return !errors.price && !errors.stock &&
-                 values.price !== undefined && values.price >= 0.01 &&
-                 values.stock !== undefined && values.stock >= 0
-        } else {
-          form.trigger(['attributes', 'variants'])
-          const hasAttributes = !!(values.attributes && Array.isArray(values.attributes) && values.attributes.length > 0)
-          const hasVariants = !!(values.variants && Array.isArray(values.variants) && values.variants.length > 0)
-          return hasAttributes && hasVariants
-        }
-      
-      case 4: // Images
-        form.trigger(['images'])
-        const images = values.images || []
-        return !errors.images && Array.isArray(images) && images.length > 0
-      
-      case 5: // Review (always enabled if we got here)
-        return true
-      
-      default:
-        return false
-    }
-  }
-
-  // Check if a step is enabled (all previous steps must be completed)
-  const isStepEnabled = (step: number): boolean => {
-    if (step === 1) return true // First step is always enabled
-    for (let i = 1; i < step; i++) {
-      if (!validateStep(i)) return false
-    }
-    return true
-  }
-
-  // Check if a step is completed
-  const isStepCompleted = (step: number): boolean => {
-    return validateStep(step)
-  }
-
-  // Navigate to next step
-  const goToNextStep = () => {
-    if (currentStep < maxStep) {
-      if (validateStep(currentStep)) {
-        setCurrentStep(currentStep + 1)
-      } else {
-        toast.error('يرجى إكمال جميع الحقول المطلوبة في هذه المرحلة')
-        form.trigger() // Trigger validation to show errors
-      }
-    }
-  }
-
-  // Navigate to previous step
-  const goToPreviousStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
-    }
-  }
-
-  // Navigate to specific step (only if enabled)
-  const goToStep = (step: number) => {
-    if (isStepEnabled(step)) {
-      setCurrentStep(step)
-    }
-  }
-
+  // Initialize form FIRST - must be before any hooks that reference it
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    mode: 'onChange', // Validate on change to show errors immediately
+    mode: 'onBlur', // Validate on blur for better performance
     defaultValues: {
       name: '',
       description: '',
@@ -216,6 +136,201 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       isActive: true,
     },
   })
+
+  // Watch form values efficiently - only watch what we need
+  // These must come AFTER form initialization
+  const productType = useWatch({ control: form.control, name: 'productType' })
+  const attributes = useWatch({ control: form.control, name: 'attributes' })
+  const variants = useWatch({ control: form.control, name: 'variants' })
+  const images = useWatch({ control: form.control, name: 'images' })
+
+  // Memoize step enabled check to avoid recalculation
+  // Only recalculate when form values actually change
+  const formErrors = form.formState.errors
+  const formValues = form.getValues()
+  
+  const stepStates = useMemo(() => {
+    const states = {
+      enabled: [true, false, false, false, false], // Step 1 always enabled
+      completed: [false, false, false, false, false],
+    }
+    
+    // Calculate enabled and completed states
+    for (let i = 1; i <= 5; i++) {
+      // Check if step is completed
+      let isCompleted = false
+      switch (i) {
+        case 1:
+          isCompleted = !formErrors.name && !formErrors.description && !formErrors.category &&
+                       !!formValues.name?.trim() && !!formValues.description?.trim() && !!formValues.category?.trim()
+          break
+        case 2:
+          isCompleted = !formErrors.productType && !!formValues.productType
+          break
+        case 3:
+          if (formValues.productType === 'simple') {
+            isCompleted = !formErrors.price && !formErrors.stock &&
+                         formValues.price !== undefined && formValues.price >= 0.01 &&
+                         formValues.stock !== undefined && formValues.stock >= 0
+          } else {
+            const hasAttrs = !!(formValues.attributes && Array.isArray(formValues.attributes) && formValues.attributes.length > 0)
+            const hasVars = !!(formValues.variants && Array.isArray(formValues.variants) && formValues.variants.length > 0)
+            isCompleted = hasAttrs && hasVars
+          }
+          break
+        case 4:
+          const imgArray = formValues.images || []
+          isCompleted = !formErrors.images && Array.isArray(imgArray) && imgArray.length > 0
+          break
+        case 5:
+          isCompleted = true
+          break
+      }
+      
+      states.completed[i - 1] = isCompleted
+      
+      if (i > 1) {
+        // Check if all previous steps are completed
+        let allPreviousCompleted = true
+        for (let j = 0; j < i - 1; j++) {
+          if (!states.completed[j]) {
+            allPreviousCompleted = false
+            break
+          }
+        }
+        states.enabled[i - 1] = allPreviousCompleted
+      }
+    }
+    
+    return states
+  }, [
+    formErrors.name,
+    formErrors.description,
+    formErrors.category,
+    formErrors.productType,
+    formErrors.price,
+    formErrors.stock,
+    formErrors.attributes,
+    formErrors.variants,
+    formErrors.images,
+    formValues.name,
+    formValues.description,
+    formValues.category,
+    formValues.productType,
+    formValues.price,
+    formValues.stock,
+    formValues.attributes,
+    formValues.variants,
+    formValues.images,
+  ])
+
+  // Check if a step is enabled
+  const isStepEnabled = useCallback((step: number): boolean => {
+    return stepStates.enabled[step - 1] ?? false
+  }, [stepStates])
+
+  // Check if a step is completed
+  const isStepCompleted = useCallback((step: number): boolean => {
+    return stepStates.completed[step - 1] ?? false
+  }, [stepStates])
+
+  // Helper function to validate a step with current form state (not memoized)
+  const validateStepInline = useCallback((step: number): boolean => {
+    const values = form.getValues()
+    const errors = form.formState.errors
+
+    switch (step) {
+      case 1: // Basic Info: name, description, category
+        return !errors.name && !errors.description && !errors.category &&
+               !!values.name?.trim() && !!values.description?.trim() && !!values.category?.trim()
+      
+      case 2: // Product Type
+        return !errors.productType && !!values.productType
+      
+      case 3: // Product Details
+        if (values.productType === 'simple') {
+          return !errors.price && !errors.stock &&
+                 values.price !== undefined && values.price >= 0.01 &&
+                 values.stock !== undefined && values.stock >= 0
+        } else {
+          const hasAttributes = !!(values.attributes && Array.isArray(values.attributes) && values.attributes.length > 0)
+          const hasVariants = !!(values.variants && Array.isArray(values.variants) && values.variants.length > 0)
+          return hasAttributes && hasVariants
+        }
+      
+      case 4: // Images
+        const imgArray = values.images || []
+        return !errors.images && Array.isArray(imgArray) && imgArray.length > 0
+      
+      case 5: // Review (always enabled if we got here)
+        return true
+      
+      default:
+        return false
+    }
+  }, [form])
+
+  // Navigate to next step
+  const goToNextStep = useCallback(async () => {
+    if (currentStep < maxStep) {
+      // Trigger validation only for current step fields
+      let fieldsToValidate: (keyof z.infer<typeof formSchema>)[] = []
+      
+      switch (currentStep) {
+        case 1:
+          fieldsToValidate = ['name', 'description', 'category']
+          break
+        case 2:
+          fieldsToValidate = ['productType']
+          break
+        case 3:
+          if (productType === 'simple') {
+            fieldsToValidate = ['price', 'stock']
+          } else {
+            fieldsToValidate = ['attributes', 'variants']
+          }
+          break
+        case 4:
+          fieldsToValidate = ['images']
+          break
+      }
+      
+      // Trigger validation and wait for it to complete
+      const isValid = await form.trigger(fieldsToValidate)
+      
+      // Validate the step inline using current form state (not memoized stepStates)
+      // This ensures we use the fresh validation results, not stale memoized values
+      const isStepValid = validateStepInline(currentStep)
+      
+      // Use the validation result from form.trigger() as primary check
+      // Also check step validation to ensure all conditions are met
+      if (isValid && isStepValid) {
+        setCurrentStep(currentStep + 1)
+      } else {
+        toast.error('يرجى إكمال جميع الحقول المطلوبة في هذه المرحلة')
+      }
+    }
+  }, [currentStep, form, productType, validateStepInline])
+
+  // Navigate to previous step
+  const goToPreviousStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
+  // Memoized stage validation functions - only validate when needed
+  // This uses memoized stepStates for display purposes
+  const validateStep = useCallback((step: number): boolean => {
+    return stepStates.completed[step - 1] ?? false
+  }, [stepStates])
+
+  // Navigate to specific step (only if enabled)
+  const goToStep = (step: number) => {
+    if (isStepEnabled(step)) {
+      setCurrentStep(step)
+    }
+  }
 
   useEffect(() => {
     const checkMerchantStatus = async () => {
@@ -677,7 +792,7 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
     },
     {
       title: 'تفاصيل المنتج',
-      description: form.watch('productType') === 'simple' ? 'السعر والمخزون' : 'الخصائص والمتغيرات',
+      description: productType === 'simple' ? 'السعر والمخزون' : 'الخصائص والمتغيرات',
       isCompleted: isStepCompleted(3),
       isActive: currentStep === 3,
       isEnabled: isStepEnabled(3),
@@ -833,10 +948,10 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
             {currentStep === 3 && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold mb-4">
-                  {form.watch('productType') === 'simple' ? 'السعر والمخزون' : 'الخصائص والمتغيرات'}
+                  {productType === 'simple' ? 'السعر والمخزون' : 'الخصائص والمتغيرات'}
                 </h3>
                 
-                {form.watch('productType') === 'simple' ? (
+                {productType === 'simple' ? (
                   <>
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
@@ -926,25 +1041,29 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                       </CardHeader>
                       <CardContent>
                         <AttributeDefinitionManager
-                          attributes={form.watch('attributes') || []}
-                          onChange={(attrs) => form.setValue('attributes', attrs)}
+                          attributes={attributes || []}
+                          onChange={(attrs) => {
+                      form.setValue('attributes', attrs, { shouldValidate: false })
+                    }}
                         />
                       </CardContent>
                     </Card>
 
-                    {form.watch('attributes') && form.watch('attributes')!.length > 0 && (
+                    {attributes && attributes.length > 0 && (
                       <Card>
                         <CardHeader>
                           <CardTitle>المتغيرات</CardTitle>
                         </CardHeader>
                         <CardContent>
                           <VariantManager
-                            attributes={form.watch('attributes') || []}
-                            variants={(form.watch('variants') || []).map(v => ({
+                            attributes={attributes || []}
+                            variants={(variants || []).map(v => ({
                               ...v,
                               isActive: v.isActive !== false,
                             }))}
-                            onChange={(vars) => form.setValue('variants', vars)}
+                            onChange={(vars) => {
+                              form.setValue('variants', vars, { shouldValidate: false })
+                            }}
                           />
                         </CardContent>
                       </Card>
@@ -961,9 +1080,9 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                 <div>
                   <Label className="mb-2 block">صور المنتج *</Label>
                   <ImageUpload onUploadComplete={handleUploadDone} />
-                  {form.watch('images') && form.watch('images').length > 0 && (
+                  {images && images.length > 0 && (
                     <p className="text-sm text-muted-foreground mt-2">
-                      تم رفع {form.watch('images').length} صورة
+                      تم رفع {images.length} صورة
                     </p>
                   )}
                   {form.formState.errors.images && (
@@ -982,39 +1101,39 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                 <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
                   <div>
                     <Label className="text-sm font-semibold">اسم المنتج:</Label>
-                    <p className="text-sm">{form.watch('name') || 'غير محدد'}</p>
+                    <p className="text-sm">{form.getValues('name') || 'غير محدد'}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-semibold">الوصف:</Label>
-                    <p className="text-sm">{form.watch('description') || 'غير محدد'}</p>
+                    <p className="text-sm">{form.getValues('description') || 'غير محدد'}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-semibold">الفئة:</Label>
                     <p className="text-sm">
-                      {categories.find(c => c._id === form.watch('category'))?.name || 'غير محدد'}
+                      {categories.find(c => c._id === form.getValues('category'))?.name || 'غير محدد'}
                     </p>
                   </div>
                   <div>
                     <Label className="text-sm font-semibold">نوع المنتج:</Label>
                     <p className="text-sm">
-                      {form.watch('productType') === 'simple' ? 'منتج بسيط' : 'منتج بمتغيرات'}
+                      {productType === 'simple' ? 'منتج بسيط' : 'منتج بمتغيرات'}
                     </p>
                   </div>
-                  {form.watch('productType') === 'simple' && (
+                  {productType === 'simple' && (
                     <>
                       <div>
                         <Label className="text-sm font-semibold">السعر:</Label>
-                        <p className="text-sm">{form.watch('price') || 'غير محدد'} ر.س</p>
+                        <p className="text-sm">{form.getValues('price') || 'غير محدد'} ر.س</p>
                       </div>
                       <div>
                         <Label className="text-sm font-semibold">المخزون:</Label>
-                        <p className="text-sm">{form.watch('stock') ?? 'غير محدد'}</p>
+                        <p className="text-sm">{form.getValues('stock') ?? 'غير محدد'}</p>
                       </div>
                     </>
                   )}
                   <div>
                     <Label className="text-sm font-semibold">عدد الصور:</Label>
-                    <p className="text-sm">{form.watch('images')?.length || 0}</p>
+                    <p className="text-sm">{images?.length || 0}</p>
                   </div>
                 </div>
               </div>
