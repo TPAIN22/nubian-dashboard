@@ -63,6 +63,8 @@ import {
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { Star } from "lucide-react"
 
 export type Product = {
   _id: string;
@@ -87,12 +89,87 @@ export type Product = {
   deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  // Ranking fields (admin-controlled)
+  priorityScore?: number;
+  featured?: boolean;
 };
 
 interface ProductsTableProps {
   productsData: Product[];
   getToken?: () => Promise<string | null>;
   onProductUpdate?: () => void | Promise<void>;
+}
+
+function RankingEditDialog({ 
+  product, 
+  onSave, 
+  onCancel, 
+  isUpdating 
+}: { 
+  product: Product; 
+  onSave: (priorityScore: number, featured: boolean) => void; 
+  onCancel: () => void;
+  isUpdating: boolean;
+}) {
+  const [priorityScore, setPriorityScore] = React.useState<number>(product.priorityScore || 0)
+  const [featured, setFeatured] = React.useState<boolean>(product.featured || false)
+
+  const handleSave = () => {
+    if (priorityScore < 0 || priorityScore > 100) {
+      toast.error('يجب أن تكون الأولوية بين 0 و 100')
+      return
+    }
+    onSave(priorityScore, featured)
+  }
+
+  return (
+    <div className="space-y-4 py-4">
+      <div className="space-y-2">
+        <Label htmlFor="priorityScore">أولوية الترتيب (0-100)</Label>
+        <Input
+          id="priorityScore"
+          type="number"
+          min={0}
+          max={100}
+          value={priorityScore}
+          onChange={(e) => {
+            const value = parseInt(e.target.value) || 0
+            setPriorityScore(Math.max(0, Math.min(100, value)))
+          }}
+          disabled={isUpdating}
+        />
+        <p className="text-sm text-muted-foreground">
+          القيمة الأعلى = ترتيب أفضل في الصفحة الرئيسية. القيمة الافتراضية: 0
+        </p>
+      </div>
+      <div className="flex items-center space-x-2 space-x-reverse">
+        <Switch
+          id="featured"
+          checked={featured}
+          onCheckedChange={setFeatured}
+          disabled={isUpdating}
+        />
+        <Label htmlFor="featured" className="cursor-pointer">
+          منتج مميز (يظهر في المقدمة دائماً)
+        </Label>
+      </div>
+      <div className="flex justify-end gap-2 pt-4">
+        <Button
+          variant="outline"
+          onClick={onCancel}
+          disabled={isUpdating}
+        >
+          إلغاء
+        </Button>
+        <Button
+          onClick={handleSave}
+          disabled={isUpdating}
+        >
+          {isUpdating ? 'جاري الحفظ...' : 'حفظ'}
+        </Button>
+      </div>
+    </div>
+  )
 }
 
 function ProductDetailsDialog({ product }: { product: Product }) {
@@ -185,6 +262,16 @@ function ProductDetailsDialog({ product }: { product: Product }) {
               {product.isActive ? "نشط" : "غير نشط"}
             </Badge>
           </div>
+          <div>
+            <h3 className="font-semibold mb-1">مميز</h3>
+            <Badge variant={product.featured ? "default" : "secondary"}>
+              {product.featured ? "نعم" : "لا"}
+            </Badge>
+          </div>
+          <div>
+            <h3 className="font-semibold mb-1">أولوية الترتيب</h3>
+            <p className="text-muted-foreground">{product.priorityScore || 0} / 100</p>
+          </div>
           {product.sizes && product.sizes.length > 0 && (
             <div>
               <h3 className="font-semibold mb-1">المقاسات</h3>
@@ -225,6 +312,8 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
   const [refreshing, setRefreshing] = React.useState(false)
   const [restoringId, setRestoringId] = React.useState<string | null>(null)
   const [hardDeletingId, setHardDeletingId] = React.useState<string | null>(null)
+  const [updatingRankingId, setUpdatingRankingId] = React.useState<string | null>(null)
+  const [rankingDialogOpen, setRankingDialogOpen] = React.useState<string | null>(null)
 
   const tokenGetter = getToken || clerkGetToken
 
@@ -345,6 +434,40 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
       toast.error(error.response?.data?.message || error.response?.data?.error?.message || 'فشل حذف المنتج')
     } finally {
       setHardDeletingId(null)
+    }
+  }
+
+  const handleUpdateRanking = async (productId: string, priorityScore?: number, featured?: boolean) => {
+    setUpdatingRankingId(productId)
+    try {
+      const token = await tokenGetter()
+      
+      if (!token) {
+        toast.error('فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.')
+        setUpdatingRankingId(null)
+        return
+      }
+      
+      const payload: { priorityScore?: number; featured?: boolean } = {}
+      if (priorityScore !== undefined) payload.priorityScore = priorityScore
+      if (featured !== undefined) payload.featured = featured
+      
+      await axiosInstance.patch(`/products/admin/${productId}/ranking`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      toast.success('تم تحديث ترتيب المنتج بنجاح')
+      setRankingDialogOpen(null)
+      if (onProductUpdate) {
+        await onProductUpdate()
+      } else {
+        window.location.reload()
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || error.response?.data?.error?.message || 'فشل تحديث ترتيب المنتج')
+    } finally {
+      setUpdatingRankingId(null)
     }
   }
 
@@ -557,6 +680,92 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
                   disabled={togglingId === product._id}
                 />
               </>
+            )}
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: "featured",
+      header: "مميز",
+      cell: ({ row }) => {
+        const product = row.original
+        const featured = product.featured || false
+        const isDeleted = !!product.deletedAt
+        return (
+          <div className="flex items-center gap-2">
+            {isDeleted ? (
+              <span className="text-muted-foreground">-</span>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Star 
+                  className={`h-4 w-4 ${featured ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`}
+                />
+                <Switch
+                  checked={featured}
+                  onCheckedChange={(checked) => handleUpdateRanking(product._id, undefined, checked)}
+                  disabled={updatingRankingId === product._id}
+                />
+              </div>
+            )}
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: "priorityScore",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="text-right"
+          >
+            أولوية الترتيب
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        )
+      },
+      cell: ({ row }) => {
+        const product = row.original
+        const priorityScore = product.priorityScore || 0
+        const isDeleted = !!product.deletedAt
+        const isUpdating = updatingRankingId === product._id
+        
+        return (
+          <div className="flex items-center gap-2">
+            {isDeleted ? (
+              <span className="text-muted-foreground">-</span>
+            ) : (
+              <Dialog open={rankingDialogOpen === product._id} onOpenChange={(open) => {
+                if (!open) setRankingDialogOpen(null)
+              }}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setRankingDialogOpen(product._id)}
+                    disabled={isUpdating}
+                    className="text-right"
+                  >
+                    {priorityScore}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>تعديل ترتيب المنتج: {product.name}</DialogTitle>
+                    <DialogDescription>
+                      الأولوية (0-100): القيمة الأعلى = ترتيب أفضل في الصفحة الرئيسية
+                    </DialogDescription>
+                  </DialogHeader>
+                  <RankingEditDialog 
+                    product={product}
+                    onSave={(priorityScore, featured) => handleUpdateRanking(product._id, priorityScore, featured)}
+                    onCancel={() => setRankingDialogOpen(null)}
+                    isUpdating={isUpdating}
+                  />
+                </DialogContent>
+              </Dialog>
             )}
           </div>
         )

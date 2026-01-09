@@ -36,6 +36,9 @@ interface Product {
   deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  // Ranking fields (admin-controlled)
+  priorityScore?: number;
+  featured?: boolean;
 }
 
 export default function Page() {
