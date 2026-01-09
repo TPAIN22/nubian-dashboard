@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -77,6 +79,8 @@ interface Category {
 }
 
 export default function ProductForm() {
+  const { user, isLoaded: userLoaded } = useUser();
+  const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -96,6 +100,22 @@ export default function ProductForm() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
+
+  // Verify admin role on component mount
+  useEffect(() => {
+    if (userLoaded && user) {
+      const userRole = user.publicMetadata?.role as string | undefined;
+      console.log('Product Form - User role check:', { userRole, userId: user.id });
+      
+      // If user is not admin or merchant, don't allow access
+      // But admins should always be allowed
+      if (userRole !== 'admin' && userRole !== 'merchant') {
+        console.warn('Product Form - User is not admin or merchant, redirecting to dashboard');
+        router.replace('/business/dashboard');
+      }
+      // Admins are always allowed, no need to redirect
+    }
+  }, [userLoaded, user, router]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -140,22 +160,81 @@ export default function ProductForm() {
       }
 
       const dataToSend = {
-        ...values,
+        name: values.name,
+        description: values.description || "",
         discountPrice: isNaN(values.discountPrice as number) ? undefined : values.discountPrice,
         price: isNaN(values.price) ? 0 : values.price,
         category: values.category,
+        stock: parseInt(values.stock) || 0,
+        sizes: values.sizes || [],
+        images: values.images,
+        // Note: 'brand' field is not sent - it's not part of the product model
+        // Admin can set merchant field explicitly if needed, or leave null
       };
 
-       await axiosInstance.post("/products", dataToSend, {
+      console.log('Creating product with data:', {
+        ...dataToSend,
+        imagesCount: dataToSend.images?.length,
+      });
+
+      const response = await axiosInstance.post("/products", dataToSend, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      toast("تم إنشاء المنتج بنجاح");
+      
+      console.log('Product creation response:', response.data);
+      toast.success("تم إنشاء المنتج بنجاح");
       form.reset();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "خطأ غير معروف";
-      toast.error(`فشل إرسال النموذج: ${errorMessage}`);
+      
+      // Redirect to products list after successful creation
+      setTimeout(() => {
+        window.location.href = '/business/products';
+      }, 1500);
+    } catch (error: any) {
+      console.error('Product creation error:', error);
+      
+      // Extract detailed error message
+      let errorMessage = "خطأ غير معروف";
+      if (error.response) {
+        // Backend responded with error
+        const errorData = error.response.data;
+        errorMessage = errorData?.message || 
+                       errorData?.error?.message || 
+                       errorData?.error || 
+                       `خطأ من السيرفر (${error.response.status})`;
+        
+        // Log detailed error for debugging
+        console.error('Backend error response:', {
+          status: error.response.status,
+          data: errorData,
+        });
+      } else if (error.request) {
+        errorMessage = "لا يمكن الاتصال بالسيرفر. يرجى التحقق من الاتصال بالإنترنت.";
+      } else {
+        errorMessage = error.message || "حدث خطأ أثناء إنشاء المنتج";
+      }
+      
+      // Check if error is merchant-related and should redirect
+      // Only redirect merchants, not admins
+      if (error.response?.data?.code === 'MERCHANT_NOT_FOUND' || 
+          error.response?.data?.code === 'MERCHANT_NOT_APPROVED') {
+        const userRole = user?.publicMetadata?.role as string | undefined;
+        
+        // Only redirect if user is a merchant (not an admin)
+        if (userRole === 'merchant') {
+          console.warn('Merchant product creation failed - redirecting to apply');
+          router.push('/merchant/apply');
+          return;
+        }
+        
+        // If admin, don't redirect - just show error
+        console.error('Admin product creation failed with merchant error:', error.response?.data);
+        toast.error(`فشل إنشاء المنتج: ${errorMessage}`);
+      } else {
+        // For other errors, just show the error message
+        toast.error(`فشل إنشاء المنتج: ${errorMessage}`);
+      }
     }
   }
 
