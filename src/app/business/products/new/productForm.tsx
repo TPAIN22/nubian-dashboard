@@ -287,7 +287,7 @@ export default function ProductForm() {
                     name="discountPrice"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className=" font-medium">السعر النهائي (اختياري)</FormLabel>
+                        <FormLabel className=" font-medium">السعر بعد الخص (اختياري)</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 " />
