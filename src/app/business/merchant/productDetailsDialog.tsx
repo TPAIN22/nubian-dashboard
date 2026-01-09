@@ -157,7 +157,7 @@ export function ProductDetailsDialog({ product }: ProductDetailsDialogProps) {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">السعر الحالي</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">السعر النهائي</p>
                   <p className="text-2xl font-bold text-primary">
                     {formatCurrency(finalPrice)}
                   </p>

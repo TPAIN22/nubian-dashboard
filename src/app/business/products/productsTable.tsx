@@ -123,7 +123,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
         )}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <h3 className="font-semibold mb-1">السعر الحالي</h3>
+            <h3 className="font-semibold mb-1">السعر النهائي</h3>
             <p className="text-muted-foreground">
               {(() => {
                 // price = original price, discountPrice = final selling price
@@ -366,7 +366,7 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="text-right"
           >
-            السعر الحالي الحالي
+            السعر النهائي
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         )
@@ -390,7 +390,7 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
     },
     {
       accessorKey: "discountPrice",
-      header: () => <div className="text-right">السعر الأصلي</div>,
+      header: () => <div className="text-right">السعر النهائي</div>,
       cell: ({ row }) => {
         // price = original price, discountPrice = final selling price
         const priceValue = row.getValue("price")
@@ -661,7 +661,7 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
       : safeProductsData
 
     const csv = [
-      ['اسم المنتج', 'السعر الحالي', 'السعر الأصلي', 'المخزون', 'الحالة', 'التصنيف', 'تاريخ الإنشاء'].map(escapeCsvField).join(','),
+      ['اسم المنتج', 'السعر الأصلي', 'السعر النهائي', 'المخزون', 'الحالة', 'التصنيف', 'تاريخ الإنشاء'].map(escapeCsvField).join(','),
       ...dataToExport.map(product => [
         product.name,
         product.price,
@@ -807,8 +807,8 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
                       {column.id === "name" ? "اسم المنتج" : 
                        column.id === "images" ? "الصورة" :
                        column.id === "category" ? "التصنيف" :
-                       column.id === "price" ? "السعر الحالي" : 
-                       column.id === "discountPrice" ? "السعر الأصلي" :
+                       column.id === "price" ? "السعر الأصلي" : 
+                       column.id === "discountPrice" ? "السعر النهائي" :
                        column.id === "stock" ? "الكمية" : 
                        column.id === "isActive" ? "الحالة" : 
                        column.id}

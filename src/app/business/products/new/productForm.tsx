@@ -63,7 +63,7 @@ const formSchema = z.object({
   name: z.string().min(1, "اسم المنتج مطلوب"),
   brand: z.string().min(1, "اسم المتجر مطلوب"),
   description: z.string().optional(),
-  discountPrice: z.union([z.number().min(0, "السعر قبل الخصم يجب أن يكون رقما موجبا").optional(), z.literal(NaN).optional()]),
+  discountPrice: z.union([z.number().min(0, "السعر بعد الخصم يجب أن يكون رقما موجبا").optional(), z.literal(NaN).optional()]),
   price: z.number().min(0, "السعر يجب أن يكون رقما موجبا"),
   category: z.string().min(1, "التصنيف مطلوب"),
   stock: z.string().min(1, "الكمية المتوفرة مطلوبة"),
