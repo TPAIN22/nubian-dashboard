@@ -967,7 +967,6 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
             {currentStep === 1 && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold mb-4">المعلومات الأساسية</h3>
-            {/* @ts-expect-error - react-hook-form type inference issue */}
             <FormField
               control={form.control as any}
               name="name"
@@ -983,7 +982,6 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
             />
 
               
-            {/* @ts-expect-error - react-hook-form type inference issue */}
             <FormField
               control={form.control as any}
               name="description"
@@ -1002,7 +1000,6 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
               )}
             />
 
-            {/* @ts-expect-error - react-hook-form type inference issue */}
             <FormField
               control={form.control as any}
               name="category"
@@ -1034,7 +1031,6 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
             {currentStep === 2 && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold mb-4">اختر نوع المنتج</h3>
-            {/* @ts-expect-error - react-hook-form type inference issue */}
             <FormField
               control={form.control as any}
               name="productType"
@@ -1080,7 +1076,6 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                 {productType === 'simple' ? (
                   <>
                 <div className="grid grid-cols-2 gap-4">
-                {/* @ts-expect-error - react-hook-form type inference issue */}
                 <FormField
                   control={form.control as any}
                         name="discountPrice"
@@ -1110,7 +1105,6 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                   )}
                 />
 
-                {/* @ts-expect-error - react-hook-form type inference issue */}
                 <FormField
                   control={form.control as any}
                         name="price"
@@ -1141,7 +1135,6 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                 />
               </div>
 
-              {/* @ts-expect-error - react-hook-form type inference issue */}
               <FormField
                 control={form.control as any}
                 name="stock"
