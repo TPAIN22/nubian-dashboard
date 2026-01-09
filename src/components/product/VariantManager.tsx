@@ -75,6 +75,7 @@ export function VariantManager({ attributes, variants, onChange }: VariantManage
         sku,
         attributes: combo,
         price: 0,
+        discountPrice: undefined,
         stock: 0,
         isActive: true
       }
@@ -88,6 +89,7 @@ export function VariantManager({ attributes, variants, onChange }: VariantManage
       sku: '',
       attributes: {},
       price: 0,
+      discountPrice: undefined,
       stock: 0,
       isActive: true
     }
@@ -195,19 +197,6 @@ export function VariantManager({ attributes, variants, onChange }: VariantManage
                   className="mt-1"
                 />
               </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm">المخزون *</Label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={variant.stock || 0}
-                  onChange={(e) => updateVariant(index, { stock: parseInt(e.target.value) || 0 })}
-                  className="mt-1"
-                />
-              </div>
               <div>
                 <Label className="text-sm">سعر الخصم (اختياري)</Label>
                 <Input
@@ -218,6 +207,19 @@ export function VariantManager({ attributes, variants, onChange }: VariantManage
                   onChange={(e) => updateVariant(index, { 
                     discountPrice: e.target.value ? parseFloat(e.target.value) : undefined 
                   })}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm">المخزون *</Label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={variant.stock || 0}
+                  onChange={(e) => updateVariant(index, { stock: parseInt(e.target.value) || 0 })}
                   className="mt-1"
                 />
               </div>

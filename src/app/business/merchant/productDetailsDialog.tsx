@@ -61,7 +61,7 @@ export function ProductDetailsDialog({ product }: ProductDetailsDialogProps) {
     }).format(amount);
   };
 
-  const hasDiscount = product.discountPrice > product.price;
+  const hasDiscount = product.discountPrice && product.discountPrice > product.price;
   const discountPercentage = hasDiscount
     ? Math.round(((product.discountPrice - product.price) / product.discountPrice) * 100)
     : 0;

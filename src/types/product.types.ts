@@ -26,7 +26,7 @@ export interface ProductVariant {
   sku: string; // Unique SKU for this variant (e.g., "TSHIRT-RED-L")
   attributes: Record<string, string>; // Attribute values (e.g., { size: "L", color: "Red" })
   price: number; // Variant-specific price
-  discountPrice?: number; // Variant-specific discount price
+  discountPrice?: number; // Variant-specific discountPrice
   stock: number; // Variant-specific stock quantity
   images?: string[]; // Variant-specific images (optional)
   isActive: boolean; // Whether this variant is active/available
@@ -52,7 +52,7 @@ export interface Product {
   
   // Legacy fields (for backward compatibility and simple products)
   price?: number; // Default price (for simple products or fallback)
-  discountPrice?: number; // Default discount price
+  discountPrice?: number; // Default discountPrice
   stock?: number; // Total stock (for simple products) or sum of variant stocks
   sizes?: string[]; // Legacy sizes array (auto-populated from variants if possible)
   colors?: string[]; // Legacy colors array (auto-populated from variants if possible)

@@ -291,7 +291,7 @@ function ProductCard({ product }: { product: Product }) {
                     currency: "SDG",
                   }).format(product.price)}
                 </span>
-                {product.discountPrice > product.price && (
+                {product.discountPrice && product.discountPrice > product.price && (
                   <span className="text-xs text-muted-foreground line-through">
                     {new Intl.NumberFormat("ar-SA", {
                       style: "currency",

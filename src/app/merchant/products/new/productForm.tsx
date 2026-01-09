@@ -42,13 +42,16 @@ const formSchema = z.object({
   category: z.string().min(1, 'Category is required'),
   images: z.array(z.string()).min(1, 'At least one image is required'),
   
-  // Product type: 'simple' or 'with_variants'
-  productType: z.enum(['simple', 'with_variants']),
+  // Product type: 'simple' or 'with_variants' - required but can start empty
+  productType: z.string().refine((val) => val === '' || val === 'simple' || val === 'with_variants', {
+    message: 'Product type must be either simple or with_variants',
+  }),
   
   // For simple products
-  price: z.number().min(0.01, 'Price must be greater than 0').optional(),
-  discountPrice: z.number().min(0, 'Discount price cannot be negative').optional(),
-  stock: z.number().int().min(0, 'Stock cannot be negative').optional(),
+  // Price and stock are conditionally required (required if productType is 'simple')
+  price: z.number().min(0.01, 'Price must be greater than 0').optional().or(z.undefined()),
+  discountPrice: z.number().min(0, 'DiscountPrice cannot be negative').optional().or(z.undefined()),
+  stock: z.number().int().min(0, 'Stock cannot be negative').optional().or(z.undefined()),
   
   // For variant-based products
   attributes: z.array(z.object({
@@ -74,29 +77,18 @@ const formSchema = z.object({
   colors: z.array(z.string()).optional(),
   
   isActive: z.boolean().optional(),
-}).refine((data) => {
-  // If simple product, price and stock are required
-  if (data.productType === 'simple') {
-    return data.price !== undefined && 
-           data.price !== null && 
-           data.price >= 0.01 &&
-           data.stock !== undefined && 
-           data.stock !== null &&
-           data.stock >= 0
+}).superRefine((data, ctx) => {
+  // Only validate productType here - don't validate price/stock/attributes/variants
+  // This allows stage 2 validation to pass when only productType is selected
+  // Price, stock, attributes, and variants are validated by their individual field validators
+  const productType = data.productType as string
+  if (!productType || (productType !== 'simple' && productType !== 'with_variants')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Product type is required',
+      path: ['productType'],
+    })
   }
-  // If variant product, attributes and variants are required
-  if (data.productType === 'with_variants') {
-    return data.attributes !== undefined && 
-           Array.isArray(data.attributes) &&
-           data.attributes.length > 0 &&
-           data.variants !== undefined &&
-           Array.isArray(data.variants) &&
-           data.variants.length > 0
-  }
-  return true
-}, {
-  message: 'Invalid product configuration. For simple products, price (>= 0.01) and stock (>= 0) are required. For variant products, at least one attribute and one variant are required.',
-  path: ['productType']
 })
 
 interface Category {
@@ -118,12 +110,13 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
 
   // Initialize form FIRST - must be before any hooks that reference it
   const form = useForm<z.infer<typeof formSchema>>({
+    // @ts-ignore - react-hook-form type inference issue with zod union types
     resolver: zodResolver(formSchema),
     mode: 'onBlur', // Validate on blur for better performance
     defaultValues: {
       name: '',
       description: '',
-      productType: 'simple',
+      productType: '' as any, // Empty string initially, will be validated when user selects
       price: undefined, // Changed from 0 to undefined so validation can properly detect it's missing
       discountPrice: undefined,
       category: '',
@@ -165,7 +158,11 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                        !!formValues.name?.trim() && !!formValues.description?.trim() && !!formValues.category?.trim()
           break
         case 2:
-          isCompleted = !formErrors.productType && !!formValues.productType
+          // Step 2 is only completed if productType is explicitly selected
+          const productTypeVal = formValues.productType as string
+          isCompleted = !formErrors.productType && 
+                       !!productTypeVal && 
+                       (productTypeVal === 'simple' || productTypeVal === 'with_variants')
           break
         case 3:
           if (formValues.productType === 'simple') {
@@ -245,7 +242,11 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                !!values.name?.trim() && !!values.description?.trim() && !!values.category?.trim()
       
       case 2: // Product Type
-        return !errors.productType && !!values.productType
+        // Step 2 is only completed if productType is explicitly selected
+        const productTypeVal = values.productType as string
+        return !errors.productType && 
+               !!productTypeVal && 
+               (productTypeVal === 'simple' || productTypeVal === 'with_variants')
       
       case 3: // Product Details
         if (values.productType === 'simple') {
@@ -404,8 +405,8 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
             name: product.name,
             description: product.description || '',
             productType: hasVariants ? 'with_variants' : 'simple',
-            price: product.price,
-            discountPrice: product.discountPrice || undefined,
+            price: product.price || undefined,
+            discountPrice: product.discountPrice,
             category: product.category?._id || product.category || '',
             stock: product.stock,
             attributes: product.attributes || [],
@@ -547,9 +548,32 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
         return
       }
       
+      // Validate productType
+      const productType = values.productType as string
+      if (!productType || (productType !== 'simple' && productType !== 'with_variants')) {
+        toast.error('يرجى اختيار نوع المنتج')
+        isSubmittingRef.current = false
+        setLoading(false)
+        return
+      }
+      
+      // Helper function to safely parse number (used for both validation and data preparation)
+      const parseNumber = (value: any): number | undefined => {
+        if (value === undefined || value === null || value === '') {
+          return undefined
+        }
+        if (typeof value === 'number') {
+          return isNaN(value) ? undefined : value
+        }
+        const parsed = parseFloat(String(value))
+        return isNaN(parsed) ? undefined : parsed
+      }
+      
+      // Validate price and stock only for simple products
+      if (values.productType === 'simple') {
       // Validate price
-      const price = parseFloat(String(values.price))
-      if (isNaN(price) || price <= 0) {
+        const price = parseNumber(values.price)
+        if (price === undefined || price <= 0) {
         toast.error('يرجى إدخال سعر صحيح (أكبر من 0)')
         isSubmittingRef.current = false
         setLoading(false)
@@ -557,12 +581,28 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       }
       
       // Validate stock (must be integer)
-      const stock = parseInt(String(values.stock), 10)
-      if (isNaN(stock) || stock < 0) {
+        const stock = parseNumber(values.stock)
+        if (stock === undefined || stock < 0 || !Number.isInteger(stock)) {
         toast.error('يرجى إدخال مخزون صحيح (رقم صحيح أكبر من أو يساوي 0)')
         isSubmittingRef.current = false
         setLoading(false)
         return
+        }
+      } else {
+        // Validate attributes and variants for variant products
+        if (!values.attributes || !Array.isArray(values.attributes) || values.attributes.length === 0) {
+          toast.error('يرجى إضافة خاصية واحدة على الأقل للمنتج')
+          isSubmittingRef.current = false
+          setLoading(false)
+          return
+        }
+        
+        if (!values.variants || !Array.isArray(values.variants) || values.variants.length === 0) {
+          toast.error('يرجى إضافة متغير واحد على الأقل للمنتج')
+          isSubmittingRef.current = false
+          setLoading(false)
+          return
+        }
       }
       
       // Filter sizes to match model enum: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'xxxl']
@@ -608,10 +648,57 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       }
 
       if (values.productType === 'simple') {
-        // Simple product
-        dataToSend.price = price
-        dataToSend.discountPrice = values.discountPrice ? parseFloat(String(values.discountPrice)) : 0
-        dataToSend.stock = stock
+        // Simple product - use the validated price and stock
+        // Use the same parseNumber helper function defined above
+        const priceValue = parseNumber(values.price)
+        const discountPriceValue = parseNumber(values.discountPrice)
+        const stockValue = parseNumber(values.stock)
+        
+        // Price is required and validated, so it should always be included
+        if (priceValue !== undefined && priceValue > 0) {
+          dataToSend.price = priceValue
+        } else {
+          console.error('❌ Price validation failed:', { 
+            priceValue, 
+            rawPrice: values.price, 
+            type: typeof values.price,
+            stringValue: String(values.price)
+          })
+          toast.error('خطأ في السعر. يرجى التحقق من القيمة المدخلة.')
+          isSubmittingRef.current = false
+          setLoading(false)
+          return
+        }
+        
+        // Only include discountPrice if it has a valid value (don't send 0 or undefined)
+        if (discountPriceValue !== undefined && discountPriceValue > 0) {
+          dataToSend.discountPrice = discountPriceValue
+        }
+        
+        if (stockValue !== undefined && stockValue >= 0) {
+          dataToSend.stock = Math.floor(stockValue) // Ensure integer for stock
+        } else {
+          console.error('❌ Stock validation failed:', { 
+            stockValue, 
+            rawStock: values.stock, 
+            type: typeof values.stock,
+            stringValue: String(values.stock)
+          })
+          toast.error('خطأ في المخزون. يرجى التحقق من القيمة المدخلة.')
+          isSubmittingRef.current = false
+          setLoading(false)
+          return
+        }
+        
+        // Debug log for price values
+        console.log('💰 Price values being sent:', {
+          rawPrice: values.price,
+          rawDiscountPrice: values.discountPrice,
+          rawStock: values.stock,
+          finalPrice: dataToSend.price,
+          finalDiscountPrice: dataToSend.discountPrice,
+          finalStock: dataToSend.stock,
+        })
         // Keep legacy sizes for backward compatibility
         if (filteredSizes.length > 0) {
           dataToSend.sizes = filteredSizes
@@ -621,7 +708,7 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
         dataToSend.attributes = values.attributes || []
         dataToSend.variants = (values.variants || []).map(v => ({
           ...v,
-          discountPrice: v.discountPrice || 0,
+          price: v.price || 0,
           isActive: v.isActive !== false,
         }))
       }
@@ -664,16 +751,44 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       if (isEdit && productId) {
         await axiosInstance.put(`/products/${productId}`, dataToSend, { headers })
         toast.success('تم تحديث المنتج بنجاح')
+        
+        // Reset submission flag before navigation
+        isSubmittingRef.current = false
+        setLoading(false)
+        
+        // Redirect to products table after successful update
+        router.push('/merchant/products')
       } else {
         await axiosInstance.post('/products', dataToSend, { headers })
         toast.success('تم إنشاء المنتج بنجاح')
-      }
 
       // Reset submission flag before navigation
       isSubmittingRef.current = false
       setLoading(false)
       
+        // Reset form to initial state and redirect to products table
+        form.reset({
+          name: '',
+          description: '',
+          productType: '' as any,
+          price: undefined,
+          discountPrice: undefined,
+          category: '',
+          stock: undefined,
+          attributes: [],
+          variants: [],
+          sizes: [],
+          colors: [],
+          images: [],
+          isActive: true,
+        })
+        setCurrentStep(1) // Reset to first step
+        
+        // Redirect to products table after successful creation
+        setTimeout(() => {
       router.push('/merchant/products')
+        }, 500) // Small delay to show success message
+      }
     } catch (error: any) {
       // Reset submission flag on error
       isSubmittingRef.current = false
@@ -830,10 +945,10 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
               e.preventDefault()
               // On step 5, submit the form
               if (currentStep === 5) {
-                if (isSubmittingRef.current || loading) {
-                  return
-                }
-                form.handleSubmit(onSubmit, (errors) => {
+              if (isSubmittingRef.current || loading) {
+                return
+              }
+                form.handleSubmit(onSubmit as any, (errors) => {
                   logger.error('Form validation failed', { errors })
                   const errorMessages = Object.entries(errors).map(([key, error]) => {
                     if (error?.message) {
@@ -854,62 +969,63 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
             {currentStep === 1 && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold mb-4">المعلومات الأساسية</h3>
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>اسم المنتج *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="أدخل اسم المنتج" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>اسم المنتج *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="أدخل اسم المنتج" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
+              
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
                       <FormLabel>الوصف *</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="أدخل وصف المنتج"
-                          rows={4}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormControl>
+                    <Textarea
+                      placeholder="أدخل وصف المنتج"
+                      rows={4}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                <FormField
-                  control={form.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>الفئة *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر فئة" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categories.map((category) => (
-                            <SelectItem key={category._id} value={category._id}>
-                              {category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>الفئة *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر فئة" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category._id} value={category._id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
               </div>
             )}
 
@@ -917,30 +1033,38 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
             {currentStep === 2 && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold mb-4">اختر نوع المنتج</h3>
-                <FormField
-                  control={form.control}
-                  name="productType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>نوع المنتج *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر نوع المنتج" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="simple">منتج بسيط (سعر ومخزون واحد)</SelectItem>
-                          <SelectItem value="with_variants">منتج بمتغيرات (أحجام، ألوان، إلخ)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
+            <FormField
+              control={form.control}
+              name="productType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>نوع المنتج *</FormLabel>
+                      <Select 
+                        onValueChange={(value) => {
+                          // Update the field value
+                          field.onChange(value)
+                          // Trigger validation immediately
+                          form.trigger('productType')
+                        }} 
+                        value={field.value || ''}
+                      >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر نوع المنتج" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="simple">منتج بسيط (سعر ومخزون واحد)</SelectItem>
+                      <SelectItem value="with_variants">منتج بمتغيرات (أحجام، ألوان، إلخ)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
                       <p className="text-sm text-muted-foreground mt-2">
                         اختر &quot;منتج بسيط&quot; للمنتجات التي لها سعر ومخزون واحد، أو &quot;منتج بمتغيرات&quot; للمنتجات التي لها أحجام أو ألوان مختلفة.
                       </p>
-                    </FormItem>
-                  )}
-                />
+                </FormItem>
+              )}
+            />
               </div>
             )}
 
@@ -953,19 +1077,19 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                 
                 {productType === 'simple' ? (
                   <>
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="price"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>السعر *</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                placeholder="0.00"
-                                {...field}
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                        name="discountPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                            <FormLabel>السعر الأصلي (اختياري)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          {...field}
                                 value={field.value ?? ''}
                                 onChange={(e) => {
                                   const value = e.target.value
@@ -976,46 +1100,54 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                                     field.onChange(isNaN(numValue) ? undefined : numValue)
                                   }
                                 }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                      <FormField
-                        control={form.control}
-                        name="discountPrice"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>السعر الأصلي (اختياري)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                placeholder="0.00"
-                                {...field}
-                                onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
-                                value={field.value || ''}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                <FormField
+                  control={form.control}
+                        name="price"
+                  render={({ field }) => (
+                    <FormItem>
+                            <FormLabel>السعر *</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          {...field}
+                                value={field.value ?? ''}
+                                onChange={(e) => {
+                                  const value = e.target.value
+                                  if (value === '' || value === null || value === undefined) {
+                                    field.onChange(undefined)
+                                  } else {
+                                    const numValue = parseFloat(value)
+                                    field.onChange(isNaN(numValue) ? undefined : numValue)
+                                  }
+                                }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-                    <FormField
-                      control={form.control}
-                      name="stock"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>المخزون *</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="0"
-                              {...field}
+              <FormField
+                control={form.control}
+                name="stock"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>المخزون *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        {...field}
                               value={field.value ?? ''}
                               onChange={(e) => {
                                 const value = e.target.value
@@ -1026,47 +1158,47 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                                   field.onChange(isNaN(intValue) ? undefined : intValue)
                                 }
                               }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
                   </>
                 ) : (
-                  <div className="space-y-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>تعريف الخصائص</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <AttributeDefinitionManager
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>تعريف الخصائص</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <AttributeDefinitionManager
                           attributes={attributes || []}
                           onChange={(attrs) => {
                       form.setValue('attributes', attrs, { shouldValidate: false })
                     }}
-                        />
-                      </CardContent>
-                    </Card>
+                    />
+                  </CardContent>
+                </Card>
 
                     {attributes && attributes.length > 0 && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>المتغيرات</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <VariantManager
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>المتغيرات</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <VariantManager
                             attributes={attributes || []}
                             variants={(variants || []).map(v => ({
-                              ...v,
+                          ...v,
                               isActive: v.isActive !== false,
-                            }))}
+                        }))}
                             onChange={(vars) => {
                               form.setValue('variants', vars, { shouldValidate: false })
                             }}
-                          />
-                        </CardContent>
-                      </Card>
+                      />
+                    </CardContent>
+                  </Card>
                     )}
                   </div>
                 )}
@@ -1077,20 +1209,20 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
             {currentStep === 4 && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold mb-4">صور المنتج</h3>
-                <div>
-                  <Label className="mb-2 block">صور المنتج *</Label>
-                  <ImageUpload onUploadComplete={handleUploadDone} />
+            <div>
+              <Label className="mb-2 block">صور المنتج *</Label>
+              <ImageUpload onUploadComplete={handleUploadDone} />
                   {images && images.length > 0 && (
-                    <p className="text-sm text-muted-foreground mt-2">
+                <p className="text-sm text-muted-foreground mt-2">
                       تم رفع {images.length} صورة
-                    </p>
-                  )}
-                  {form.formState.errors.images && (
-                    <p className="text-sm font-medium text-destructive mt-1">
-                      {form.formState.errors.images.message}
-                    </p>
-                  )}
-                </div>
+                </p>
+              )}
+              {form.formState.errors.images && (
+                <p className="text-sm font-medium text-destructive mt-1">
+                  {form.formState.errors.images.message}
+                </p>
+              )}
+            </div>
               </div>
             )}
 
@@ -1143,9 +1275,9 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
             <div className="flex justify-between gap-4 pt-6 border-t">
               <div className="flex gap-2">
                 {currentStep > 1 && (
-                  <Button
-                    type="button"
-                    variant="outline"
+              <Button
+                type="button"
+                variant="outline"
                     onClick={goToPreviousStep}
                   >
                     <ChevronRight className="w-4 h-4 ml-2" />
@@ -1155,10 +1287,10 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => router.push('/merchant/products')}
-                >
-                  إلغاء
-                </Button>
+                onClick={() => router.push('/merchant/products')}
+              >
+                إلغاء
+              </Button>
               </div>
               
               <div className="flex gap-2">
