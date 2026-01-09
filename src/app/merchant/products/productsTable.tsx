@@ -120,34 +120,41 @@ function ProductDetailsDialog({ product }: { product: Product }) {
         )}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <h3 className="font-semibold mb-1">السعر</h3>
+            <h3 className="font-semibold mb-1">السعر الحالي</h3>
             <p className="text-muted-foreground">
               {(() => {
-                const validPrice = typeof product.price === 'number' && !isNaN(product.price) && isFinite(product.price) 
+                // price = original price, discountPrice = final selling price
+                const originalPrice = typeof product.price === 'number' && !isNaN(product.price) && isFinite(product.price) 
                   ? product.price 
                   : 0
+                const finalPrice = typeof product.discountPrice === 'number' && !isNaN(product.discountPrice) && isFinite(product.discountPrice) && product.discountPrice > 0
+                  ? product.discountPrice 
+                  : originalPrice
                 return new Intl.NumberFormat("ar-SD", {
                   style: "currency",
                   currency: "SDG",
-                }).format(validPrice)
+                }).format(finalPrice)
               })()}
             </p>
           </div>
           {(() => {
-            const validDiscountPrice = typeof product.discountPrice === 'number' && !isNaN(product.discountPrice) && isFinite(product.discountPrice) 
-              ? product.discountPrice 
-              : 0
-            const validPrice = typeof product.price === 'number' && !isNaN(product.price) && isFinite(product.price) 
+            // price = original price, discountPrice = final selling price
+            const originalPrice = typeof product.price === 'number' && !isNaN(product.price) && isFinite(product.price) 
               ? product.price 
               : 0
-            return validDiscountPrice > validPrice && validDiscountPrice > 0 ? (
+            const finalPrice = typeof product.discountPrice === 'number' && !isNaN(product.discountPrice) && isFinite(product.discountPrice) && product.discountPrice > 0
+              ? product.discountPrice 
+              : originalPrice
+            // Show original price (strikethrough) if there's a discount
+            const hasDiscount = finalPrice < originalPrice && product.discountPrice && product.discountPrice > 0
+            return hasDiscount ? (
               <div>
-                <h3 className="font-semibold mb-1">السعر قبل الخصم</h3>
+                <h3 className="font-semibold mb-1">السعر الأصلي</h3>
                 <p className="text-muted-foreground line-through">
                   {new Intl.NumberFormat("ar-SD", {
                     style: "currency",
                     currency: "SDG",
-                  }).format(validDiscountPrice)}
+                  }).format(originalPrice)}
                 </p>
               </div>
             ) : null
@@ -358,34 +365,42 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
         )
       },
       cell: ({ row }) => {
+        // price = original price, discountPrice = final selling price
         const priceValue = row.getValue("price")
-        const price = typeof priceValue === 'number' && !isNaN(priceValue) ? priceValue : (typeof priceValue === 'string' ? parseFloat(priceValue) : 0)
-        const validPrice = !isNaN(price) && isFinite(price) ? price : 0
+        const discountPriceValue = row.getValue("discountPrice")
+        const originalPrice = typeof priceValue === 'number' && !isNaN(priceValue) ? priceValue : (typeof priceValue === 'string' ? parseFloat(priceValue) : 0)
+        const finalPrice = typeof discountPriceValue === 'number' && !isNaN(discountPriceValue) && discountPriceValue > 0
+          ? discountPriceValue
+          : originalPrice
+        const validFinalPrice = !isNaN(finalPrice) && isFinite(finalPrice) ? finalPrice : 0
         const formatted = new Intl.NumberFormat("ar-SD", {
           style: "currency",
           currency: "SDG",
-        }).format(validPrice)
+        }).format(validFinalPrice)
         return <div className="text-right font-medium">{formatted}</div>
       },
     },
     {
       accessorKey: "discountPrice",
-      header: () => <div className="text-right">السعر قبل الخصم</div>,
+      header: () => <div className="text-right">السعر الأصلي</div>,
       cell: ({ row }) => {
-        const discountPriceValue = row.getValue("discountPrice")
+        // price = original price, discountPrice = final selling price
         const priceValue = row.getValue("price")
+        const discountPriceValue = row.getValue("discountPrice")
         
-        const originalPrice = typeof discountPriceValue === 'number' && !isNaN(discountPriceValue) 
-          ? discountPriceValue 
-          : (typeof discountPriceValue === 'string' ? parseFloat(discountPriceValue) : 0)
-        const validOriginalPrice = !isNaN(originalPrice) && isFinite(originalPrice) ? originalPrice : 0
-        
-        const currentPrice = typeof priceValue === 'number' && !isNaN(priceValue) 
+        const originalPrice = typeof priceValue === 'number' && !isNaN(priceValue) 
           ? priceValue 
           : (typeof priceValue === 'string' ? parseFloat(priceValue) : 0)
-        const validCurrentPrice = !isNaN(currentPrice) && isFinite(currentPrice) ? currentPrice : 0
+        const validOriginalPrice = !isNaN(originalPrice) && isFinite(originalPrice) ? originalPrice : 0
         
-        if (validOriginalPrice > validCurrentPrice && validOriginalPrice > 0) {
+        const finalPrice = typeof discountPriceValue === 'number' && !isNaN(discountPriceValue) && discountPriceValue > 0
+          ? discountPriceValue
+          : originalPrice
+        const validFinalPrice = !isNaN(finalPrice) && isFinite(finalPrice) ? finalPrice : 0
+        
+        // Show original price (strikethrough) if there's a discount
+        const hasDiscount = validFinalPrice < validOriginalPrice && discountPriceValue && typeof discountPriceValue === 'number' && discountPriceValue > 0
+        if (hasDiscount) {
           const formatted = new Intl.NumberFormat("ar-SD", {
             style: "currency",
             currency: "SDG",
@@ -638,7 +653,7 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
       : safeProductsData
 
     const csv = [
-      ['اسم المنتج', 'السعر', 'السعر قبل الخصم', 'المخزون', 'الحالة', 'التصنيف', 'تاريخ الإنشاء'].map(escapeCsvField).join(','),
+      ['اسم المنتج', 'السعر الحالي', 'السعر الأصلي', 'المخزون', 'الحالة', 'التصنيف', 'تاريخ الإنشاء'].map(escapeCsvField).join(','),
       ...dataToExport.map(product => [
         product.name,
         product.price,
@@ -785,7 +800,7 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
                        column.id === "images" ? "الصورة" :
                        column.id === "category" ? "التصنيف" :
                        column.id === "price" ? "السعر" : 
-                       column.id === "discountPrice" ? "السعر قبل الخصم" :
+                       column.id === "discountPrice" ? "السعر الأصلي" :
                        column.id === "stock" ? "المخزون" : 
                        column.id === "isActive" ? "الحالة" : 
                        column.id}

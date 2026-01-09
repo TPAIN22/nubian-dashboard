@@ -1135,12 +1135,12 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                         name="discountPrice"
                   render={({ field }) => (
                     <FormItem>
-                            <FormLabel>السعر الأصلي (اختياري)</FormLabel>
+                            <FormLabel>السعر النهائي (اختياري)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
                           step="0.01"
-                          placeholder="0.00"
+                          placeholder="السعر بعد الخصم"
                           {...field}
                                 value={field.value ?? ''}
                                 onChange={(e) => {
@@ -1166,7 +1166,7 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                         name="price"
                   render={({ field }) => (
                     <FormItem>
-                            <FormLabel>السعر *</FormLabel>
+                            <FormLabel>السعر الأصلي *</FormLabel>
                       <FormControl>
                         <Input
                           type="number"

@@ -287,22 +287,30 @@ function ProductCard({ product }: { product: Product }) {
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-primary">
                   {(() => {
-                    const validPrice = typeof product.price === 'number' && !isNaN(product.price) && isFinite(product.price) ? product.price : 0;
+                    // price = original price, discountPrice = final selling price
+                    const originalPrice = typeof product.price === 'number' && !isNaN(product.price) && isFinite(product.price) ? product.price : 0;
+                    const finalPrice = typeof product.discountPrice === 'number' && !isNaN(product.discountPrice) && isFinite(product.discountPrice) && product.discountPrice > 0
+                      ? product.discountPrice
+                      : originalPrice;
                     return new Intl.NumberFormat("ar-SA", {
                       style: "currency",
                       currency: "SDG",
-                    }).format(validPrice);
+                    }).format(finalPrice);
                   })()}
                 </span>
                 {(() => {
-                  const validPrice = typeof product.price === 'number' && !isNaN(product.price) && isFinite(product.price) ? product.price : 0;
-                  const validDiscountPrice = typeof product.discountPrice === 'number' && !isNaN(product.discountPrice) && isFinite(product.discountPrice) ? product.discountPrice : 0;
-                  return validDiscountPrice > validPrice && validDiscountPrice > 0 ? (
+                  // price = original price, discountPrice = final selling price
+                  const originalPrice = typeof product.price === 'number' && !isNaN(product.price) && isFinite(product.price) ? product.price : 0;
+                  const finalPrice = typeof product.discountPrice === 'number' && !isNaN(product.discountPrice) && isFinite(product.discountPrice) && product.discountPrice > 0
+                    ? product.discountPrice
+                    : originalPrice;
+                  const hasDiscount = finalPrice < originalPrice && product.discountPrice && product.discountPrice > 0;
+                  return hasDiscount ? (
                     <span className="text-xs text-muted-foreground line-through">
                       {new Intl.NumberFormat("ar-SA", {
                         style: "currency",
                         currency: "SDG",
-                      }).format(validDiscountPrice)}
+                      }).format(originalPrice)}
                     </span>
                   ) : null;
                 })()}

@@ -61,11 +61,14 @@ export function ProductDetailsDialog({ product }: ProductDetailsDialogProps) {
     }).format(amount);
   };
 
-  const validPrice = typeof product.price === 'number' && !isNaN(product.price) && isFinite(product.price) ? product.price : 0;
-  const validDiscountPrice = typeof product.discountPrice === 'number' && !isNaN(product.discountPrice) && isFinite(product.discountPrice) ? product.discountPrice : 0;
-  const hasDiscount = validDiscountPrice > 0 && validDiscountPrice > validPrice;
+  // price = original price, discountPrice = final selling price
+  const originalPrice = typeof product.price === 'number' && !isNaN(product.price) && isFinite(product.price) ? product.price : 0;
+  const finalPrice = typeof product.discountPrice === 'number' && !isNaN(product.discountPrice) && isFinite(product.discountPrice) && product.discountPrice > 0
+    ? product.discountPrice 
+    : originalPrice;
+  const hasDiscount = finalPrice < originalPrice && product.discountPrice && product.discountPrice > 0;
   const discountPercentage = hasDiscount
-    ? Math.round(((validDiscountPrice - validPrice) / validDiscountPrice) * 100)
+    ? Math.round(((originalPrice - finalPrice) / originalPrice) * 100)
     : 0;
 
   const validImages = product.images?.filter((_, index) => !imageErrors.has(index)) || [];
@@ -156,7 +159,7 @@ export function ProductDetailsDialog({ product }: ProductDetailsDialogProps) {
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">السعر الحالي</p>
                   <p className="text-2xl font-bold text-primary">
-                    {formatCurrency(validPrice)}
+                    {formatCurrency(finalPrice)}
                   </p>
                 </div>
                 
@@ -166,7 +169,7 @@ export function ProductDetailsDialog({ product }: ProductDetailsDialogProps) {
                     <div>
                       <p className="text-sm font-medium text-muted-foreground mb-1">السعر الأصلي</p>
                       <p className="text-lg line-through text-muted-foreground">
-                        {formatCurrency(validDiscountPrice)}
+                        {formatCurrency(originalPrice)}
                       </p>
                       <Badge className="mt-2 bg-red-100 text-red-800">
                         خصم {discountPercentage}%

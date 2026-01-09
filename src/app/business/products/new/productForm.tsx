@@ -287,12 +287,12 @@ export default function ProductForm() {
                     name="discountPrice"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className=" font-medium">السعر قبل الخصم</FormLabel>
+                        <FormLabel className=" font-medium">السعر النهائي (اختياري)</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 " />
                             <Input
-                              placeholder="السعر الأصلي"
+                              placeholder="السعر بعد الخصم"
                               type="number"
                               className="h-12 pl-10 border-2"
                               onChange={(e) => {
@@ -313,7 +313,7 @@ export default function ProductForm() {
                     name="price"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="">السعر النهائي *</FormLabel>
+                        <FormLabel className="">السعر الأصلي *</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" />
