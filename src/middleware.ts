@@ -201,7 +201,8 @@ export default clerkMiddleware(async (auth, req) => {
       }
       
       // Not an admin - log and redirect appropriately
-      if (role && role !== 'admin') {
+      // TypeScript: role can be 'merchant' | undefined at this point
+      if (role) {
         console.warn('[Middleware] Non-admin accessing admin route:', { 
           userId, 
           pathname, 
@@ -272,7 +273,8 @@ export default clerkMiddleware(async (auth, req) => {
       }
       
       // If we have a role but it's not admin, redirect appropriately
-      if (role && role !== 'admin') {
+      // TypeScript: role can be 'merchant' | undefined at this point (already checked for 'admin' above)
+      if (role) {
         console.warn('[Middleware] Redirecting non-admin (error recovery):', { 
           userId, 
           pathname, 

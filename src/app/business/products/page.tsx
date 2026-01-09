@@ -109,8 +109,7 @@ export default function Page() {
     } finally {
       setLoading(false)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getToken]) // Include getToken in dependencies
+  }, [getToken])
 
   useEffect(() => {
     fetchProducts({
