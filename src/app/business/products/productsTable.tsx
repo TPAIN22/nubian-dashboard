@@ -15,7 +15,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, MoreHorizontal, Edit, Trash2, Eye, Download, RefreshCw, Power, PowerOff } from "lucide-react"
+import { ArrowUpDown, ChevronDown, MoreHorizontal, Edit, Trash2, Eye, Download, RefreshCw, Power, PowerOff, RotateCcw, AlertTriangle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@clerk/nextjs"
 import { axiosInstance } from '@/lib/axiosInstance'
@@ -78,6 +78,13 @@ export type Product = {
     _id: string;
     name: string;
   } | string;
+  merchant?: {
+    _id: string;
+    businessName: string;
+    businessEmail: string;
+    status?: string;
+  };
+  deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -216,6 +223,8 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
   const [bulkDeleting, setBulkDeleting] = React.useState(false)
   const [bulkToggling, setBulkToggling] = React.useState(false)
   const [refreshing, setRefreshing] = React.useState(false)
+  const [restoringId, setRestoringId] = React.useState<string | null>(null)
+  const [hardDeletingId, setHardDeletingId] = React.useState<string | null>(null)
 
   const tokenGetter = getToken || clerkGetToken
 
@@ -260,7 +269,8 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
         return
       }
       
-      await axiosInstance.patch(`/products/${productId}`, {
+      // Use admin endpoint for toggle active
+      await axiosInstance.patch(`/products/admin/${productId}/toggle-active`, {
         isActive: !currentStatus
       }, {
         headers: {
@@ -274,9 +284,67 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
         window.location.reload()
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'فشل تحديث حالة المنتج')
+      toast.error(error.response?.data?.message || error.response?.data?.error?.message || 'فشل تحديث حالة المنتج')
     } finally {
       setTogglingId(null)
+    }
+  }
+
+  const handleRestore = async (productId: string) => {
+    setRestoringId(productId)
+    try {
+      const token = await tokenGetter()
+      
+      if (!token) {
+        toast.error('فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.')
+        setRestoringId(null)
+        return
+      }
+      
+      await axiosInstance.patch(`/products/admin/${productId}/restore`, {}, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      toast.success('تم استعادة المنتج بنجاح')
+      if (onProductUpdate) {
+        await onProductUpdate()
+      } else {
+        window.location.reload()
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || error.response?.data?.error?.message || 'فشل استعادة المنتج')
+    } finally {
+      setRestoringId(null)
+    }
+  }
+
+  const handleHardDelete = async (productId: string, productName: string) => {
+    setHardDeletingId(productId)
+    try {
+      const token = await tokenGetter()
+      
+      if (!token) {
+        toast.error('فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.')
+        setHardDeletingId(null)
+        return
+      }
+      
+      await axiosInstance.delete(`/products/admin/${productId}/hard-delete`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      toast.success('تم حذف المنتج نهائياً')
+      if (onProductUpdate) {
+        await onProductUpdate()
+      } else {
+        window.location.reload()
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || error.response?.data?.error?.message || 'فشل حذف المنتج')
+    } finally {
+      setHardDeletingId(null)
     }
   }
 
@@ -355,6 +423,27 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
           categoryName = category || 'غير محدد'
         }
         return <div>{categoryName}</div>
+      },
+    },
+    {
+      accessorKey: "merchant",
+      header: "التاجر",
+      cell: ({ row }) => {
+        const merchant = row.getValue("merchant") as Product['merchant']
+        if (typeof merchant === 'object' && merchant !== null && 'businessName' in merchant) {
+          const merchantObj = merchant as { businessName: string; status?: string }
+          return (
+            <div className="flex flex-col">
+              <div className="font-medium">{merchantObj.businessName}</div>
+              {merchantObj.status && (
+                <Badge variant={merchantObj.status === 'APPROVED' ? 'default' : 'secondary'} className="text-xs mt-1">
+                  {merchantObj.status === 'APPROVED' ? 'موافق' : merchantObj.status}
+                </Badge>
+              )}
+            </div>
+          )
+        }
+        return <div className="text-muted-foreground">عام</div>
       },
     },
     {
@@ -452,16 +541,23 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
       cell: ({ row }) => {
         const product = row.original
         const isActive = row.getValue("isActive") as boolean
+        const isDeleted = !!product.deletedAt
         return (
           <div className="flex items-center gap-2">
-            <Badge variant={isActive ? "default" : "secondary"}>
-              {isActive ? "نشط" : "غير نشط"}
-            </Badge>
-            <Switch
-              checked={isActive}
-              onCheckedChange={() => handleToggleActive(product._id, isActive)}
-              disabled={togglingId === product._id}
-            />
+            {isDeleted ? (
+              <Badge variant="destructive">محذوف</Badge>
+            ) : (
+              <>
+                <Badge variant={isActive ? "default" : "secondary"}>
+                  {isActive ? "نشط" : "غير نشط"}
+                </Badge>
+                <Switch
+                  checked={isActive}
+                  onCheckedChange={() => handleToggleActive(product._id, isActive)}
+                  disabled={togglingId === product._id}
+                />
+              </>
+            )}
           </div>
         )
       },
@@ -497,39 +593,83 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
                 نسخ معرف المنتج
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push(`/business/products/${product._id}/edit`)}>
-                <Edit className="mr-2 h-4 w-4" />
-                تعديل المنتج
-              </DropdownMenuItem>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <DropdownMenuItem
-                    onSelect={(e) => e.preventDefault()}
-                    className="text-red-600"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    حذف المنتج
+              {!product.deletedAt && (
+                <>
+                  <DropdownMenuItem onClick={() => router.push(`/business/products/${product._id}/edit`)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    تعديل المنتج
                   </DropdownMenuItem>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      سيتم حذف المنتج &quot;{product.name}&quot; نهائياً. لا يمكن التراجع عن هذا الإجراء.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => handleDelete(product._id)}
-                      disabled={deletingId === product._id}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      {deletingId === product._id ? 'جاري الحذف...' : 'حذف'}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <DropdownMenuItem
+                        onSelect={(e) => e.preventDefault()}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        حذف المنتج (حذف مؤقت)
+                      </DropdownMenuItem>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          سيتم حذف المنتج &quot;{product.name}&quot; مؤقتاً (حذف ناعم). يمكن استعادته لاحقاً.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(product._id)}
+                          disabled={deletingId === product._id}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          {deletingId === product._id ? 'جاري الحذف...' : 'حذف'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
+              )}
+              {product.deletedAt && (
+                <>
+                  <DropdownMenuItem
+                    onClick={() => handleRestore(product._id)}
+                    disabled={restoringId === product._id}
+                  >
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    {restoringId === product._id ? 'جارٍ الاستعادة...' : 'استعادة المنتج'}
+                  </DropdownMenuItem>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <DropdownMenuItem
+                        onSelect={(e) => e.preventDefault()}
+                        className="text-red-600"
+                      >
+                        <AlertTriangle className="mr-2 h-4 w-4" />
+                        حذف نهائي
+                      </DropdownMenuItem>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>تحذير: حذف نهائي</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          سيتم حذف المنتج &quot;{product.name}&quot; نهائياً من قاعدة البيانات. لا يمكن التراجع عن هذا الإجراء.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleHardDelete(product._id, product.name)}
+                          disabled={hardDeletingId === product._id}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          {hardDeletingId === product._id ? 'جاري الحذف...' : 'حذف نهائي'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )
@@ -616,15 +756,17 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
         return
       }
 
-      const togglePromises = selectedRows.map(row => 
-        axiosInstance.patch(`/products/${row.original._id}`, {
-          isActive: activate
-        }, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-      )
+      const togglePromises = selectedRows
+        .filter(row => !row.original.deletedAt) // Only toggle non-deleted products
+        .map(row => 
+          axiosInstance.patch(`/products/admin/${row.original._id}/toggle-active`, {
+            isActive: activate
+          }, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          })
+        )
 
       await Promise.all(togglePromises)
       toast.success(`تم ${activate ? 'تفعيل' : 'إلغاء تفعيل'} ${selectedRows.length} منتج بنجاح`)
