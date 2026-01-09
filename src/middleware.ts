@@ -162,9 +162,29 @@ export default clerkMiddleware(async (auth, req) => {
       // Try to get role from sessionClaims first (faster, no API call)
       let role = (sessionClaims?.publicMetadata as ClerkPublicMetadata)?.role
       
-      // If role not in sessionClaims, fetch from Clerk API
+      // Log for debugging
+      console.log('[Middleware] Admin route check:', { 
+        pathname, 
+        userId, 
+        roleFromSession: role,
+        hasSessionClaims: !!sessionClaims 
+      })
+      
+      // If role not in sessionClaims, try to fetch from Clerk API
+      // But only if we really need it - if role is undefined, we'll allow through
       if (role === undefined) {
-        role = await getUserRole()
+        try {
+          role = await getUserRole()
+          console.log('[Middleware] Role fetched from API:', { role, userId, pathname })
+        } catch (fetchError) {
+          // If fetch fails, use undefined (will allow through)
+          console.warn('[Middleware] Failed to fetch role, allowing through:', { 
+            error: (fetchError as Error).message,
+            userId,
+            pathname 
+          })
+          role = undefined
+        }
       }
       
       debugLog('Admin route access check', { userId, role, pathname })
@@ -173,6 +193,7 @@ export default clerkMiddleware(async (auth, req) => {
       // Backend uses strict !== (not case-insensitive)
       if (role === 'admin') {
         // Admin access granted
+        console.log('[Middleware] Admin access granted:', { userId, pathname })
         const response = NextResponse.next()
         response.headers.set('x-user-role', 'admin')
         response.headers.set('x-auth-checked', 'true')
@@ -180,7 +201,14 @@ export default clerkMiddleware(async (auth, req) => {
       }
       
       // Not an admin - log and redirect appropriately
-      if (role) {
+      if (role && role !== 'admin') {
+        console.warn('[Middleware] Non-admin accessing admin route:', { 
+          userId, 
+          pathname, 
+          role,
+          redirectTo: role === 'merchant' ? '/merchant/dashboard' : '/'
+        })
+        
         logSecurityEvent('Unauthorized admin access attempt', {
           userId,
           pathname,
@@ -188,15 +216,21 @@ export default clerkMiddleware(async (auth, req) => {
         })
         
         // Redirect non-admins away from admin routes to their appropriate dashboard
-        // Only redirect merchants to merchant dashboard, others to home
+        // Merchants go to merchant dashboard, others to home
         const response = redirectByRole(role, req)
         response.headers.set('x-redirect-reason', 'not-admin')
         return response
       }
       
-      // Role is undefined - might be a timing issue
-      // Allow through and let the page handle authentication
-      // This prevents redirect loops when role check is slow
+      // Role is undefined - might be a timing issue or not set yet
+      // IMPORTANT: Allow through and let the page handle authentication
+      // This prevents redirect loops when role check is slow or role not set
+      console.warn('[Middleware] Undefined role on admin route - allowing through:', { 
+        userId, 
+        pathname,
+        note: 'Page will verify role client-side'
+      })
+      
       logSecurityEvent('Undefined role on admin access', {
         userId,
         pathname,
@@ -209,6 +243,12 @@ export default clerkMiddleware(async (auth, req) => {
       return response
       
     } catch (error: any) {
+      console.error('[Middleware] Admin route check error:', { 
+        userId, 
+        pathname, 
+        error: error.message 
+      })
+      
       logSecurityEvent('Admin route check failed', {
         userId,
         pathname,
@@ -220,6 +260,10 @@ export default clerkMiddleware(async (auth, req) => {
       
       if (role === 'admin') {
         // Even on error, if sessionClaims shows admin, allow access
+        console.log('[Middleware] Admin access granted from sessionClaims (error recovery):', { 
+          userId, 
+          pathname 
+        })
         const response = NextResponse.next()
         response.headers.set('x-user-role', 'admin')
         response.headers.set('x-auth-checked', 'true')
@@ -227,13 +271,24 @@ export default clerkMiddleware(async (auth, req) => {
         return response
       }
       
-      if (role) {
-        // Redirect to appropriate dashboard based on role from sessionClaims
+      // If we have a role but it's not admin, redirect appropriately
+      if (role && role !== 'admin') {
+        console.warn('[Middleware] Redirecting non-admin (error recovery):', { 
+          userId, 
+          pathname, 
+          role 
+        })
         return redirectByRole(role, req)
       }
       
       // No role available - allow through and let page handle it
       // This prevents redirect loops when there are temporary API issues
+      console.warn('[Middleware] No role available on error - allowing through:', { 
+        userId, 
+        pathname,
+        note: 'Page will verify role client-side'
+      })
+      
       const response = NextResponse.next()
       response.headers.set('x-auth-checked', 'true')
       response.headers.set('x-role-check-failed', 'true')

@@ -159,14 +159,14 @@ export default function Page() {
         <div className='min-w-[150px]'>
           <Label htmlFor='isActive'>الحالة</Label>
           <Select
-            value={filters.isActive}
-            onValueChange={(value) => handleFilterChange('isActive', value)}
+            value={filters.isActive || 'all'}
+            onValueChange={(value) => handleFilterChange('isActive', value === 'all' ? '' : value)}
           >
             <SelectTrigger id='isActive' className='mt-1'>
               <SelectValue placeholder='الكل' />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value=''>الكل</SelectItem>
+              <SelectItem value='all'>الكل</SelectItem>
               <SelectItem value='true'>نشط</SelectItem>
               <SelectItem value='false'>غير نشط</SelectItem>
             </SelectContent>

@@ -1,572 +1,1281 @@
-'use client';
+'use client'
 
-import { useCallback, useState, useEffect } from "react";
-import { toast } from "sonner";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
-
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth, useUser } from '@clerk/nextjs'
+import { useForm, useWatch } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+import { toast } from 'sonner'
+import { axiosInstance } from '@/lib/axiosInstance'
+import logger from '@/lib/logger'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  MultiSelector,
-  MultiSelectorContent,
-  MultiSelectorInput,
-  MultiSelectorItem,
-  MultiSelectorList,
-  MultiSelectorTrigger,
-} from "@/components/ui/multi-select";
-import ImageUpload from "@/components/imageUpload";
-import { axiosInstance } from "@/lib/axiosInstance";
-import { useAuth } from "@clerk/nextjs";
-import { Package, Store, FileText, DollarSign, Tag, Hash, Ruler } from "lucide-react";
-
+  FormDescription,
+} from '@/components/ui/form'
 import {
   Select,
   SelectContent,
   SelectItem,
-  SelectTrigger,  
+  SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-
-
-// --- قاموس الترجمة لأسماء التصنيفات ---
-const categoryNameTranslations: { [key: string]: string } = {
-  'Sports & Outdoors': 'الرياضة والأنشطة الخارجية',
-  'Beauty & Personal Care': 'الجمال والعناية الشخصية',
-  'Fashion': 'الأزياء',
-  'Books': 'الكتب',
-  'Home & Kitchen': 'المنزل والمطبخ',
-  'Electronics': 'الإلكترونيات',
-  // أضف أي تصنيفات أخرى هنا إذا كانت لديك
-};
-
+} from '@/components/ui/select'
+import ImageUpload from '@/components/imageUpload'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Stepper } from '@/components/ui/stepper'
+import { AttributeDefinitionManager } from '@/components/product/AttributeDefinitionManager'
+import { VariantManager } from '@/components/product/VariantManager'
+import { ProductAttribute, ProductVariant } from '@/types/product.types'
+import { ChevronRight, ChevronLeft, Package, Store } from 'lucide-react'
 
 const formSchema = z.object({
-  name: z.string().min(1, "اسم المنتج مطلوب"),
-  brand: z.string().min(1, "اسم المتجر مطلوب"),
-  description: z.string().optional(),
-  discountPrice: z.union([z.number().min(0, "السعر بعد الخصم يجب أن يكون رقما موجبا").optional(), z.literal(NaN).optional()]),
-  price: z.number().min(0, "السعر يجب أن يكون رقما موجبا"),
-  category: z.string().min(1, "التصنيف مطلوب"),
-  stock: z.string().min(1, "الكمية المتوفرة مطلوبة"),
+  name: z.string().min(1, 'اسم المنتج مطلوب'),
+  description: z.string().min(1, 'الوصف مطلوب'), // Model requires description
+  category: z.string().min(1, 'الفئة مطلوبة'),
+  images: z.array(z.string()).min(1, 'صورة واحدة على الأقل مطلوبة'),
+  
+  // Product type: 'simple' or 'with_variants' - required but can start empty
+  productType: z.string().refine((val) => val === '' || val === 'simple' || val === 'with_variants', {
+    message: 'نوع المنتج يجب أن يكون بسيط أو بمتغيرات',
+  }),
+  
+  // For simple products
+  price: z.number().min(0.01, 'السعر يجب أن يكون أكبر من 0').optional().or(z.undefined()),
+  discountPrice: z.number().min(0, 'السعر بعد الخصم لا يمكن أن يكون سالباً').optional().or(z.undefined()),
+  stock: z.number().int().min(0, 'المخزون لا يمكن أن يكون سالباً').optional().or(z.undefined()),
+  
+  // For variant-based products
+  attributes: z.array(z.object({
+    name: z.string().min(1),
+    displayName: z.string().min(1),
+    type: z.enum(['select', 'text', 'number']),
+    required: z.boolean(),
+    options: z.array(z.string()).optional(),
+  })).optional(),
+  
+  variants: z.array(z.object({
+    sku: z.string().min(1),
+    attributes: z.record(z.string()),
+    price: z.number().min(0.01),
+    discountPrice: z.number().min(0).optional(),
+    stock: z.number().int().min(0),
+    images: z.array(z.string()).optional(),
+    isActive: z.boolean(),
+  })).optional(),
+  
+  // Legacy fields (for backward compatibility)
   sizes: z.array(z.string()).optional(),
-  images: z.array(z.string()).min(1, "الصورة مطلوبة").max(5, "الحد الأقصى 5 صور"),
-});
+  colors: z.array(z.string()).optional(),
+  
+  // Admin-specific: merchant selection (optional - can be null for general products)
+  merchant: z.string().optional(),
+  
+  isActive: z.boolean().optional(),
+}).superRefine((data, ctx) => {
+  // Validate productType
+  const productType = data.productType as string
+  if (!productType || (productType !== 'simple' && productType !== 'with_variants')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'نوع المنتج مطلوب',
+      path: ['productType'],
+    })
+  }
+  
+  // Validate price and discountPrice relationship for simple products
+  if (productType === 'simple') {
+    const price = data.price
+    const discountPrice = data.discountPrice
+    
+    // If both prices are provided, discountPrice should be less than or equal to price
+    if (price !== undefined && discountPrice !== undefined && discountPrice > price) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'السعر المخفض يجب أن يكون أقل من أو يساوي السعر الأصلي',
+        path: ['discountPrice'],
+      })
+    }
+  }
+  
+  // Validate price and discountPrice relationship for variants
+  if (data.variants && Array.isArray(data.variants)) {
+    data.variants.forEach((variant, index) => {
+      const variantPrice = variant.price
+      const variantDiscountPrice = variant.discountPrice
+      
+      if (variantPrice !== undefined && variantDiscountPrice !== undefined && variantDiscountPrice > variantPrice) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'السعر المخفض يجب أن يكون أقل من أو يساوي السعر الأصلي',
+          path: ['variants', index, 'discountPrice'],
+        })
+      }
+    })
+  }
+})
 
 interface Category {
-  _id: string;
-  name: string;
+  _id: string
+  name: string
+}
+
+interface Merchant {
+  _id: string
+  businessName: string
+  businessEmail: string
+  status: string
 }
 
 export default function ProductForm() {
-  const { user, isLoaded: userLoaded } = useUser();
-  const router = useRouter();
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      brand: "",
-      description: "",
-      discountPrice: undefined,
-      price: 0,
-      category: "",
-      stock: "",
-      sizes: [],
-      images: [],
-    },
-  });
+  const router = useRouter()
+  const { getToken } = useAuth()
+  const { user, isLoaded: userLoaded } = useUser()
+  const [categories, setCategories] = useState<Category[]>([])
+  const [merchants, setMerchants] = useState<Merchant[]>([])
+  const [loading, setLoading] = useState(false)
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
+  const [merchantsLoading, setMerchantsLoading] = useState(true)
+  const isSubmittingRef = useRef(false) // Prevent double submission
+  const [currentStep, setCurrentStep] = useState(1)
+  const maxStep = 5 // Total number of steps
 
-  const { getToken } = useAuth();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+  // Initialize form FIRST - must be before any hooks that reference it
+  const form = useForm<z.infer<typeof formSchema>>({
+    // @ts-expect-error - react-hook-form type inference issue with zod union types
+    resolver: zodResolver(formSchema),
+    mode: 'onBlur', // Validate on blur for better performance
+    defaultValues: {
+      name: '',
+      description: '',
+      productType: '' as any, // Empty string initially, will be validated when user selects
+      price: undefined,
+      discountPrice: undefined,
+      category: '',
+      stock: undefined,
+      attributes: [],
+      variants: [],
+      sizes: [],
+      colors: [],
+      images: [],
+      merchant: '',
+      isActive: true,
+    },
+  })
+
+  // Watch form values efficiently - only watch what we need
+  const productType = useWatch({ control: form.control, name: 'productType' })
+  const attributes = useWatch({ control: form.control, name: 'attributes' })
+  const variants = useWatch({ control: form.control, name: 'variants' })
+  const images = useWatch({ control: form.control, name: 'images' })
 
   // Verify admin role on component mount
   useEffect(() => {
-    if (userLoaded && user) {
-      const userRole = user.publicMetadata?.role as string | undefined;
-      console.log('Product Form - User role check:', { userRole, userId: user.id });
-      
-      // If user is not admin or merchant, don't allow access
-      // But admins should always be allowed
-      if (userRole !== 'admin' && userRole !== 'merchant') {
-        console.warn('Product Form - User is not admin or merchant, redirecting to dashboard');
-        router.replace('/business/dashboard');
-      }
-      // Admins are always allowed, no need to redirect
+    if (!userLoaded) {
+      console.log('[ProductForm] Waiting for user to load...')
+      return
     }
-  }, [userLoaded, user, router]);
+    
+    if (!user) {
+      console.warn('[ProductForm] No user found, redirecting to sign-in')
+      router.replace('/sign-in')
+      return
+    }
+    
+    const userRole = user.publicMetadata?.role as string | undefined
+    console.log('[ProductForm] User role check:', { 
+      userRole, 
+      userId: user.id,
+      publicMetadata: user.publicMetadata 
+    })
+    
+    // Admins should always be allowed
+    if (userRole === 'admin') {
+      console.log('[ProductForm] Admin access confirmed - allowing access')
+      return
+    }
+    
+    // Merchants should also be allowed (they can create products too)
+    if (userRole === 'merchant') {
+      console.log('[ProductForm] Merchant access confirmed - allowing access')
+      return
+    }
+    
+    // If user is not admin or merchant, don't allow access
+    console.warn('[ProductForm] User is not admin or merchant, redirecting to dashboard:', {
+      userRole,
+      userId: user.id
+    })
+    router.replace('/business/dashboard')
+  }, [userLoaded, user, router])
 
+  // Fetch categories and merchants
   useEffect(() => {
     const fetchCategories = async () => {
-      setCategoriesLoading(true);
-      setCategoriesError(null);
+      setCategoriesLoading(true)
       try {
-        const token = await getToken();
+        const token = await getToken()
         if (!token) {
-          throw new Error("Authentication token not available.");
+          throw new Error('Authentication token not available')
         }
-        const res = await axiosInstance.get("/categories", {
+        const res = await axiosInstance.get('/categories', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        });
-        setCategories(res.data);
-      } catch (err) {
-        setCategoriesError("فشل في تحميل التصنيفات. الرجاء المحاولة مرة أخرى.");
-        toast.error("فشل في تحميل التصنيفات.");
+        })
+        setCategories(res.data || [])
+      } catch (error) {
+        logger.error('Failed to fetch categories', { error: error instanceof Error ? error.message : String(error) })
+        toast.error('فشل تحميل التصنيفات')
       } finally {
-        setCategoriesLoading(false);
+        setCategoriesLoading(false)
       }
-    };
-    fetchCategories();
-  }, [getToken]);
+    }
 
-
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    try {
-      if (!values.images || values.images.length < 1) {
-        toast.error("الرجاء رفع صورة واحدة على الأقل.");
-        return;
-      }
-      if (values.images.length > 5) {
-        toast.error("لا يمكن رفع أكثر من 5 صور.");
-        return;
-      }
-
-      const token = await getToken();
-      if (!token) {
-        throw new Error("User is not authenticated");
-      }
-
-      const dataToSend = {
-        name: values.name,
-        description: values.description || "",
-        discountPrice: isNaN(values.discountPrice as number) ? undefined : values.discountPrice,
-        price: isNaN(values.price) ? 0 : values.price,
-        category: values.category,
-        stock: parseInt(values.stock) || 0,
-        sizes: values.sizes || [],
-        images: values.images,
-        // Note: 'brand' field is not sent - it's not part of the product model
-        // Admin can set merchant field explicitly if needed, or leave null
-      };
-
-      console.log('Creating product with data:', {
-        ...dataToSend,
-        imagesCount: dataToSend.images?.length,
-      });
-
-      const response = await axiosInstance.post("/products", dataToSend, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      
-      console.log('Product creation response:', response.data);
-      toast.success("تم إنشاء المنتج بنجاح");
-      form.reset();
-      
-      // Redirect to products list after successful creation
-      setTimeout(() => {
-        window.location.href = '/business/products';
-      }, 1500);
-    } catch (error: any) {
-      console.error('Product creation error:', error);
-      
-      // Extract detailed error message
-      let errorMessage = "خطأ غير معروف";
-      if (error.response) {
-        // Backend responded with error
-        const errorData = error.response.data;
-        errorMessage = errorData?.message || 
-                       errorData?.error?.message || 
-                       errorData?.error || 
-                       `خطأ من السيرفر (${error.response.status})`;
-        
-        // Log detailed error for debugging
-        console.error('Backend error response:', {
-          status: error.response.status,
-          data: errorData,
-        });
-      } else if (error.request) {
-        errorMessage = "لا يمكن الاتصال بالسيرفر. يرجى التحقق من الاتصال بالإنترنت.";
-      } else {
-        errorMessage = error.message || "حدث خطأ أثناء إنشاء المنتج";
-      }
-      
-      // Check if error is merchant-related and should redirect
-      // Only redirect merchants, not admins
-      if (error.response?.data?.code === 'MERCHANT_NOT_FOUND' || 
-          error.response?.data?.code === 'MERCHANT_NOT_APPROVED') {
-        const userRole = user?.publicMetadata?.role as string | undefined;
-        
-        // Only redirect if user is a merchant (not an admin)
-        if (userRole === 'merchant') {
-          console.warn('Merchant product creation failed - redirecting to apply');
-          router.push('/merchant/apply');
-          return;
+    const fetchMerchants = async () => {
+      setMerchantsLoading(true)
+      try {
+        const token = await getToken()
+        if (!token) {
+          return // Skip if no token
         }
-        
-        // If admin, don't redirect - just show error
-        console.error('Admin product creation failed with merchant error:', error.response?.data);
-        toast.error(`فشل إنشاء المنتج: ${errorMessage}`);
-      } else {
-        // For other errors, just show the error message
-        toast.error(`فشل إنشاء المنتج: ${errorMessage}`);
+        // Fetch approved merchants for admin selection
+        const res = await axiosInstance.get('/merchants', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          params: {
+            status: 'APPROVED',
+          },
+        })
+        // Handle different response formats
+        const merchantsData = res.data?.data || res.data?.merchants || res.data || []
+        setMerchants(Array.isArray(merchantsData) ? merchantsData : [])
+      } catch (error) {
+        logger.error('Failed to fetch merchants', { error: error instanceof Error ? error.message : String(error) })
+        // Don't show error toast - merchants are optional for admin
+      } finally {
+        setMerchantsLoading(false)
       }
+    }
+
+    fetchCategories()
+    fetchMerchants()
+  }, [getToken])
+
+  // Memoize step enabled check to avoid recalculation
+  const formErrors = form.formState.errors
+  const formValues = form.getValues()
+  
+  const stepStates = useMemo(() => {
+    const states = {
+      enabled: [true, false, false, false, false], // Step 1 always enabled
+      completed: [false, false, false, false, false],
+    }
+    
+    // Calculate enabled and completed states
+    for (let i = 1; i <= 5; i++) {
+      let isCompleted = false
+      switch (i) {
+        case 1:
+          isCompleted = !formErrors.name && !formErrors.description && !formErrors.category &&
+                       !!formValues.name?.trim() && !!formValues.description?.trim() && !!formValues.category?.trim()
+          break
+        case 2:
+          const productTypeVal = formValues.productType as string
+          isCompleted = !formErrors.productType && 
+                       !!productTypeVal && 
+                       (productTypeVal === 'simple' || productTypeVal === 'with_variants')
+          break
+        case 3:
+          if (formValues.productType === 'simple') {
+            isCompleted = !formErrors.price && !formErrors.stock &&
+                         formValues.price !== undefined && formValues.price >= 0.01 &&
+                         formValues.stock !== undefined && formValues.stock >= 0
+          } else {
+            const hasAttrs = !!(formValues.attributes && Array.isArray(formValues.attributes) && formValues.attributes.length > 0)
+            const hasVars = !!(formValues.variants && Array.isArray(formValues.variants) && formValues.variants.length > 0)
+            isCompleted = hasAttrs && hasVars
+          }
+          break
+        case 4:
+          const imgArray = formValues.images || []
+          isCompleted = !formErrors.images && Array.isArray(imgArray) && imgArray.length > 0
+          break
+        case 5:
+          isCompleted = true
+          break
+      }
+      
+      states.completed[i - 1] = isCompleted
+      
+      if (i > 1) {
+        let allPreviousCompleted = true
+        for (let j = 0; j < i - 1; j++) {
+          if (!states.completed[j]) {
+            allPreviousCompleted = false
+            break
+          }
+        }
+        states.enabled[i - 1] = allPreviousCompleted
+      }
+    }
+    
+    return states
+  }, [
+    formErrors.name,
+    formErrors.description,
+    formErrors.category,
+    formErrors.productType,
+    formErrors.price,
+    formErrors.stock,
+    formErrors.images,
+    formValues.name,
+    formValues.description,
+    formValues.category,
+    formValues.productType,
+    formValues.price,
+    formValues.stock,
+    formValues.attributes,
+    formValues.variants,
+    formValues.images,
+  ])
+
+  const isStepEnabled = useCallback((step: number): boolean => {
+    return stepStates.enabled[step - 1] ?? false
+  }, [stepStates])
+
+  const isStepCompleted = useCallback((step: number): boolean => {
+    return stepStates.completed[step - 1] ?? false
+  }, [stepStates])
+
+  const validateStepInline = useCallback((step: number): boolean => {
+    const values = form.getValues()
+    const errors = form.formState.errors
+
+    switch (step) {
+      case 1:
+        return !errors.name && !errors.description && !errors.category &&
+               !!values.name?.trim() && !!values.description?.trim() && !!values.category?.trim()
+      
+      case 2:
+        const productTypeVal = values.productType as string
+        return !errors.productType && 
+               !!productTypeVal && 
+               (productTypeVal === 'simple' || productTypeVal === 'with_variants')
+      
+      case 3:
+        if (values.productType === 'simple') {
+          return !errors.price && !errors.stock &&
+                 values.price !== undefined && values.price >= 0.01 &&
+                 values.stock !== undefined && values.stock >= 0
+        } else {
+          const hasAttributes = !!(values.attributes && Array.isArray(values.attributes) && values.attributes.length > 0)
+          const hasVariants = !!(values.variants && Array.isArray(values.variants) && values.variants.length > 0)
+          return hasAttributes && hasVariants
+        }
+      
+      case 4:
+        const imgArray = values.images || []
+        return !errors.images && Array.isArray(imgArray) && imgArray.length > 0
+      
+      case 5:
+        return true
+      
+      default:
+        return false
+    }
+  }, [form])
+
+  // Navigate to next step
+  const goToNextStep = useCallback(async () => {
+    if (currentStep < maxStep) {
+      let fieldsToValidate: (keyof z.infer<typeof formSchema>)[] = []
+      
+      switch (currentStep) {
+        case 1:
+          fieldsToValidate = ['name', 'description', 'category']
+          break
+        case 2:
+          fieldsToValidate = ['productType']
+          break
+        case 3:
+          if (productType === 'simple') {
+            fieldsToValidate = ['price', 'stock']
+          } else {
+            fieldsToValidate = ['attributes', 'variants']
+          }
+          break
+        case 4:
+          fieldsToValidate = ['images']
+          break
+      }
+      
+      const isValid = await form.trigger(fieldsToValidate)
+      const isStepValid = validateStepInline(currentStep)
+      
+      if (isValid && isStepValid) {
+        setCurrentStep(currentStep + 1)
+      } else {
+        toast.error('يرجى إكمال جميع الحقول المطلوبة في هذه المرحلة')
+      }
+    }
+  }, [currentStep, form, productType, validateStepInline])
+
+  // Navigate to previous step
+  const goToPreviousStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
+  const goToStep = (step: number) => {
+    if (isStepEnabled(step)) {
+      setCurrentStep(step)
     }
   }
 
   const handleUploadDone = useCallback((urls: string[]) => {
-    form.setValue("images", urls, { shouldValidate: true });
-  }, [form]);
+    const validUrls = urls.filter((url: string) => 
+      url && 
+      typeof url === 'string' && 
+      url.trim().length > 0 && 
+      (url.startsWith('http://') || url.startsWith('https://'))
+    )
+    
+    form.setValue('images', validUrls, { 
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true,
+    })
+  }, [form])
 
-  const sizeOptions = [
-    { label: "XS", value: "XS" },
-    { label: "S", value: "S" },
-    { label: "M", value: "M" },
-    { label: "L", value: "L" },
-    { label: "XL", value: "XL" },
-    { label: "XXL", value: "XXL" },
-    { label: "XXXL", value: "XXXL" },
-  ];
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    // Prevent double submission
+    if (isSubmittingRef.current || loading) {
+      logger.warn('Form submission blocked - already submitting')
+      return
+    }
+
+    isSubmittingRef.current = true
+    setLoading(true)
+
+    const currentImages = values.images || form.getValues('images') || []
+    
+    if (!currentImages || !Array.isArray(currentImages) || currentImages.length < 1) {
+      toast.error('يرجى رفع صورة واحدة على الأقل قبل الحفظ')
+      isSubmittingRef.current = false
+      setLoading(false)
+      return
+    }
+
+    try {
+      const token = await getToken()
+      if (!token) {
+        toast.error('فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.')
+        router.push('/sign-in')
+        return
+      }
+
+      const validImages = currentImages.filter((img: string) => 
+        img && typeof img === 'string' && img.trim().length > 0 && (img.startsWith('http://') || img.startsWith('https://'))
+      )
+
+      if (validImages.length === 0) {
+        toast.error('يرجى رفع صورة واحدة على الأقل بصيغة صحيحة')
+        isSubmittingRef.current = false
+        setLoading(false)
+        return
+      }
+
+      if (!values.description || String(values.description).trim().length === 0) {
+        toast.error('يرجى إدخال وصف للمنتج')
+        isSubmittingRef.current = false
+        setLoading(false)
+        return
+      }
+      
+      if (!values.category || String(values.category).trim().length === 0) {
+        toast.error('يرجى اختيار فئة للمنتج')
+        isSubmittingRef.current = false
+        setLoading(false)
+        return
+      }
+      
+      const productTypeVal = values.productType as string
+      if (!productTypeVal || (productTypeVal !== 'simple' && productTypeVal !== 'with_variants')) {
+        toast.error('يرجى اختيار نوع المنتج')
+        isSubmittingRef.current = false
+        setLoading(false)
+        return
+      }
+      
+      const parseNumber = (value: any): number | undefined => {
+        if (value === undefined || value === null || value === '') {
+          return undefined
+        }
+        if (typeof value === 'number') {
+          return isNaN(value) ? undefined : value
+        }
+        const parsed = parseFloat(String(value))
+        return isNaN(parsed) ? undefined : parsed
+      }
+      
+      if (values.productType === 'simple') {
+        const price = parseNumber(values.price)
+        if (price === undefined || price <= 0) {
+          toast.error('يرجى إدخال سعر صحيح (أكبر من 0)')
+          isSubmittingRef.current = false
+          setLoading(false)
+          return
+        }
+        
+        const discountPrice = parseNumber(values.discountPrice)
+        if (discountPrice !== undefined && discountPrice > 0 && discountPrice > price) {
+          toast.error('السعر المخفض يجب أن يكون أقل من أو يساوي السعر الأصلي')
+          isSubmittingRef.current = false
+          setLoading(false)
+          return
+        }
+        
+        const stock = parseNumber(values.stock)
+        if (stock === undefined || stock < 0 || !Number.isInteger(stock)) {
+          toast.error('يرجى إدخال مخزون صحيح (رقم صحيح أكبر من أو يساوي 0)')
+          isSubmittingRef.current = false
+          setLoading(false)
+          return
+        }
+      } else {
+        if (!values.attributes || !Array.isArray(values.attributes) || values.attributes.length === 0) {
+          toast.error('يرجى إضافة خاصية واحدة على الأقل للمنتج')
+          isSubmittingRef.current = false
+          setLoading(false)
+          return
+        }
+        
+        if (!values.variants || !Array.isArray(values.variants) || values.variants.length === 0) {
+          toast.error('يرجى إضافة متغير واحد على الأقل للمنتج')
+          isSubmittingRef.current = false
+          setLoading(false)
+          return
+        }
+        
+        for (let i = 0; i < values.variants.length; i++) {
+          const variant = values.variants[i]
+          const variantPrice = variant.price
+          const variantDiscountPrice = variant.discountPrice
+          
+          if (variantPrice !== undefined && variantDiscountPrice !== undefined && variantDiscountPrice > variantPrice) {
+            toast.error(`المتغير ${i + 1}: السعر المخفض يجب أن يكون أقل من أو يساوي السعر الأصلي`)
+            isSubmittingRef.current = false
+            setLoading(false)
+            return
+          }
+        }
+      }
+      
+      const imagesArray = Array.isArray(validImages) ? validImages : []
+      
+      if (imagesArray.length < 1) {
+        toast.error('خطأ: لا توجد صور')
+        isSubmittingRef.current = false
+        setLoading(false)
+        return
+      }
+
+      // Build data based on product type
+      const dataToSend: any = {
+        name: String(values.name).trim(),
+        description: String(values.description).trim(),
+        category: String(values.category).trim(),
+        images: imagesArray,
+        isActive: values.isActive !== false,
+      }
+
+      // Add merchant if selected (admin can create products for specific merchants)
+      if (values.merchant && values.merchant.trim()) {
+        dataToSend.merchant = values.merchant.trim()
+      }
+      // If merchant is empty, product will be created without merchant (general product)
+
+      if (values.productType === 'simple') {
+        const priceValue = parseNumber(values.price)
+        const discountPriceValue = parseNumber(values.discountPrice)
+        const stockValue = parseNumber(values.stock)
+        
+        if (priceValue !== undefined && priceValue > 0) {
+          dataToSend.price = priceValue
+        } else {
+          toast.error('خطأ في السعر. يرجى التحقق من القيمة المدخلة.')
+          isSubmittingRef.current = false
+          setLoading(false)
+          return
+        }
+        
+        if (discountPriceValue !== undefined && discountPriceValue > 0) {
+          dataToSend.discountPrice = discountPriceValue
+        }
+        
+        if (stockValue !== undefined && stockValue >= 0) {
+          dataToSend.stock = Math.floor(stockValue)
+        } else {
+          toast.error('خطأ في المخزون. يرجى التحقق من القيمة المدخلة.')
+          isSubmittingRef.current = false
+          setLoading(false)
+          return
+        }
+      } else {
+        dataToSend.attributes = values.attributes || []
+        dataToSend.variants = (values.variants || []).map(v => ({
+          ...v,
+          price: v.price || 0,
+          isActive: v.isActive !== false,
+        }))
+      }
+
+      logger.info('Sending product data to backend', {
+        dataToSend: {
+          ...dataToSend,
+          imagesCount: dataToSend.images.length,
+        }
+      })
+
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      }
+
+      await axiosInstance.post('/products', dataToSend, { headers })
+      toast.success('تم إنشاء المنتج بنجاح')
+
+      isSubmittingRef.current = false
+      setLoading(false)
+      
+      // Reset form and redirect
+      form.reset({
+        name: '',
+        description: '',
+        productType: '' as any,
+        price: undefined,
+        discountPrice: undefined,
+        category: '',
+        stock: undefined,
+        attributes: [],
+        variants: [],
+        sizes: [],
+        colors: [],
+        images: [],
+        merchant: '',
+        isActive: true,
+      })
+      setCurrentStep(1)
+      
+      setTimeout(() => {
+        router.push('/business/products')
+      }, 500)
+    } catch (error: any) {
+      isSubmittingRef.current = false
+      
+      logger.error('Error saving product', { 
+        error: error instanceof Error ? error.message : String(error),
+        status: error.response?.status,
+        responseData: error.response?.data,
+      })
+      
+      if (error.response?.status === 401) {
+        toast.error('فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.')
+        router.push('/sign-in')
+      } else if (error.response?.status === 403) {
+        const errorData = error.response?.data
+        const errorCode = errorData?.code
+        const userRole = user?.publicMetadata?.role as string | undefined
+        
+        // Only redirect merchants, not admins
+        if (errorCode === 'MERCHANT_NOT_FOUND' || errorCode === 'MERCHANT_NOT_APPROVED') {
+          if (userRole === 'merchant') {
+            router.push('/merchant/apply')
+            return
+          }
+        }
+        toast.error('ليس لديك صلاحية لإضافة منتجات.')
+      } else if (error.response?.status === 400) {
+        const errorData = error.response?.data
+        const errorDetails = errorData?.error?.details || errorData?.details || errorData?.errors
+        
+        if (errorDetails && Array.isArray(errorDetails)) {
+          const errorMessages = errorDetails.map((e: any) => {
+            const field = e.field || e.path || e.param || 'unknown'
+            const msg = e.message || e.msg || 'Invalid value'
+            return `${field}: ${msg}`
+          })
+          toast.error(`خطأ في التحقق: ${errorMessages.join('; ')}`)
+        } else if (errorDetails && typeof errorDetails === 'string') {
+          toast.error(`خطأ في التحقق: ${errorDetails}`)
+        } else {
+          const errorMessage = errorData?.error?.message || errorData?.message || 'خطأ في البيانات المرسلة. يرجى التحقق من جميع الحقول.'
+          toast.error(errorMessage)
+        }
+      } else {
+        toast.error(error.response?.data?.message || 'فشل حفظ المنتج')
+      }
+    } finally {
+      if (isSubmittingRef.current) {
+        isSubmittingRef.current = false
+      }
+      setLoading(false)
+    }
+  }
+
+  // Define steps for the stepper
+  const steps = [
+    {
+      title: 'المعلومات الأساسية',
+      description: 'الاسم والوصف والفئة',
+      isCompleted: isStepCompleted(1),
+      isActive: currentStep === 1,
+      isEnabled: isStepEnabled(1),
+    },
+    {
+      title: 'نوع المنتج',
+      description: 'بسيط أو متغيرات',
+      isCompleted: isStepCompleted(2),
+      isActive: currentStep === 2,
+      isEnabled: isStepEnabled(2),
+    },
+    {
+      title: 'تفاصيل المنتج',
+      description: productType === 'simple' ? 'السعر والمخزون' : 'الخصائص والمتغيرات',
+      isCompleted: isStepCompleted(3),
+      isActive: currentStep === 3,
+      isEnabled: isStepEnabled(3),
+    },
+    {
+      title: 'الصور',
+      description: 'رفع صور المنتج',
+      isCompleted: isStepCompleted(4),
+      isActive: currentStep === 4,
+      isEnabled: isStepEnabled(4),
+    },
+    {
+      title: 'المراجعة',
+      description: 'مراجعة وإرسال',
+      isCompleted: false,
+      isActive: currentStep === 5,
+      isEnabled: isStepEnabled(5),
+    },
+  ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br p-4 text-flt">
-      <div className="max-w-3xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br p-4">
+      <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 shadow-lg">
-            <Package className="w-8 h-8 " />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 shadow-lg bg-primary/10">
+            <Package className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-3xl font-bold mb-2">إضافة منتج جديد</h1>
-          <p className="text-gray-300">أضف منتجك الجديد إلى المتجر بسهولة</p>
+          <p className="text-muted-foreground">أضف منتجك الجديد إلى المتجر بسهولة</p>
         </div>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-
-            <Card className="shadow-xl border backdrop-blur-sm">
-              <CardHeader className="bg-gradient-to-r rounded-t-lg">
-                <CardTitle className="flex items-center gap-2">
-                  <Store className="w-5 h-5" />
-                  المعلومات الأساسية
-                </CardTitle>
-                <CardDescription className="">
-                  أدخل المعلومات الأساسية للمنتج
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-6 space-y-6 ">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="font-medium flex items-center gap-2">
-                          <Package className="w-4 h-4" />
-                          اسم المنتج
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="شورت , قميص , لابتوب , شاحن ...."
-                            type="text"
-                            className="h-12 border-2"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="brand"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className=" font-medium flex items-center gap-2">
-                          <Store className="w-4 h-4" />
-                          اسم المتجر
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="ادخل اسم متجرك"
-                            type="text"
-                            className="h-12 border-2 transition-colors"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className=" font-medium flex items-center gap-2">
-                        <FileText className="w-4 h-4" />
-                        وصف المنتج
-                      </FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="اوصف منتجك بالتفصيل..."
-                          className="min-h-[120px] border-2 resize-none"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription className="">
-                        اكتب وصفاً مفصلاً يساعد العملاء على فهم المنتج
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-xl border backdrop-blur-sm">
-              <CardHeader className="bg-gradient-to-r rounded-t-lg">
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5" />
-                  معلومات التسعير
-                </CardTitle>
-                <CardDescription className="">
-                  حدد أسعار المنتج والتصنيف
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-6 ">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="discountPrice"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className=" font-medium">السعر بعد الخص (اختياري)</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 " />
-                            <Input
-                              placeholder="السعر بعد الخصم"
-                              type="number"
-                              className="h-12 pl-10 border-2"
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                field.onChange(value === "" ? undefined : Number(value));
-                              }}
-                              value={field.value === undefined ? "" : field.value}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="price"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="">السعر الأصلي *</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" />
-                            <Input
-                              placeholder="سعر البيع"
-                              type="number"
-                              className="h-12 pl-10 border-2 "
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                field.onChange(value === "" ? 0 : Number(value));
-                              }}
-                              value={field.value}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="font-medium flex items-center gap-2">
-                          <Tag className="w-4 h-4" />
-                          التصنيف *
-                        </FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-12 border-2">
-                              <SelectValue placeholder="اختر تصنيف المنتج" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {categoriesLoading ? (
-                              <SelectItem value="loading-indicator" disabled>
-                                جاري تحميل التصنيفات...
-                              </SelectItem>
-                            ) : categoriesError ? (
-                              <SelectItem value="error-indicator" disabled className="text-red-500">
-                                {categoriesError}
-                              </SelectItem>
-                            ) : categories.length === 0 ? (
-                              <SelectItem value="no-categories-found" disabled>
-                                لا توجد تصنيفات متاحة.
-                              </SelectItem>
-                            ) : (
-                              categories.map((category) => (
-                                <SelectItem
-                                  key={category._id}
-                                  value={category._id} // القيمة التي سترسل إلى الباك إند (الاسم الإنجليزي)
-                                >
-                                  {/* هنا يتم عرض الاسم العربي من القاموس، أو الاسم الإنجليزي كحل بديل */}
-                                  {categoryNameTranslations[category.name] || category.name}
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-xl border">
-              <CardHeader className="bg-gradient-to-r">
-                <CardTitle className="flex items-center gap-2">
-                  <Hash className="w-5 h-5" />
-                  المخزون والمقاسات
-                </CardTitle>
-                <CardDescription className="">
-                  حدد الكمية المتوفرة والمقاسات
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="stock"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className=" font-medium flex items-center gap-2">
-                          <Hash className="w-4 h-4" />
-                          الكمية المتوفرة *
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="عدد القطع المتوفرة"
-                            type="text"
-                            className="h-12 border-2 "
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="sizes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className=" flex items-center gap-2">
-                          <Ruler className="w-4 h-4" />
-                          المقاسات المتوفرة
-                        </FormLabel>
-                        <FormControl>
-                          <MultiSelector
-                            values={field.value || []}
-                            onValuesChange={field.onChange}
-                            loop
-                            className="w-full"
-                          >
-                            <MultiSelectorTrigger className="h-12 border-2 ">
-                              <MultiSelectorInput placeholder="اختر المقاسات المتوفرة" />
-                            </MultiSelectorTrigger>
-                            <MultiSelectorContent>
-                              <MultiSelectorList>
-                                {sizeOptions.map((option) => (
-                                  <MultiSelectorItem key={option.value} value={option.value}>
-                                    {option.label}
-                                  </MultiSelectorItem>
-                                ))}
-                              </MultiSelectorList>
-                            </MultiSelectorContent>
-                          </MultiSelector>
-                        </FormControl>
-
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-xl border">
-              <CardHeader className="bg-gradient-to-r rounded-t-lg">
-                <CardTitle>صور المنتج</CardTitle>
-                <CardDescription className="text-orange-300">
-                  ارفع صور واضحة للمنتج
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-6 ">
-                <div className="">
-                  <ImageUpload onUploadComplete={handleUploadDone} />
-                </div>
-                <p className="text-sm mt-3 text-center">
-                  يفضل رفع 3-5 صور بجودة عالية لعرض أفضل للمنتج
-                </p>
-                <FormMessage>{form.formState.errors.images?.message}</FormMessage>
-              </CardContent>
-            </Card>
-
-            <div className="flex justify-center pt-6">
-              <Button
-                type="submit"
-                size="lg"
-                className="cursor-pointer hover:bg-[#c2c0c0]"
-                disabled={form.formState.isSubmitting || categoriesLoading}
-              >
-                <Package className="w-5 h-5 mr-2" />
-                {form.formState.isSubmitting ? "جاري الرفع..." : "ارفع إلى المتجر"}
-              </Button>
+        <Card>
+          <CardHeader>
+            <CardTitle>إنشاء منتج جديد</CardTitle>
+            <CardDescription>املأ جميع الخطوات لإضافة منتج جديد</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Stepper */}
+            <div className="mb-8">
+              <Stepper steps={steps} />
             </div>
-          </form>
-        </Form>
+
+            <Form {...form}>
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (currentStep === 5) {
+                    if (isSubmittingRef.current || loading) {
+                      return
+                    }
+                    form.handleSubmit(onSubmit as any, (errors) => {
+                      logger.error('Form validation failed', { errors })
+                      const errorMessages = Object.entries(errors).map(([key, error]) => {
+                        if (error?.message) {
+                          return `${key}: ${error.message}`
+                        }
+                        return key
+                      })
+                      toast.error(`خطأ في التحقق: ${errorMessages.join(', ')}`)
+                    })(e)
+                  } else {
+                    goToNextStep()
+                  }
+                }} 
+                className="space-y-6"
+              >
+                {/* Step 1: Basic Information */}
+                {currentStep === 1 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold mb-4">المعلومات الأساسية</h3>
+                    
+                    <FormField
+                      control={form.control as any}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <Package className="w-4 h-4" />
+                            اسم المنتج *
+                          </FormLabel>
+                          <FormControl>
+                            <Input placeholder="أدخل اسم المنتج" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control as any}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            <Package className="w-4 h-4" />
+                            الوصف *
+                          </FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="أدخل وصف المنتج"
+                              rows={4}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control as any}
+                      name="category"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>الفئة *</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            value={field.value}
+                            disabled={categoriesLoading}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={categoriesLoading ? "جاري التحميل..." : "اختر فئة"} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {categoriesLoading ? (
+                                <SelectItem value="loading" disabled>
+                                  جاري تحميل التصنيفات...
+                                </SelectItem>
+                              ) : categories.length === 0 ? (
+                                <SelectItem value="no-categories" disabled>
+                                  لا توجد تصنيفات متاحة
+                                </SelectItem>
+                              ) : (
+                                categories.map((category) => (
+                                  <SelectItem key={category._id} value={category._id}>
+                                    {category.name}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Admin-specific: Merchant selection */}
+                    {user?.publicMetadata?.role === 'admin' && (
+                      <FormField
+                        control={form.control as any}
+                        name="merchant"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-2">
+                              <Store className="w-4 h-4" />
+                              التاجر (اختياري)
+                            </FormLabel>
+                            <FormControl>
+                              <Select 
+                                onValueChange={(value) => field.onChange(value === 'none' ? '' : value)} 
+                                value={field.value || 'none'}
+                                disabled={merchantsLoading}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder={merchantsLoading ? "جاري التحميل..." : "اختر تاجر (اختياري)"} />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="none">لا تاجر (منتج عام)</SelectItem>
+                                  {merchantsLoading ? (
+                                    <SelectItem value="loading" disabled>
+                                      جاري تحميل التجار...
+                                    </SelectItem>
+                                  ) : merchants.length === 0 ? (
+                                    <SelectItem value="no-merchants" disabled>
+                                      لا يوجد تجار متاحين
+                                    </SelectItem>
+                                  ) : (
+                                    merchants.map((merchant) => (
+                                      <SelectItem key={merchant._id} value={merchant._id}>
+                                        {merchant.businessName}
+                                      </SelectItem>
+                                    ))
+                                  )}
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormDescription>
+                              يمكنك ترك هذا الحقل فارغاً لإنشاء منتج عام، أو اختيار تاجر محدد
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                  </div>
+                )}
+
+                {/* Step 2: Product Type */}
+                {currentStep === 2 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold mb-4">اختر نوع المنتج</h3>
+                    <FormField
+                      control={form.control as any}
+                      name="productType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>نوع المنتج *</FormLabel>
+                          <Select 
+                            onValueChange={(value) => {
+                              field.onChange(value)
+                              form.trigger('productType')
+                            }} 
+                            value={field.value || undefined}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="اختر نوع المنتج" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="simple">منتج بسيط (سعر ومخزون واحد)</SelectItem>
+                              <SelectItem value="with_variants">منتج بمتغيرات (أحجام، ألوان، إلخ)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                          <FormDescription>
+                            اختر &quot;منتج بسيط&quot; للمنتجات التي لها سعر ومخزون واحد، أو &quot;منتج بمتغيرات&quot; للمنتجات التي لها أحجام أو ألوان مختلفة.
+                          </FormDescription>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
+
+                {/* Step 3: Product Details */}
+                {currentStep === 3 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold mb-4">
+                      {productType === 'simple' ? 'السعر والمخزون' : 'الخصائص والمتغيرات'}
+                    </h3>
+                    
+                    {productType === 'simple' ? (
+                      <>
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control as any}
+                            name="price"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>السعر الأصلي *</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="0.00"
+                                    {...field}
+                                    value={field.value ?? ''}
+                                    onChange={(e) => {
+                                      const value = e.target.value
+                                      if (value === '' || value === null || value === undefined) {
+                                        field.onChange(undefined)
+                                      } else {
+                                        const numValue = parseFloat(value)
+                                        field.onChange(isNaN(numValue) ? undefined : numValue)
+                                      }
+                                      form.trigger(['discountPrice', 'price'])
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control as any}
+                            name="discountPrice"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>السعر بعد الخصم (اختياري)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="السعر قبل الخصم"
+                                    {...field}
+                                    value={field.value ?? ''}
+                                    onChange={(e) => {
+                                      const value = e.target.value
+                                      if (value === '' || value === null || value === undefined) {
+                                        field.onChange(undefined)
+                                      } else {
+                                        const numValue = parseFloat(value)
+                                        field.onChange(isNaN(numValue) ? undefined : numValue)
+                                      }
+                                      form.trigger(['discountPrice', 'price'])
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <FormField
+                          control={form.control as any}
+                          name="stock"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>المخزون *</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  {...field}
+                                  value={field.value ?? ''}
+                                  onChange={(e) => {
+                                    const value = e.target.value
+                                    if (value === '' || value === null || value === undefined) {
+                                      field.onChange(undefined)
+                                    } else {
+                                      const intValue = parseInt(value, 10)
+                                      field.onChange(isNaN(intValue) ? undefined : intValue)
+                                    }
+                                  }}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </>
+                    ) : (
+                      <div className="space-y-6">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>تعريف الخصائص</CardTitle>
+                            <CardDescription>
+                              قم بتعريف الخصائص التي سيتم استخدامها في المتغيرات (مثل: الحجم، اللون، المادة)
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <AttributeDefinitionManager
+                              attributes={attributes || []}
+                              onChange={(attrs) => {
+                                form.setValue('attributes', attrs, { shouldValidate: false })
+                              }}
+                            />
+                          </CardContent>
+                        </Card>
+
+                        {attributes && attributes.length > 0 && (
+                          <Card>
+                            <CardHeader>
+                              <CardTitle>المتغيرات</CardTitle>
+                              <CardDescription>
+                                قم بإضافة المتغيرات للمنتج بناءً على الخصائص المعرفة
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <VariantManager
+                                attributes={attributes || []}
+                                variants={(variants || []).map(v => ({
+                                  ...v,
+                                  isActive: v.isActive !== false,
+                                }))}
+                                onChange={(vars) => {
+                                  form.setValue('variants', vars, { shouldValidate: false })
+                                }}
+                              />
+                            </CardContent>
+                          </Card>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Step 4: Images */}
+                {currentStep === 4 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold mb-4">صور المنتج</h3>
+                    <div>
+                      <Label className="mb-2 block">صور المنتج *</Label>
+                      <ImageUpload onUploadComplete={handleUploadDone} />
+                      {images && images.length > 0 && (
+                        <p className="text-sm text-muted-foreground mt-2">
+                          تم رفع {images.length} صورة
+                        </p>
+                      )}
+                      {form.formState.errors.images && (
+                        <p className="text-sm font-medium text-destructive mt-1">
+                          {form.formState.errors.images.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 5: Review */}
+                {currentStep === 5 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold mb-4">مراجعة المعلومات</h3>
+                    <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+                      <div>
+                        <Label className="text-sm font-semibold">اسم المنتج:</Label>
+                        <p className="text-sm">{form.getValues('name') || 'غير محدد'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-semibold">الوصف:</Label>
+                        <p className="text-sm">{form.getValues('description') || 'غير محدد'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-semibold">الفئة:</Label>
+                        <p className="text-sm">
+                          {categories.find(c => c._id === form.getValues('category'))?.name || 'غير محدد'}
+                        </p>
+                      </div>
+                      {user?.publicMetadata?.role === 'admin' && form.getValues('merchant') && (
+                        <div>
+                          <Label className="text-sm font-semibold">التاجر:</Label>
+                          <p className="text-sm">
+                            {merchants.find(m => m._id === form.getValues('merchant'))?.businessName || 'غير محدد'}
+                          </p>
+                        </div>
+                      )}
+                      <div>
+                        <Label className="text-sm font-semibold">نوع المنتج:</Label>
+                        <p className="text-sm">
+                          {productType === 'simple' ? 'منتج بسيط' : 'منتج بمتغيرات'}
+                        </p>
+                      </div>
+                      {productType === 'simple' && (
+                        <>
+                          <div>
+                            <Label className="text-sm font-semibold">السعر:</Label>
+                            <p className="text-sm">{form.getValues('price') || 'غير محدد'} ر.س</p>
+                          </div>
+                          {form.getValues('discountPrice') && (
+                            <div>
+                              <Label className="text-sm font-semibold">السعر بعد الخصم:</Label>
+                              <p className="text-sm">{form.getValues('discountPrice')} ر.س</p>
+                            </div>
+                          )}
+                          <div>
+                            <Label className="text-sm font-semibold">المخزون:</Label>
+                            <p className="text-sm">{form.getValues('stock') ?? 'غير محدد'}</p>
+                          </div>
+                        </>
+                      )}
+                      {productType === 'with_variants' && (
+                        <>
+                          <div>
+                            <Label className="text-sm font-semibold">عدد الخصائص:</Label>
+                            <p className="text-sm">{(attributes || []).length}</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-semibold">عدد المتغيرات:</Label>
+                            <p className="text-sm">{(variants || []).length}</p>
+                          </div>
+                        </>
+                      )}
+                      <div>
+                        <Label className="text-sm font-semibold">عدد الصور:</Label>
+                        <p className="text-sm">{images?.length || 0}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Navigation Buttons */}
+                <div className="flex justify-between gap-4 pt-6 border-t">
+                  <div className="flex gap-2">
+                    {currentStep > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={goToPreviousStep}
+                      >
+                        <ChevronRight className="w-4 h-4 ml-2" />
+                        السابق
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => router.push('/business/products')}
+                    >
+                      إلغاء
+                    </Button>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    {currentStep < maxStep ? (
+                      <Button
+                        type="submit"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          goToNextStep()
+                        }}
+                      >
+                        التالي
+                        <ChevronLeft className="w-4 h-4 mr-2" />
+                      </Button>
+                    ) : (
+                      <Button
+                        type="submit"
+                        disabled={loading || isSubmittingRef.current}
+                      >
+                        {loading || isSubmittingRef.current ? 'جاري الحفظ...' : 'إنشاء المنتج'}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
       </div>
     </div>
-  );
+  )
 }
