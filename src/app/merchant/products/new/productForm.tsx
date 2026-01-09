@@ -89,6 +89,37 @@ const formSchema = z.object({
       path: ['productType'],
     })
   }
+  
+  // Validate price and discountPrice relationship for simple products
+  if (productType === 'simple') {
+    const price = data.price
+    const discountPrice = data.discountPrice
+    
+    // If both prices are provided, discountPrice should be less than or equal to price
+    if (price !== undefined && discountPrice !== undefined && discountPrice > price) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'السعر المخفض يجب أن يكون أقل من أو يساوي السعر الأصلي',
+        path: ['discountPrice'],
+      })
+    }
+  }
+  
+  // Validate price and discountPrice relationship for variants
+  if (data.variants && Array.isArray(data.variants)) {
+    data.variants.forEach((variant, index) => {
+      const variantPrice = variant.price
+      const variantDiscountPrice = variant.discountPrice
+      
+      if (variantPrice !== undefined && variantDiscountPrice !== undefined && variantDiscountPrice > variantPrice) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'السعر المخفض يجب أن يكون أقل من أو يساوي السعر الأصلي',
+          path: ['variants', index, 'discountPrice'],
+        })
+      }
+    })
+  }
 })
 
 interface Category {
@@ -578,6 +609,15 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
         return
       }
       
+      // Validate discountPrice - must be less than or equal to price
+        const discountPrice = parseNumber(values.discountPrice)
+        if (discountPrice !== undefined && discountPrice > 0 && discountPrice > price) {
+          toast.error('السعر المخفض يجب أن يكون أقل من أو يساوي السعر الأصلي')
+          isSubmittingRef.current = false
+          setLoading(false)
+          return
+        }
+      
       // Validate stock (must be integer)
         const stock = parseNumber(values.stock)
         if (stock === undefined || stock < 0 || !Number.isInteger(stock)) {
@@ -600,6 +640,20 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
           isSubmittingRef.current = false
           setLoading(false)
           return
+        }
+        
+        // Validate variant prices - discountPrice must be less than or equal to price
+        for (let i = 0; i < values.variants.length; i++) {
+          const variant = values.variants[i]
+          const variantPrice = variant.price
+          const variantDiscountPrice = variant.discountPrice
+          
+          if (variantPrice !== undefined && variantDiscountPrice !== undefined && variantDiscountPrice > variantPrice) {
+            toast.error(`المتغير ${i + 1}: السعر المخفض يجب أن يكون أقل من أو يساوي السعر الأصلي`)
+            isSubmittingRef.current = false
+            setLoading(false)
+            return
+          }
         }
       }
       
@@ -1097,6 +1151,8 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                                     const numValue = parseFloat(value)
                                     field.onChange(isNaN(numValue) ? undefined : numValue)
                                   }
+                                  // Trigger validation to check price relationship
+                                  form.trigger(['discountPrice', 'price'])
                                 }}
                         />
                       </FormControl>
@@ -1126,6 +1182,8 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                                     const numValue = parseFloat(value)
                                     field.onChange(isNaN(numValue) ? undefined : numValue)
                                   }
+                                  // Trigger validation to check price relationship
+                                  form.trigger(['discountPrice', 'price'])
                                 }}
                         />
                       </FormControl>
