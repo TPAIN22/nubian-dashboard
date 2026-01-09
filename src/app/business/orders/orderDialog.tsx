@@ -308,9 +308,13 @@ function OrderDialog({
                       <span>الكمية: {p.quantity || 1}</span>
                       <span>
                         السعر:{" "}
-                        {new Intl.NumberFormat("en-SD", {
-                          minimumFractionDigits: 2,
-                        }).format(p.price * p.quantity || 0)}{" "}
+                        {(() => {
+                          const validPrice = typeof p.price === 'number' && !isNaN(p.price) && isFinite(p.price) ? p.price : 0;
+                          const validQuantity = typeof p.quantity === 'number' && !isNaN(p.quantity) ? p.quantity : 0;
+                          return new Intl.NumberFormat("en-SD", {
+                            minimumFractionDigits: 2,
+                          }).format(validPrice * validQuantity);
+                        })()}{" "}
                         ج.س
                       </span>
                     </li>
@@ -330,9 +334,13 @@ function OrderDialog({
                       <span>الكمية: {p.quantity || 1}</span>
                       <span>
                         السعر:{" "}
-                        {new Intl.NumberFormat("en-SD", {
-                          minimumFractionDigits: 2,
-                        }).format((p.product?.price || 0) * p.quantity)}{" "}
+                        {(() => {
+                          const validPrice = typeof p.product?.price === 'number' && !isNaN(p.product.price) && isFinite(p.product.price) ? p.product.price : 0;
+                          const validQuantity = typeof p.quantity === 'number' && !isNaN(p.quantity) ? p.quantity : 0;
+                          return new Intl.NumberFormat("en-SD", {
+                            minimumFractionDigits: 2,
+                          }).format(validPrice * validQuantity);
+                        })()}{" "}
                         ج.س
                       </span>
                     </li>

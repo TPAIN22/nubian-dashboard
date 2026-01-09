@@ -61,9 +61,11 @@ export function ProductDetailsDialog({ product }: ProductDetailsDialogProps) {
     }).format(amount);
   };
 
-  const hasDiscount = product.discountPrice && product.discountPrice > product.price;
+  const validPrice = typeof product.price === 'number' && !isNaN(product.price) && isFinite(product.price) ? product.price : 0;
+  const validDiscountPrice = typeof product.discountPrice === 'number' && !isNaN(product.discountPrice) && isFinite(product.discountPrice) ? product.discountPrice : 0;
+  const hasDiscount = validDiscountPrice > 0 && validDiscountPrice > validPrice;
   const discountPercentage = hasDiscount
-    ? Math.round(((product.discountPrice - product.price) / product.discountPrice) * 100)
+    ? Math.round(((validDiscountPrice - validPrice) / validDiscountPrice) * 100)
     : 0;
 
   const validImages = product.images?.filter((_, index) => !imageErrors.has(index)) || [];
@@ -154,7 +156,7 @@ export function ProductDetailsDialog({ product }: ProductDetailsDialogProps) {
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">السعر الحالي</p>
                   <p className="text-2xl font-bold text-primary">
-                    {formatCurrency(product.price)}
+                    {formatCurrency(validPrice)}
                   </p>
                 </div>
                 
@@ -164,7 +166,7 @@ export function ProductDetailsDialog({ product }: ProductDetailsDialogProps) {
                     <div>
                       <p className="text-sm font-medium text-muted-foreground mb-1">السعر الأصلي</p>
                       <p className="text-lg line-through text-muted-foreground">
-                        {formatCurrency(product.discountPrice)}
+                        {formatCurrency(validDiscountPrice)}
                       </p>
                       <Badge className="mt-2 bg-red-100 text-red-800">
                         خصم {discountPercentage}%

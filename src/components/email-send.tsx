@@ -280,9 +280,12 @@ export const OrderStatusUpdateEmail = ({
                     </Column>
                     <Column style={{width: '20%', textAlign:language==='ar'?'left':'right'}} className="mobile-column">
                       <Text style={productPrice}>
-                        {product.price.toLocaleString(language==='ar'?'ar-EG':'en-US', { 
-                          minimumFractionDigits: 2 
-                        })} {t.currency}
+                        {(() => {
+                          const validPrice = typeof product.price === 'number' && !isNaN(product.price) && isFinite(product.price) ? product.price : 0;
+                          return validPrice.toLocaleString(language==='ar'?'ar-EG':'en-US', { 
+                            minimumFractionDigits: 2 
+                          });
+                        })()} {t.currency}
                       </Text>
                     </Column>
                   </Row>

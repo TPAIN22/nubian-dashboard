@@ -286,19 +286,26 @@ function ProductCard({ product }: { product: Product }) {
             <div className="mt-2 space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-primary">
-                  {new Intl.NumberFormat("ar-SA", {
-                    style: "currency",
-                    currency: "SDG",
-                  }).format(product.price)}
-                </span>
-                {product.discountPrice && product.discountPrice > product.price && (
-                  <span className="text-xs text-muted-foreground line-through">
-                    {new Intl.NumberFormat("ar-SA", {
+                  {(() => {
+                    const validPrice = typeof product.price === 'number' && !isNaN(product.price) && isFinite(product.price) ? product.price : 0;
+                    return new Intl.NumberFormat("ar-SA", {
                       style: "currency",
                       currency: "SDG",
-                    }).format(product.discountPrice)}
-                  </span>
-                )}
+                    }).format(validPrice);
+                  })()}
+                </span>
+                {(() => {
+                  const validPrice = typeof product.price === 'number' && !isNaN(product.price) && isFinite(product.price) ? product.price : 0;
+                  const validDiscountPrice = typeof product.discountPrice === 'number' && !isNaN(product.discountPrice) && isFinite(product.discountPrice) ? product.discountPrice : 0;
+                  return validDiscountPrice > validPrice && validDiscountPrice > 0 ? (
+                    <span className="text-xs text-muted-foreground line-through">
+                      {new Intl.NumberFormat("ar-SA", {
+                        style: "currency",
+                        currency: "SDG",
+                      }).format(validDiscountPrice)}
+                    </span>
+                  ) : null;
+                })()}
               </div>
               
               <p className="text-xs text-muted-foreground">
