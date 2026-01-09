@@ -110,7 +110,7 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
 
   // Initialize form FIRST - must be before any hooks that reference it
   const form = useForm<z.infer<typeof formSchema>>({
-    // @ts-ignore - react-hook-form type inference issue with zod union types
+    // @ts-expect-error - react-hook-form type inference issue with zod union types
     resolver: zodResolver(formSchema),
     mode: 'onBlur', // Validate on blur for better performance
     defaultValues: {
@@ -207,8 +207,6 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
     formErrors.productType,
     formErrors.price,
     formErrors.stock,
-    formErrors.attributes,
-    formErrors.variants,
     formErrors.images,
     formValues.name,
     formValues.description,
