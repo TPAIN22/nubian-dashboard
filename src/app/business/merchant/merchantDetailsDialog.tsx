@@ -31,7 +31,12 @@ interface Product {
   sizes: string[];
   createdAt: string;
   updatedAt: string;
-  merchant?: string;
+  merchant?: string | {
+    _id: string;
+    businessName: string;
+    businessEmail: string;
+    status?: string;
+  };
 }
 
 interface MerchantDetailsDialogProps {
@@ -53,20 +58,24 @@ export function MerchantDetailsDialog({ merchant }: MerchantDetailsDialogProps) 
     try {
       const token = await getToken();
       
-      // Try to fetch products by merchant ID
-      // Adjust the endpoint based on your API structure
-      const response = await axiosInstance.get(`/products`, {
+      // Use admin endpoint to get all products for this merchant (including inactive/deleted if needed)
+      // Build query params - admin endpoint supports merchant filter
+      const queryParams = new URLSearchParams();
+      queryParams.append('merchant', merchant._id);
+      // Optionally include deleted products if you want to show them
+      // queryParams.append('includeDeleted', 'true');
+      
+      const url = `/products/admin/all?${queryParams.toString()}`;
+      
+      const response = await axiosInstance.get(url, {
         headers: {
           Authorization: `Bearer ${token}`,
-        },
-        params: {
-          merchant: merchant._id,
-          merchantId: merchant._id,
         },
       });
       
       let fetchedProducts: Product[] = [];
       
+      // Admin endpoint returns: { success: true, data: [...], page, limit, total }
       if (response.data?.success && Array.isArray(response.data?.data)) {
         fetchedProducts = response.data.data;
       } else if (Array.isArray(response.data?.products)) {
@@ -77,45 +86,27 @@ export function MerchantDetailsDialog({ merchant }: MerchantDetailsDialogProps) 
         fetchedProducts = response.data.data;
       }
       
-      // Filter products by merchant if not filtered by API
+      // Additional safety: filter by merchant ID in case API didn't filter correctly
+      // Product.merchant is an ObjectId reference, so compare by string
       if (merchant._id) {
-        fetchedProducts = fetchedProducts.filter(
-          (p: Product) => p.merchant === merchant._id || p.merchant === merchant.clerkId
-        );
+        fetchedProducts = fetchedProducts.filter((p: Product) => {
+          // Handle both populated (object) and unpopulated (string/ObjectId) merchant field
+          const productMerchantId = typeof p.merchant === 'object' && p.merchant?._id 
+            ? p.merchant._id.toString() 
+            : p.merchant?.toString();
+          return productMerchantId === merchant._id.toString();
+        });
       }
       
       setProducts(fetchedProducts);
     } catch (err: any) {
-      setError('فشل في تحميل المنتجات');
-      // If specific endpoint fails, try getting all products and filtering
-      try {
-        const token = await getToken();
-        const allProductsResponse = await axiosInstance.get("/products", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        let allProducts: Product[] = [];
-        
-        if (allProductsResponse.data?.success && Array.isArray(allProductsResponse.data?.data)) {
-          allProducts = allProductsResponse.data.data;
-        } else if (Array.isArray(allProductsResponse.data)) {
-          allProducts = allProductsResponse.data;
-        }
-        
-        // Filter by merchant
-        const filtered = allProducts.filter(
-          (p: Product) => p.merchant === merchant._id || p.merchant === merchant.clerkId
-        );
-        setProducts(filtered);
-        setError(null);
-      } catch (fallbackErr) {
-        setError('فشل في تحميل المنتجات');
-      }
+      console.error('Error fetching merchant products:', err);
+      setError(err.response?.data?.message || 'فشل في تحميل المنتجات');
+      setProducts([]);
     } finally {
       setLoading(false);
     }
-  }, [open, merchant._id, merchant.clerkId, getToken]);
+  }, [open, merchant._id, getToken]);
 
   React.useEffect(() => {
     fetchMerchantProducts();
