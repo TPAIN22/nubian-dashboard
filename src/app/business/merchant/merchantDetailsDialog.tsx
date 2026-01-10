@@ -16,8 +16,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
 import type { Merchant } from "./page";
 
