@@ -27,7 +27,12 @@ interface Product {
   sizes: string[];
   createdAt: string;
   updatedAt: string;
-  merchant?: string;
+  merchant?: string | {
+    _id: string;
+    businessName: string;
+    businessEmail: string;
+    status?: string;
+  };
 }
 
 interface ProductDetailsDialogProps {
