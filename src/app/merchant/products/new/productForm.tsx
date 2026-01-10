@@ -388,8 +388,10 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
             Authorization: `Bearer ${token}`,
           },
         })
+        // Handle standardized response format: { success: true, data: { merchant, hasApplication }, message: "..." }
+        const responseData = response.data?.data || response.data
 
-        if (response.data.hasApplication && response.data.merchant?.status === 'APPROVED') {
+        if (responseData.hasApplication && responseData.merchant?.status === 'APPROVED') {
           setMerchantStatus('approved')
         } else {
           setMerchantStatus('not-approved')

@@ -138,8 +138,10 @@ export default function MerchantDashboard() {
           // Re-throw to be handled by outer catch
           throw statusError
         }
-        if (statusResponse.data.hasApplication) {
-          const merchantData = statusResponse.data.merchant
+        // Handle standardized response format: { success: true, data: { merchant, hasApplication }, message: "..." }
+        const statusData = statusResponse.data?.data || statusResponse.data
+        if (statusData.hasApplication) {
+          const merchantData = statusData.merchant
           setMerchant(merchantData)
           
           if (merchantData.status !== 'APPROVED') {

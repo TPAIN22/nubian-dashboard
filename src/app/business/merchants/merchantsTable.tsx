@@ -113,26 +113,11 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
       const data = await response.json();
       
       if (!response.ok) {
-        // Handle specific error cases
-        if (response.status === 404 && data.error === 'SUSPEND_ENDPOINT_NOT_FOUND') {
-          const backendInfo = data.details?.backendRequired 
-            ? `\n\nالمطلوب في الخادم: ${data.details.backendRequired}`
-            : '';
-          throw new Error(`نقطة النهاية لتعليق التاجر غير متوفرة في الخادم.${backendInfo}`);
-        }
-        
         const errorMessage = data.message || data.error || `فشل في تعليق التاجر (${response.status})`;
         throw new Error(errorMessage);
       }
       
-      // Check if workaround was used
-      if (data._workaround) {
-        toast.success("تم تعليق التاجر (استخدام حل مؤقت)", {
-          description: "تم استخدام نقطة النهاية البديلة. يرجى إضافة نقطة النهاية المخصصة للتعليق في الخادم."
-        });
-      } else {
-        toast.success("تم تعليق التاجر بنجاح");
-      }
+      toast.success("تم تعليق التاجر بنجاح");
       setSuspensionReason("");
       router.refresh();
     } catch (error: any) {

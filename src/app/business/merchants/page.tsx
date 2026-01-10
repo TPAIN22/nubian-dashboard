@@ -11,7 +11,10 @@ export default async function MerchantsPage() {
     headers: {
       Authorization: `Bearer ${token}`,
     },
-  }).then(res => res.data).catch(() => []);
+  }).then(res => {
+    // Handle standardized response format: { success: true, data: [...], message: "..." }
+    return res.data?.data || res.data || [];
+  }).catch(() => []);
 
   return (
     <div>

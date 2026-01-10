@@ -30,7 +30,9 @@ export async function PATCH(
       }
     );
 
-    return NextResponse.json(response.data);
+    // Handle standardized response format: { success: true, data: {...}, message: "..." }
+    const responseData = response.data?.data || response.data;
+    return NextResponse.json(responseData);
   } catch (error: any) {
     const { id } = await params;
     logger.error('Error approving merchant', { 
@@ -38,8 +40,11 @@ export async function PATCH(
       error: error instanceof Error ? error.message : String(error),
       status: error.response?.status 
     });
+    // Handle standardized error format: { success: false, error: { message, code } }
+    const errorData = error.response?.data;
+    const errorMessage = errorData?.error?.message || errorData?.message || 'Failed to approve merchant';
     return NextResponse.json(
-      { message: error.response?.data?.message || 'Failed to approve merchant' },
+      { message: errorMessage },
       { status: error.response?.status || 500 }
     );
   }

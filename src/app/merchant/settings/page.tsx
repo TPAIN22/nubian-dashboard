@@ -49,7 +49,8 @@ export default function MerchantSettingsPage() {
     const fetchProfile = async () => {
       try {
         const response = await axiosInstance.get('/merchants/my-profile')
-        const merchant = response.data
+        // Handle standardized response format: { success: true, data: {...}, message: "..." }
+        const merchant = response.data?.data || response.data
         form.reset({
           businessName: merchant.businessName || '',
           businessDescription: merchant.businessDescription || '',

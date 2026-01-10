@@ -35,8 +35,10 @@ export default function MerchantPending() {
             Authorization: `Bearer ${token}`,
           },
         })
-        if (response.data.hasApplication) {
-          const merchantData = response.data.merchant
+        // Handle standardized response format: { success: true, data: { merchant, hasApplication }, message: "..." }
+        const responseData = response.data?.data || response.data
+        if (responseData.hasApplication) {
+          const merchantData = responseData.merchant
           // Normalize status to uppercase
           const normalizedStatus = merchantData.status?.toUpperCase()
           const normalizedMerchant = {

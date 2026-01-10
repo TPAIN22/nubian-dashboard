@@ -55,7 +55,9 @@ export default function DashboardsPage() {
                   Authorization: `Bearer ${token}`,
                 },
               })
-              setMerchantStatus(response.data)
+              // Handle standardized response format: { success: true, data: { merchant, hasApplication }, message: "..." }
+              const responseData = response.data?.data || response.data
+              setMerchantStatus(responseData)
             } catch (error) {
               // If API call fails, just continue without merchant status
             }

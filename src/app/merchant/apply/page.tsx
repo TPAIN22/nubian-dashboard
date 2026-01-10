@@ -59,13 +59,15 @@ export default function MerchantApply() {
           return
         }
         
-        const response = await axiosInstance.get('/merchant/my-status', {
+        const response = await axiosInstance.get('/merchants/my-status', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         })
-        if (response.data.hasApplication) {
-          const merchantData = response.data.merchant
+        // Handle standardized response format: { success: true, data: { merchant, hasApplication }, message: "..." }
+        const responseData = response.data?.data || response.data
+        if (responseData.hasApplication) {
+          const merchantData = responseData.merchant
           setMerchant(merchantData)
           if (merchantData.status === 'APPROVED') {
             // Use replace to avoid adding to history and prevent redirect loops
@@ -116,24 +118,28 @@ export default function MerchantApply() {
         apiUrl: process.env.NEXT_PUBLIC_API_URL || 'Not configured'
       })
       
-      const response = await axiosInstance.post('/merchant/apply', formData, {
+      const response = await axiosInstance.post('/merchants/apply', formData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       })
       
-      logger.info('Application submitted successfully', { merchantId: response.data?._id })
+      // Handle standardized response format: { success: true, data: merchant, message: "..." }
+      const responseData = response.data?.data || response.data
+      logger.info('Application submitted successfully', { merchantId: responseData?._id })
       toast.success('تم إرسال الطلب بنجاح!')
       
       // Fetch the merchant status to display
       try {
-        const statusResponse = await axiosInstance.get('/merchant/my-status', {
+        const statusResponse = await axiosInstance.get('/merchants/my-status', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         })
-        if (statusResponse.data.hasApplication) {
-          setMerchant(statusResponse.data.merchant)
+        // Handle standardized response format: { success: true, data: { merchant, hasApplication }, message: "..." }
+        const statusData = statusResponse.data?.data || statusResponse.data
+        if (statusData.hasApplication) {
+          setMerchant(statusData.merchant)
           setSubmitted(true)
         } else {
           // Application was submitted but status endpoint doesn't return it yet
@@ -146,9 +152,9 @@ export default function MerchantApply() {
         })
         // Application was successfully submitted, show success state even if status fetch fails
         // Create a minimal merchant object from the POST response if available
-        if (response.data?._id) {
+        if (responseData?._id) {
           setMerchant({
-            _id: response.data._id,
+            _id: responseData._id,
             businessName: formData.businessName,
             status: 'PENDING',
             appliedAt: new Date().toISOString(),
@@ -163,16 +169,19 @@ export default function MerchantApply() {
         responseData: error.response?.data
       })
       
-      // More detailed error messages
+      // More detailed error messages - Handle standardized error format: { success: false, error: { message, code } }
+      const errorData = error.response?.data
+      const errorMessage = errorData?.error?.message || errorData?.message || null
+      
       if (error.response?.status === 401) {
         toast.error('فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.')
       } else if (error.response?.status === 400) {
-        toast.error(error.response?.data?.message || 'بيانات الطلب غير صحيحة. يرجى التحقق من معلوماتك.')
-      } else if (error.response?.status === 409 || error.response?.data?.message?.includes('already')) {
+        toast.error(errorMessage || 'بيانات الطلب غير صحيحة. يرجى التحقق من معلوماتك.')
+      } else if (error.response?.status === 409 || errorMessage?.includes('already')) {
         toast.error('لديك بالفعل طلب تاجر. يرجى التحقق من حالة طلبك.')
         router.push('/merchant/pending')
-      } else if (error.response?.data?.message) {
-        toast.error(error.response.data.message)
+      } else if (errorMessage) {
+        toast.error(errorMessage)
       } else if (error.request) {
         // Network error - no response received
         logger.error('Network error details', {
@@ -187,7 +196,7 @@ export default function MerchantApply() {
         if (!apiUrl) {
           toast.error('خادم API غير مُكوّن. يرجى تعيين NEXT_PUBLIC_API_URL في ملف .env.local')
         } else {
-          const fullUrl = `${apiUrl}/merchant/apply`
+          const fullUrl = `${apiUrl}/merchants/apply`
           toast.error(
             `خطأ في الشبكة: لا يمكن الاتصال بخادم API على ${fullUrl}. ` +
             `يرجى التأكد من: 1) تشغيل الخادم الخلفي، 2) صحة عنوان API في .env.local`
