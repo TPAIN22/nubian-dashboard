@@ -17,6 +17,7 @@ import {
 } from "@tanstack/react-table"
 import { ArrowUpDown, ChevronDown, MoreHorizontal, Edit, Trash2, Eye, Download, RefreshCw, Power, PowerOff, RotateCcw, AlertTriangle } from "lucide-react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { useAuth } from "@clerk/nextjs"
 import { axiosInstance } from '@/lib/axiosInstance'
 import { toast } from 'sonner'
@@ -172,131 +173,7 @@ function RankingEditDialog({
   )
 }
 
-function ProductDetailsDialog({ product }: { product: Product }) {
-  let categoryName: string = 'غير محدد'
-  if (typeof product.category === 'object' && product.category !== null && 'name' in product.category) {
-    categoryName = (product.category as { name: string }).name || 'غير محدد'
-  } else if (typeof product.category === 'string') {
-    categoryName = product.category || 'غير محدد'
-  }
-  
-  return (
-    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-      <DialogHeader>
-        <DialogTitle>{product.name}</DialogTitle>
-        <DialogDescription>تفاصيل المنتج</DialogDescription>
-      </DialogHeader>
-      <div className="space-y-4">
-        {product.images && product.images.length > 0 && (
-          <div>
-            <h3 className="font-semibold mb-2">الصور</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {product.images.map((img, idx) => (
-                <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border">
-                  <Image
-                    src={img}
-                    alt={`${product.name} - ${idx + 1}`}
-                    fill
-                    className="object-cover"
-                    unoptimized
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <h3 className="font-semibold mb-1">السعر النهائي</h3>
-            <p className="text-muted-foreground">
-              {(() => {
-                // price = original price, discountPrice = final selling price
-                const originalPrice = typeof product.price === 'number' && !isNaN(product.price) && isFinite(product.price) 
-                  ? product.price 
-                  : 0
-                const finalPrice = typeof product.discountPrice === 'number' && !isNaN(product.discountPrice) && isFinite(product.discountPrice) && product.discountPrice > 0
-                  ? product.discountPrice 
-                  : originalPrice
-                return new Intl.NumberFormat("ar-SD", {
-                  style: "currency",
-                  currency: "SDG",
-                }).format(finalPrice)
-              })()}
-            </p>
-          </div>
-          {(() => {
-            // price = original price, discountPrice = final selling price
-            const originalPrice = typeof product.price === 'number' && !isNaN(product.price) && isFinite(product.price) 
-              ? product.price 
-              : 0
-            const finalPrice = typeof product.discountPrice === 'number' && !isNaN(product.discountPrice) && isFinite(product.discountPrice) && product.discountPrice > 0
-              ? product.discountPrice 
-              : originalPrice
-            // Show original price (strikethrough) if there's a discount
-            const hasDiscount = finalPrice < originalPrice && product.discountPrice && product.discountPrice > 0
-            return hasDiscount ? (
-              <div>
-                <h3 className="font-semibold mb-1">السعر الأصلي</h3>
-                <p className="text-muted-foreground line-through">
-                  {new Intl.NumberFormat("ar-SD", {
-                    style: "currency",
-                    currency: "SDG",
-                  }).format(originalPrice)}
-                </p>
-              </div>
-            ) : null
-          })()}
-          <div>
-            <h3 className="font-semibold mb-1">المخزون</h3>
-            <p className={`${product.stock < 10 ? 'text-red-600 font-bold' : 'text-muted-foreground'}`}>
-              {product.stock}
-            </p>
-          </div>
-          <div>
-            <h3 className="font-semibold mb-1">التصنيف</h3>
-            <p className="text-muted-foreground">{categoryName}</p>
-          </div>
-          <div>
-            <h3 className="font-semibold mb-1">الحالة</h3>
-            <Badge variant={product.isActive ? "default" : "secondary"}>
-              {product.isActive ? "نشط" : "غير نشط"}
-            </Badge>
-          </div>
-          <div>
-            <h3 className="font-semibold mb-1">مميز</h3>
-            <Badge variant={product.featured ? "default" : "secondary"}>
-              {product.featured ? "نعم" : "لا"}
-            </Badge>
-          </div>
-          <div>
-            <h3 className="font-semibold mb-1">أولوية الترتيب</h3>
-            <p className="text-muted-foreground">{product.priorityScore || 0} / 100</p>
-          </div>
-          {product.sizes && product.sizes.length > 0 && (
-            <div>
-              <h3 className="font-semibold mb-1">المقاسات</h3>
-              <div className="flex flex-wrap gap-1">
-                {product.sizes.map((size) => (
-                  <Badge key={size} variant="outline">{size}</Badge>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-        {product.description && (
-          <div>
-            <h3 className="font-semibold mb-1">الوصف</h3>
-            <p className="text-muted-foreground">{product.description}</p>
-          </div>
-        )}
-        <div className="text-sm text-muted-foreground">
-          <p>تاريخ الإنشاء: {new Date(product.createdAt).toLocaleDateString('ar-SA')}</p>
-          <p>آخر تحديث: {new Date(product.updatedAt).toLocaleDateString('ar-SA')}</p>
-        </div>
-      </div>
-    </DialogContent>
-  );
-}
+// ProductDetailsDialog removed - use Link to navigate to product details page instead
 
 export function ProductsTable({ productsData, getToken, onProductUpdate }: ProductsTableProps) {
   const router = useRouter()
@@ -787,15 +664,12 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>إجراءات</DropdownMenuLabel>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                    <Eye className="mr-2 h-4 w-4" />
-                    عرض التفاصيل
-                  </DropdownMenuItem>
-                </DialogTrigger>
-                <ProductDetailsDialog product={product} />
-              </Dialog>
+              <Link href={`/business/products/${product._id}`}>
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  عرض التفاصيل
+                </DropdownMenuItem>
+              </Link>
               <DropdownMenuItem
                 onClick={() => navigator.clipboard.writeText(product._id)}
               >

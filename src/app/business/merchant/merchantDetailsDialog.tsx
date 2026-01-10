@@ -15,7 +15,9 @@ import { axiosInstance } from '@/lib/axiosInstance';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ProductDetailsDialog } from "./productDetailsDialog";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Eye } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
 import type { Merchant } from "./page";
 
@@ -319,7 +321,12 @@ function ProductCard({ product }: { product: Product }) {
             </div>
             
             <div className="mt-3">
-              <ProductDetailsDialog product={product} />
+              <Link href={`/business/products/${product._id}`}>
+                <Button variant="outline" size="sm" className="w-full">
+                  <Eye className="h-4 w-4 ml-2" />
+                  عرض التفاصيل الكاملة
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
