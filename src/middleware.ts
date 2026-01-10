@@ -1,4 +1,4 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 // Type definitions for Clerk session claims
@@ -70,9 +70,24 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Get role from Clerk session claims (publicMetadata or privateMetadata)
   const claims = sessionClaims as ClerkSessionClaims | undefined;
-  const role =
+  let role =
     claims?.publicMetadata?.role ||
     claims?.privateMetadata?.role;
+
+  // If role not in sessionClaims, fetch from Clerk API
+  if (role === undefined && userId) {
+    try {
+      const client = await clerkClient();
+      const user = await client.users.getUser(userId);
+      role =
+        (user.publicMetadata as ClerkPublicMetadata)?.role ||
+        (user.privateMetadata as ClerkPrivateMetadata)?.role;
+    } catch (error) {
+      // If fetch fails, treat as undefined role
+      console.error("[Middleware] Failed to fetch user role:", error);
+      role = undefined;
+    }
+  }
 
   // ❌ Logged in but NOT admin
   if (role !== "admin") {
