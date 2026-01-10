@@ -261,12 +261,12 @@ export default async function DashboardPage() {
                     {stats.pendingMerchants}
                   </span>
                 </div>
-                <a 
+                <Link 
                   href="/business/merchants" 
                   className="block w-full text-center p-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm"
                 >
                   مراجعة الطلبات
-                </a>
+                </Link>
               </div>
             </CardContent>
           </Card>
