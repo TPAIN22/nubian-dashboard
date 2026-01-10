@@ -135,7 +135,7 @@ interface Merchant {
   status: string
 }
 
-export default function ProductForm() {
+export default function ProductForm({ productId }: { productId?: string }) {
   const router = useRouter()
   const { getToken } = useAuth()
   const { user, isLoaded: userLoaded } = useUser()
@@ -147,6 +147,7 @@ export default function ProductForm() {
   const isSubmittingRef = useRef(false) // Prevent double submission
   const [currentStep, setCurrentStep] = useState(1)
   const maxStep = 5 // Total number of steps
+  const [isEdit, setIsEdit] = useState(!!productId)
 
   // Initialize form FIRST - must be before any hooks that reference it
   const form = useForm<z.infer<typeof formSchema>>({
@@ -269,7 +270,68 @@ export default function ProductForm() {
 
     fetchCategories()
     fetchMerchants()
-  }, [getToken])
+
+    if (productId) {
+      const fetchProduct = async () => {
+        try {
+          const token = await getToken()
+          if (!token) {
+            toast.error('فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.')
+            router.push('/sign-in')
+            return
+          }
+
+          const res = await axiosInstance.get(`/products/${productId}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          })
+          
+          // Handle different response formats
+          let product: any = null
+          if (res.data?.success && res.data?.data) {
+            product = res.data.data
+          } else if (res.data) {
+            product = res.data
+          }
+          
+          if (!product) {
+            toast.error('المنتج غير موجود')
+            router.push('/business/products')
+            return
+          }
+          
+          const hasVariants = product.variants && product.variants.length > 0
+          
+          form.reset({
+            name: product.name,
+            description: product.description || '',
+            productType: hasVariants ? 'with_variants' : 'simple',
+            price: product.price || undefined,
+            discountPrice: product.discountPrice,
+            category: product.category?._id || product.category || '',
+            stock: product.stock,
+            attributes: product.attributes || [],
+            variants: product.variants ? product.variants.map((v: any) => ({
+              ...v,
+              attributes: v.attributes instanceof Map ? Object.fromEntries(v.attributes) : v.attributes,
+              isActive: v.isActive !== false,
+            })) : [],
+            sizes: product.sizes || [],
+            colors: product.colors || [],
+            images: product.images || [],
+            merchant: product.merchant?._id || product.merchant || '',
+            isActive: product.isActive !== false,
+          })
+        } catch (error) {
+          logger.error('Failed to fetch product', { error: error instanceof Error ? error.message : String(error) })
+          toast.error('فشل تحميل المنتج')
+        }
+      }
+      fetchProduct()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [getToken, productId])
 
   // Memoize step enabled check to avoid recalculation
   const formErrors = form.formState.errors
@@ -451,12 +513,22 @@ export default function ProductForm() {
       (url.startsWith('http://') || url.startsWith('https://'))
     )
     
-    form.setValue('images', validUrls, { 
+    // In edit mode, merge with existing images to preserve them
+    const currentImages = form.getValues('images') || []
+    const existingImages = isEdit ? currentImages.filter((img: string) => 
+      img && typeof img === 'string' && img.trim().length > 0
+    ) : []
+    
+    // Combine existing images with new ones, removing duplicates
+    const allImages = [...existingImages, ...validUrls]
+    const uniqueImages = Array.from(new Set(allImages))
+    
+    form.setValue('images', uniqueImages, { 
       shouldValidate: true,
       shouldDirty: true,
       shouldTouch: true,
     })
-  }, [form])
+  }, [form, isEdit])
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     // Prevent double submission
@@ -601,10 +673,17 @@ export default function ProductForm() {
       }
 
       // Add merchant if selected (admin can create products for specific merchants)
-      if (values.merchant && values.merchant.trim()) {
+      // For admins, merchant is optional - only include if explicitly set
+      const userRole = user?.publicMetadata?.role as string | undefined
+      
+      if (values.merchant && values.merchant.trim() && values.merchant !== 'none' && values.merchant !== '') {
+        // Only set merchant if explicitly selected and valid
         dataToSend.merchant = values.merchant.trim()
+      } else {
+        // For admins: don't send merchant field at all if empty (backend will handle as null)
+        // For merchants: don't send merchant field - backend will auto-assign from req.merchant
+        // Do nothing - backend will handle merchant assignment correctly
       }
-      // If merchant is empty, product will be created without merchant (general product)
 
       if (values.productType === 'simple') {
         const priceValue = parseNumber(values.price)
@@ -645,41 +724,65 @@ export default function ProductForm() {
         dataToSend: {
           ...dataToSend,
           imagesCount: dataToSend.images.length,
-        }
+        },
+        userRole: user?.publicMetadata?.role,
+        userId: user?.id,
+        isEdit,
       })
 
       const headers = {
         Authorization: `Bearer ${token}`,
       }
-
-      await axiosInstance.post('/products', dataToSend, { headers })
-      toast.success('تم إنشاء المنتج بنجاح')
-
-      isSubmittingRef.current = false
-      setLoading(false)
       
-      // Reset form and redirect
-      form.reset({
-        name: '',
-        description: '',
-        productType: '' as any,
-        price: undefined,
-        discountPrice: undefined,
-        category: '',
-        stock: undefined,
-        attributes: [],
-        variants: [],
-        sizes: [],
-        colors: [],
-        images: [],
-        merchant: '',
-        isActive: true,
+      // Debug log before API call
+      console.log('📤 Creating product as admin:', {
+        userRole: user?.publicMetadata?.role,
+        hasMerchant: !!dataToSend.merchant,
+        merchant: dataToSend.merchant,
+        isEdit,
+        productId: productId || 'new',
       })
-      setCurrentStep(1)
-      
-      setTimeout(() => {
-        router.push('/business/products')
-      }, 500)
+
+      if (isEdit && productId) {
+        await axiosInstance.put(`/products/${productId}`, dataToSend, { headers })
+        toast.success('تم تحديث المنتج بنجاح')
+        
+        isSubmittingRef.current = false
+        setLoading(false)
+        
+        setTimeout(() => {
+          router.push('/business/products')
+        }, 500)
+      } else {
+        await axiosInstance.post('/products', dataToSend, { headers })
+        toast.success('تم إنشاء المنتج بنجاح')
+
+        isSubmittingRef.current = false
+        setLoading(false)
+        
+        // Reset form and redirect
+        form.reset({
+          name: '',
+          description: '',
+          productType: '' as any,
+          price: undefined,
+          discountPrice: undefined,
+          category: '',
+          stock: undefined,
+          attributes: [],
+          variants: [],
+          sizes: [],
+          colors: [],
+          images: [],
+          merchant: '',
+          isActive: true,
+        })
+        setCurrentStep(1)
+        
+        setTimeout(() => {
+          router.push('/business/products')
+        }, 500)
+      }
     } catch (error: any) {
       isSubmittingRef.current = false
       
@@ -695,16 +798,35 @@ export default function ProductForm() {
       } else if (error.response?.status === 403) {
         const errorData = error.response?.data
         const errorCode = errorData?.code
+        const errorMessage = errorData?.message || errorData?.error?.message
         const userRole = user?.publicMetadata?.role as string | undefined
+        
+        logger.error('403 Forbidden error', {
+          errorCode,
+          errorMessage,
+          userRole,
+          errorData,
+          userId: user?.id,
+        })
         
         // Only redirect merchants, not admins
         if (errorCode === 'MERCHANT_NOT_FOUND' || errorCode === 'MERCHANT_NOT_APPROVED') {
           if (userRole === 'merchant') {
             router.push('/merchant/apply')
             return
+          } else if (userRole === 'admin') {
+            // Admin shouldn't get this error, but if they do, show specific message
+            toast.error(`خطأ في الصلاحيات: ${errorMessage || 'يرجى التحقق من صلاحياتك في Clerk'}`)
+            return
           }
         }
-        toast.error('ليس لديك صلاحية لإضافة منتجات.')
+        
+        // Show actual backend error message if available, otherwise generic message
+        if (errorMessage) {
+          toast.error(errorMessage)
+        } else {
+          toast.error('ليس لديك صلاحية لإضافة منتجات. يرجى التحقق من أن حسابك لديه صلاحية Admin في Clerk.')
+        }
       } else if (error.response?.status === 400) {
         const errorData = error.response?.data
         const errorDetails = errorData?.error?.details || errorData?.details || errorData?.errors
@@ -779,14 +901,14 @@ export default function ProductForm() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 shadow-lg bg-primary/10">
             <Package className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold mb-2">إضافة منتج جديد</h1>
-          <p className="text-muted-foreground">أضف منتجك الجديد إلى المتجر بسهولة</p>
+          <h1 className="text-3xl font-bold mb-2">{isEdit ? 'تعديل المنتج' : 'إضافة منتج جديد'}</h1>
+          <p className="text-muted-foreground">{isEdit ? 'قم بتعديل معلومات المنتج' : 'أضف منتجك الجديد إلى المتجر بسهولة'}</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>إنشاء منتج جديد</CardTitle>
-            <CardDescription>املأ جميع الخطوات لإضافة منتج جديد</CardDescription>
+            <CardTitle>{isEdit ? 'تعديل المنتج' : 'إنشاء منتج جديد'}</CardTitle>
+            <CardDescription>{isEdit ? 'قم بتعديل معلومات المنتج في جميع الخطوات' : 'املأ جميع الخطوات لإضافة منتج جديد'}</CardDescription>
           </CardHeader>
           <CardContent>
             {/* Stepper */}
@@ -1266,7 +1388,7 @@ export default function ProductForm() {
                         type="submit"
                         disabled={loading || isSubmittingRef.current}
                       >
-                        {loading || isSubmittingRef.current ? 'جاري الحفظ...' : 'إنشاء المنتج'}
+                        {loading || isSubmittingRef.current ? 'جاري الحفظ...' : isEdit ? 'تحديث المنتج' : 'إنشاء المنتج'}
                       </Button>
                     )}
                   </div>
