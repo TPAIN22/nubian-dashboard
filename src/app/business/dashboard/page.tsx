@@ -2,6 +2,7 @@ import { axiosInstance } from '@/lib/axiosInstance';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Package, Users, ShoppingCart, TrendingUp, DollarSign, AlertCircle } from 'lucide-react';
 import { Suspense } from 'react';
+import Link from 'next/link';
 
 interface DashboardStats {
   totalProducts: number;
@@ -212,7 +213,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <a 
+              <Link 
                 href="/business/products" 
                 className="block p-3 rounded-lg border hover:bg-accent transition-colors"
               >
@@ -220,8 +221,8 @@ export default async function DashboardPage() {
                   <Package className="h-4 w-4" />
                   <span className="text-sm font-medium">إدارة المنتجات</span>
                 </div>
-              </a>
-              <a 
+              </Link>
+              <Link 
                 href="/business/merchants" 
                 className="block p-3 rounded-lg border hover:bg-accent transition-colors"
               >
@@ -229,8 +230,8 @@ export default async function DashboardPage() {
                   <Users className="h-4 w-4" />
                   <span className="text-sm font-medium">إدارة التجار</span>
                 </div>
-              </a>
-              <a 
+              </Link>
+              <Link 
                 href="/business/orders" 
                 className="block p-3 rounded-lg border hover:bg-accent transition-colors"
               >
@@ -238,7 +239,7 @@ export default async function DashboardPage() {
                   <ShoppingCart className="h-4 w-4" />
                   <span className="text-sm font-medium">إدارة الطلبات</span>
                 </div>
-              </a>
+              </Link>
             </div>
           </CardContent>
         </Card>
