@@ -39,6 +39,12 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next();
   }
 
+  // API routes: Let them through, but clerkMiddleware() has already run
+  // Individual API routes handle their own authentication using auth()
+  if (url.pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
+
   // Check if user needs to be authenticated for /merchant/apply
   const isMerchantApplyRoute = url.pathname.startsWith("/merchant/apply");
   
@@ -110,5 +116,6 @@ export const config = {
     "/dashboard/:path*",
     "/management/:path*",
     "/merchant/apply/:path*",
+    "/api/:path*",
   ],
 };
