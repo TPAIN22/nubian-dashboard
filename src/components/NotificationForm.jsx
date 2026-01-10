@@ -29,27 +29,42 @@ export function NotificationForm() {
 
     try {
       const token = await getToken();
-      const res = await axiosInstance.post('/notifications/send', { title, body }, {
+      // Use the new broadcast API endpoint
+      const res = await axiosInstance.post('/notifications/broadcast', { 
+        type: 'MERCHANT_PROMOTION',
+        title, 
+        body,
+        target: 'all',
+        metadata: {
+          sentBy: 'admin',
+          timestamp: new Date().toISOString(),
+        },
+      }, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      if (res.status === 200) {
-        (res.data);
+      if (res.status === 200 || res.data.success) {
+        const sentCount = res.data?.data?.sent || 0
         toast.success("Notification Sent!", {
-          description: "Your notification has been successfully queued.",
+          description: `Your notification has been successfully sent to ${sentCount} recipients.`,
         });
         setTitle('');
         setBody('');
       } else {
-        // في حالة وجود استجابة بخطأ لكن ليس من Axios Error (أقل شيوعًا)
         toast.error(`Failed to send notification. Status: ${res.status}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       // التعامل مع الأخطاء من Axios (مثل 400, 500, أو أخطاء الشبكة)
-      const errorMessage = error.response?.data?.error || 'Failed to send notification. Please try again.';
-      toast.error(errorMessage);
+      const errorMessage = 
+        error.response?.data?.message ||
+        error.response?.data?.error?.message ||
+        error.response?.data?.error ||
+        'Failed to send notification. Please try again.';
+      toast.error('Error', {
+        description: errorMessage,
+      });
     } finally {
       setIsSending(false); // تعطيل حالة التحميل سواء نجح الطلب أو فشل
     }

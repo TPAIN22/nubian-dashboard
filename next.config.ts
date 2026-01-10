@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
         fs: false,
       };
     }
+    
+    // Ensure proper module resolution
+    config.resolve.modules = ['node_modules', ...(config.resolve.modules || [])];
+    
     return config;
   },
   
