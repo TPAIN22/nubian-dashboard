@@ -52,8 +52,8 @@ export default function SignInPage() {
   }
 
   useEffect(() => {
-    // Only run this effect when user loads and we're on sign-in page
-    if (!isLoaded || pathname !== '/sign-in') {
+    // Only run this effect when user loads and we're on sign-in page or its sub-routes
+    if (!isLoaded || !pathname.startsWith('/sign-in')) {
       return
     }
     

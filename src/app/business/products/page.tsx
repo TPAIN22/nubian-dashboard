@@ -178,6 +178,7 @@ export default function Page() {
           <Switch
             id='includeDeleted'
             checked={filters.includeDeleted}
+            className='cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90'
             onCheckedChange={(checked) => handleFilterChange('includeDeleted', checked)}
           />
           <Label htmlFor='includeDeleted' className='cursor-pointer'>
