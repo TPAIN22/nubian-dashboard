@@ -1,6 +1,22 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+// Type definitions for Clerk session claims
+type UserRole = "admin" | "merchant" | undefined;
+
+interface ClerkPublicMetadata {
+  role?: UserRole;
+}
+
+interface ClerkPrivateMetadata {
+  role?: UserRole;
+}
+
+interface ClerkSessionClaims {
+  publicMetadata?: ClerkPublicMetadata;
+  privateMetadata?: ClerkPrivateMetadata;
+}
+
 export default clerkMiddleware(async (auth, req) => {
   const authResult = await auth();
   const { userId, sessionClaims } = authResult;
@@ -53,9 +69,10 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   // Get role from Clerk session claims (publicMetadata or privateMetadata)
+  const claims = sessionClaims as ClerkSessionClaims | undefined;
   const role =
-    sessionClaims?.publicMetadata?.role ||
-    sessionClaims?.privateMetadata?.role;
+    claims?.publicMetadata?.role ||
+    claims?.privateMetadata?.role;
 
   // ❌ Logged in but NOT admin
   if (role !== "admin") {
