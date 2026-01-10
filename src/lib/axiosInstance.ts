@@ -90,13 +90,25 @@ axiosInstance.interceptors.response.use(
         if (error.response) {
             // Server responded with error status
             const status = error.response.status;
-            const data = error.response.data as { message?: string; error?: { message?: string } };
+            const data = error.response.data as { 
+                message?: string; 
+                error?: { message?: string; code?: string; requestId?: string } 
+            };
+            
+            // Extract error message from standardized error response format
+            const errorMessage = data?.error?.message || data?.message || error.message;
             
             logger.error('API Error Response', {
                 status,
                 url: error.config?.url,
-                message: data?.message || data?.error?.message || error.message,
+                message: typeof errorMessage === 'string' ? errorMessage : 'Unknown error',
             });
+            
+            // Attach formatted error message to the error object for easier handling
+            if (data?.error) {
+                (error as any).formattedMessage = data.error.message || 'An error occurred';
+                (error as any).errorCode = data.error.code;
+            }
 
             // Handle specific error cases
             if (status === 401) {

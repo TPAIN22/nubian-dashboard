@@ -81,7 +81,11 @@ export default function BannerForm({ banner, onClose, onSuccess }: BannerFormPro
       } );
         toast.success("تم تحديث العرض بنجاح");
       } else {
-        await axiosInstance.post(`/banners`, validatedData);
+        await axiosInstance.post(`/banners`, validatedData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         toast.success("تم إضافة العرض بنجاح");
       }
       
@@ -92,7 +96,7 @@ export default function BannerForm({ banner, onClose, onSuccess }: BannerFormPro
         form.reset(defaults);
       }
       
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof Error && error.name === 'ZodError') {
         toast.error("يرجى التحقق من صحة البيانات المدخلة");
         return;
@@ -100,15 +104,26 @@ export default function BannerForm({ banner, onClose, onSuccess }: BannerFormPro
       
       let errorMessage = "فشل في العملية";
       
+      // Handle axios errors
       if (error && typeof error === 'object' && 'response' in error) {
         const axiosError = error as { response?: { data?: { message?: string; error?: string } } };
-        if (axiosError.response?.data?.message) {
-          errorMessage = axiosError.response.data.message;
-        } else if (axiosError.response?.data?.error) {
-          errorMessage = axiosError.response.data.error;
+        const message = axiosError.response?.data?.message;
+        const errorMsg = axiosError.response?.data?.error;
+        
+        // Only use string messages, never render objects
+        if (typeof message === 'string') {
+          errorMessage = message;
+        } else if (typeof errorMsg === 'string') {
+          errorMessage = errorMsg;
+        } else if (error?.response?.status === 404) {
+          errorMessage = "المورد غير موجود";
+        } else if (error?.response?.status === 401 || error?.response?.status === 403) {
+          errorMessage = "غير مصرح لك بهذه العملية";
+        } else if (error?.response?.status >= 500) {
+          errorMessage = "خطأ في الخادم، يرجى المحاولة لاحقاً";
         }
       } else if (error instanceof Error) {
-        errorMessage = error.message;
+        errorMessage = typeof error.message === 'string' ? error.message : "فشل في العملية";
       }
       
       toast.error(errorMessage);

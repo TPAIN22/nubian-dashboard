@@ -21,11 +21,15 @@ export default function BannersPage() {
     setLoading(true);
     try {
       const res = await axiosInstance.get("/banners");
-      setBanners(res.data);
-    } catch (e) {
-      toast.error("فشل في جلب العروض" , {
-        description: e instanceof Error ? e.message : "حدث خطأ غير معروف",
+      // Handle both direct array response and wrapped response
+      const bannersData = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      setBanners(Array.isArray(bannersData) ? bannersData : []);
+    } catch (e: any) {
+      const errorMessage = e?.response?.data?.message || e?.message || "حدث خطأ غير معروف";
+      toast.error("فشل في جلب العروض", {
+        description: typeof errorMessage === 'string' ? errorMessage : "حدث خطأ غير معروف",
       });
+      setBanners([]); // Set empty array on error to prevent rendering issues
     } finally {
       setLoading(false);
     }
