@@ -34,7 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { MerchantDetailsDialog } from "./merchantDetailsDialog";
+import Link from "next/link";
 import type { Merchant } from "./page";
 
 export const formatDate = (dateString: string) => {
@@ -130,7 +130,14 @@ export const columns: ColumnDef<Merchant>[] = [
     enableHiding: false,
     cell: ({ row }) => {
       const merchant = row.original;
-      return <MerchantDetailsDialog merchant={merchant} />;
+      return (
+        <Link href={`/business/merchants/${merchant._id}`}>
+          <Button variant="ghost" className="h-8 w-8 p-0">
+            <span className="sr-only">عرض التفاصيل</span>
+            <Eye className="h-4 w-4" />
+          </Button>
+        </Link>
+      );
     },
   },
 ];
