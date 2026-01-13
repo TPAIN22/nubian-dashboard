@@ -221,7 +221,7 @@ function OrderDialog({
                   <span className="font-mono font-bold text-primary">
                     {selectedRow.couponDetails.code}
                   </span>
-                  {selectedRow.discountAmount > 0 && (
+                  {selectedRow.discountAmount && selectedRow.discountAmount > 0 && (
                     <span className="text-green-600 mr-2">
                       {" "}(خصم: {new Intl.NumberFormat("en-SD", {
                         minimumFractionDigits: 2,
