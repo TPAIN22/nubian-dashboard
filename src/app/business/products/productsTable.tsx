@@ -884,7 +884,7 @@ export function ProductsTable({
         )
       }
 
-      const deletePromises: Promise<BulkDeleteResult>[] = validRows.map(async (row) => {
+      const deletePromises = validRows.map(async (row): Promise<BulkDeleteResult> => {
         const id = row.original._id
         try {
           await axiosInstance.delete(`/products/${id}`, {
