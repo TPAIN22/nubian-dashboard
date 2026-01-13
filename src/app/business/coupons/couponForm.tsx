@@ -34,16 +34,16 @@ const couponSchema = z.object({
     required_error: "نوع الخصم مطلوب",
   }),
   value: z.number().min(0.01, "القيمة يجب أن تكون أكبر من 0"),
-  minOrderAmount: z.number().min(0).default(0),
+  minOrderAmount: z.number().min(0),
   maxDiscount: z.number().min(0).optional().nullable(),
   startDate: z.string().min(1, "تاريخ البداية مطلوب"),
   endDate: z.string().min(1, "تاريخ النهاية مطلوب"),
-  usageLimitPerUser: z.number().min(0).default(1),
+  usageLimitPerUser: z.number().min(0),
   usageLimitGlobal: z.number().min(0).optional().nullable(),
-  applicableProducts: z.array(z.string()).default([]),
-  applicableCategories: z.array(z.string()).default([]),
-  applicableMerchants: z.array(z.string()).default([]),
-  isActive: z.boolean().default(true),
+  applicableProducts: z.array(z.string()),
+  applicableCategories: z.array(z.string()),
+  applicableMerchants: z.array(z.string()),
+  isActive: z.boolean(),
 }).refine((data) => {
   if (data.type === "percentage" && data.value > 100) {
     return false;
