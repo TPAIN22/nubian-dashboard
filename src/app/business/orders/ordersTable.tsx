@@ -63,6 +63,10 @@ export type Order = {
   productsDetails: ProductDetail[];
   discountAmount?: number;
   finalAmount?: number;
+  couponDetails?: {
+    code: string;
+    discountAmount?: number;
+  };
 };
 
 // Helper function to get status in Arabic
