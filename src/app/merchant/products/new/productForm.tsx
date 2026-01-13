@@ -418,7 +418,6 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
             merchantPrice: product.merchantPrice || product.price || undefined,
             nubianMarkup: product.nubianMarkup || 10,
             price: product.price || undefined, // Legacy field
-            discountPrice: product.discountPrice,
             category: product.category?._id || product.category || '',
             stock: product.stock,
             attributes: product.attributes || [],
@@ -791,7 +790,6 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
           merchantPrice: undefined,
           nubianMarkup: 10,
           price: undefined, // Legacy field
-          discountPrice: undefined,
           category: '',
           stock: undefined,
           attributes: [],
