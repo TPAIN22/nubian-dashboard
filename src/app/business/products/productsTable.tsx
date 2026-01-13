@@ -201,6 +201,13 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
   const handleDelete = async (productId: string) => {
     setDeletingId(productId)
     try {
+      // Validate productId format (MongoDB ObjectId)
+      if (!productId || !/^[0-9a-fA-F]{24}$/.test(productId)) {
+        toast.error('معرف المنتج غير صحيح')
+        setDeletingId(null)
+        return
+      }
+
       const token = await tokenGetter()
       
       if (!token) {
@@ -209,11 +216,12 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
         return
       }
       
-      await axiosInstance.delete(`/products/${productId}`, {
+      const response = await axiosInstance.delete(`/products/${productId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       })
+      
       toast.success('تم حذف المنتج بنجاح')
       if (onProductUpdate) {
         await onProductUpdate()
@@ -222,7 +230,38 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
         window.location.reload()
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'فشل حذف المنتج')
+      logger.error('Error deleting product', {
+        error: error instanceof Error ? error.message : String(error),
+        status: error.response?.status,
+        responseData: error.response?.data,
+        productId: productId
+      })
+      
+      // Show more detailed error message
+      const errorData = error.response?.data
+      const errorMessage = errorData?.message || 
+                          errorData?.error?.message ||
+                          errorData?.error ||
+                          'فشل حذف المنتج'
+      
+      // If validation error, show more details
+      if (error.response?.status === 400) {
+        const validationDetails = errorData?.error?.details || errorData?.details
+        if (validationDetails && Array.isArray(validationDetails)) {
+          const details = validationDetails.map((d: any) => `${d.field}: ${d.message}`).join(', ')
+          toast.error(`خطأ في التحقق: ${details}`)
+        } else if (errorData?.error?.code === 'VALIDATION_ERROR') {
+          toast.error(`خطأ في التحقق: ${errorMessage}`)
+        } else {
+          toast.error(`خطأ في التحقق: ${errorMessage}`)
+        }
+      } else if (error.response?.status === 404) {
+        toast.error('المنتج غير موجود')
+      } else if (error.response?.status === 403) {
+        toast.error('ليس لديك صلاحية لحذف هذا المنتج')
+      } else {
+        toast.error(errorMessage)
+      }
     } finally {
       setDeletingId(null)
     }
@@ -795,24 +834,81 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
         return
       }
 
-      const deletePromises = selectedRows.map(row => 
+      // Validate all IDs before attempting deletion
+      const validRows = selectedRows.filter(row => {
+        const id = row.original._id
+        if (!id || !/^[0-9a-fA-F]{24}$/.test(id)) {
+          logger.warn('Invalid product ID in bulk delete', { id })
+          return false
+        }
+        return true
+      })
+
+      if (validRows.length === 0) {
+        toast.error('لا توجد منتجات صالحة للحذف')
+        setBulkDeleting(false)
+        return
+      }
+
+      if (validRows.length < selectedRows.length) {
+        toast.warning(`تم تجاهل ${selectedRows.length - validRows.length} منتج بسبب معرفات غير صالحة`)
+      }
+
+      // Use Promise.allSettled to handle partial failures
+      const deletePromises = validRows.map(row => 
         axiosInstance.delete(`/products/${row.original._id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+        }).catch(error => {
+          logger.error('Error deleting product in bulk operation', {
+            productId: row.original._id,
+            error: error instanceof Error ? error.message : String(error),
+            status: error.response?.status,
+            responseData: error.response?.data
+          })
+          return { error, productId: row.original._id, productName: row.original.name }
         })
       )
 
-      await Promise.all(deletePromises)
-      toast.success(`تم حذف ${selectedRows.length} منتج بنجاح`)
-      setRowSelection({})
-      if (onProductUpdate) {
-        await onProductUpdate()
-      } else {
-        window.location.reload()
+      const results = await Promise.allSettled(deletePromises)
+      
+      const successful = results.filter(r => r.status === 'fulfilled' && !r.value.error).length
+      const failed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && r.value.error)).length
+
+      if (successful > 0) {
+        toast.success(`تم حذف ${successful} منتج بنجاح`)
+      }
+      
+      if (failed > 0) {
+        const failedProducts = results
+          .filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && r.value.error))
+          .map(r => {
+            if (r.status === 'fulfilled' && r.value.error) {
+              return r.value.productName || r.value.productId
+            }
+            return 'منتج'
+          })
+          .join(', ')
+        
+        toast.error(`فشل حذف ${failed} منتج: ${failedProducts}`)
+      }
+
+      if (successful > 0) {
+        setRowSelection({})
+        if (onProductUpdate) {
+          await onProductUpdate()
+        } else {
+          window.location.reload()
+        }
       }
     } catch (error: any) {
-      toast.error('فشل حذف بعض المنتجات')
+      logger.error('Error in bulk delete operation', {
+        error: error instanceof Error ? error.message : String(error),
+        status: error.response?.status,
+        responseData: error.response?.data
+      })
+      toast.error('حدث خطأ أثناء عملية الحذف الجماعي')
     } finally {
       setBulkDeleting(false)
     }

@@ -67,6 +67,7 @@ export type Order = {
     code: string;
     discountAmount?: number;
   };
+  transferProof?: string;
 };
 
 // Helper function to get status in Arabic
