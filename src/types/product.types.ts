@@ -25,7 +25,13 @@ export interface ProductVariant {
   _id?: string; // MongoDB ID (if already saved)
   sku: string; // Unique SKU for this variant (e.g., "TSHIRT-RED-L")
   attributes: Record<string, string>; // Attribute values (e.g., { size: "L", color: "Red" })
-  price: number; // Variant-specific price
+  // Smart pricing fields
+  merchantPrice?: number; // Base price set by merchant
+  nubianMarkup?: number; // Base markup percentage (default 10%)
+  dynamicMarkup?: number; // Dynamic markup calculated by system (0-50%)
+  finalPrice?: number; // Calculated final price (merchantPrice + markups)
+  // Legacy pricing fields
+  price: number; // Variant-specific price (maps to merchantPrice)
   discountPrice?: number; // Variant-specific discountPrice
   stock: number; // Variant-specific stock quantity
   images?: string[]; // Variant-specific images (optional)
@@ -50,12 +56,32 @@ export interface Product {
   attributes?: ProductAttribute[]; // Attribute definitions (what attributes this product supports)
   variants?: ProductVariant[]; // Product variants (if product has variants)
   
+  // Smart pricing fields
+  merchantPrice?: number; // Base price set by merchant
+  nubianMarkup?: number; // Base markup percentage (default 10%)
+  dynamicMarkup?: number; // Dynamic markup calculated by system (0-50%)
+  finalPrice?: number; // Calculated final price (merchantPrice + markups)
   // Legacy fields (for backward compatibility and simple products)
-  price?: number; // Default price (for simple products or fallback)
+  price?: number; // Default price (for simple products or fallback, maps to merchantPrice)
   discountPrice?: number; // Default discountPrice
   stock?: number; // Total stock (for simple products) or sum of variant stocks
   sizes?: string[]; // Legacy sizes array (auto-populated from variants if possible)
   colors?: string[]; // Legacy colors array (auto-populated from variants if possible)
+  // Tracking fields (24-hour metrics)
+  trackingFields?: {
+    views24h?: number;
+    cartCount24h?: number;
+    sales24h?: number;
+    favoritesCount?: number;
+  };
+  // Ranking fields
+  rankingFields?: {
+    visibilityScore?: number;
+    priorityScore?: number;
+    featured?: boolean;
+    conversionRate?: number;
+    storeRating?: number;
+  };
   
   // Metadata
   isActive: boolean; // Whether product is active
@@ -80,7 +106,9 @@ export interface ProductCreatePayload {
   variants?: ProductVariantCreate[]; // Variants to create
   
   // Simple product (no variants)
-  price?: number; // Required if no variants
+  merchantPrice?: number; // Required if no variants (base price set by merchant)
+  nubianMarkup?: number; // Base markup percentage (default 10%)
+  price?: number; // Legacy field - maps to merchantPrice (required if no variants)
   discountPrice?: number;
   stock?: number; // Required if no variants
   
@@ -97,7 +125,9 @@ export interface ProductCreatePayload {
 export interface ProductVariantCreate {
   sku: string;
   attributes: Record<string, string>;
-  price: number;
+  merchantPrice?: number; // Base price set by merchant
+  nubianMarkup?: number; // Base markup percentage (default 10%)
+  price: number; // Legacy field - maps to merchantPrice
   discountPrice?: number;
   stock: number;
   images?: string[];

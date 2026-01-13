@@ -13,7 +13,11 @@ export interface Product {
   _id: string;
   name: string;
   price: number;
-  discountPrice: number;
+  discountPrice?: number; // Legacy field
+  merchantPrice?: number; // Base merchant price
+  nubianMarkup?: number; // Nubian markup percentage
+  dynamicMarkup?: number; // Dynamic markup percentage
+  finalPrice?: number; // Smart pricing final price
   stock: number;
   isActive: boolean;
   description: string;
@@ -33,6 +37,12 @@ export interface Product {
   } | string;
   priorityScore?: number;
   featured?: boolean;
+  pricingBreakdown?: {
+    merchantPrice: number;
+    nubianMarkup: number;
+    dynamicMarkup: number;
+    finalPrice: number;
+  };
 }
 
 interface ProductDetailsProps {
@@ -77,15 +87,22 @@ export function ProductDetails({ product, showActions = false, onEdit, onToggleA
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // price = original price, discountPrice = final selling price
-  const originalPrice = typeof product.price === 'number' && !isNaN(product.price) && isFinite(product.price) ? product.price : 0;
-  const finalPrice = typeof product.discountPrice === 'number' && !isNaN(product.discountPrice) && isFinite(product.discountPrice) && product.discountPrice > 0
-    ? product.discountPrice 
-    : originalPrice;
-  const hasDiscount = finalPrice < originalPrice && product.discountPrice && product.discountPrice > 0;
-  const discountPercentage = hasDiscount
-    ? Math.round(((originalPrice - finalPrice) / originalPrice) * 100)
+  // Smart pricing: finalPrice > discountPrice > price
+  const merchantPrice = product.merchantPrice || product.price || 0;
+  const finalPrice = product.finalPrice || product.discountPrice || product.price || 0;
+  const originalPrice = merchantPrice;
+  const hasDiscount = finalPrice < merchantPrice;
+  const discountPercentage = hasDiscount && merchantPrice > 0
+    ? Math.round(((merchantPrice - finalPrice) / merchantPrice) * 100)
     : 0;
+  
+  // Get pricing breakdown if available
+  const pricingBreakdown = product.pricingBreakdown || {
+    merchantPrice: merchantPrice,
+    nubianMarkup: product.nubianMarkup || 10,
+    dynamicMarkup: product.dynamicMarkup || 0,
+    finalPrice: finalPrice,
+  };
 
   const validImages = product.images?.filter((_, index) => !imageErrors.has(index)) || [];
 
@@ -211,6 +228,30 @@ export function ProductDetails({ product, showActions = false, onEdit, onToggleA
                 </div>
               </>
             )}
+            
+            {/* Pricing Breakdown */}
+            <Separator />
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-muted-foreground mb-2">تفاصيل التسعير</p>
+              <div className="text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">سعر التاجر:</span>
+                  <span>{formatCurrency(pricingBreakdown.merchantPrice)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">هامش نوبيان:</span>
+                  <span>{pricingBreakdown.nubianMarkup}%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">هامش ديناميكي:</span>
+                  <span>{pricingBreakdown.dynamicMarkup}%</span>
+                </div>
+                <div className="flex justify-between font-semibold pt-1 border-t">
+                  <span>السعر النهائي:</span>
+                  <span className="text-primary">{formatCurrency(pricingBreakdown.finalPrice)}</span>
+                </div>
+              </div>
+            </div>
             
             <Separator />
             

@@ -34,6 +34,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Stepper } from '@/components/ui/stepper'
 import { AttributeDefinitionManager } from '@/components/product/AttributeDefinitionManager'
 import { VariantManager } from '@/components/product/VariantManager'
+import { PricingPreview } from '@/components/product/PricingPreview'
 import { ProductAttribute, ProductVariant } from '@/types/product.types'
 import { ChevronRight, ChevronLeft, Package, Store } from 'lucide-react'
 
@@ -48,9 +49,11 @@ const formSchema = z.object({
     message: 'نوع المنتج يجب أن يكون بسيط أو بمتغيرات',
   }),
   
-  // For simple products
+  // For simple products - Smart pricing fields
+  merchantPrice: z.number().min(0.01, 'سعر التاجر يجب أن يكون أكبر من 0').optional().or(z.undefined()),
+  nubianMarkup: z.number().min(0, 'هامش نوبيان لا يمكن أن يكون سالباً').max(100, 'هامش نوبيان لا يمكن أن يتجاوز 100%').optional().or(z.undefined()),
+  // Legacy fields (for backward compatibility)
   price: z.number().min(0.01, 'السعر يجب أن يكون أكبر من 0').optional().or(z.undefined()),
-  discountPrice: z.number().min(0, 'السعر بعد الخصم لا يمكن أن يكون سالباً').optional().or(z.undefined()),
   stock: z.number().int().min(0, 'المخزون لا يمكن أن يكون سالباً').optional().or(z.undefined()),
   
   // For variant-based products
@@ -66,7 +69,7 @@ const formSchema = z.object({
     sku: z.string().min(1),
     attributes: z.record(z.string()),
     price: z.number().min(0.01),
-    discountPrice: z.number().min(0).optional(),
+    // discountPrice removed - pricing handled by smart pricing system
     stock: z.number().int().min(0),
     images: z.array(z.string()).optional(),
     isActive: z.boolean(),
@@ -91,36 +94,7 @@ const formSchema = z.object({
     })
   }
   
-  // Validate price and discountPrice relationship for simple products
-  if (productType === 'simple') {
-    const price = data.price
-    const discountPrice = data.discountPrice
-    
-    // If both prices are provided, discountPrice should be less than or equal to price
-    if (price !== undefined && discountPrice !== undefined && discountPrice > price) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'السعر المخفض يجب أن يكون أقل من أو يساوي السعر الأصلي',
-        path: ['discountPrice'],
-      })
-    }
-  }
-  
-  // Validate price and discountPrice relationship for variants
-  if (data.variants && Array.isArray(data.variants)) {
-    data.variants.forEach((variant, index) => {
-      const variantPrice = variant.price
-      const variantDiscountPrice = variant.discountPrice
-      
-      if (variantPrice !== undefined && variantDiscountPrice !== undefined && variantDiscountPrice > variantPrice) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'السعر المخفض يجب أن يكون أقل من أو يساوي السعر الأصلي',
-          path: ['variants', index, 'discountPrice'],
-        })
-      }
-    })
-  }
+  // Note: discountPrice validation removed - pricing is now handled by smart pricing system
 })
 
 interface Category {
@@ -158,8 +132,9 @@ export default function ProductForm({ productId }: { productId?: string }) {
       name: '',
       description: '',
       productType: '' as any, // Empty string initially, will be validated when user selects
-      price: undefined,
-      discountPrice: undefined,
+      merchantPrice: undefined,
+      nubianMarkup: 10, // Default 10%
+      price: undefined, // Legacy field
       category: '',
       stock: undefined,
       attributes: [],
@@ -307,7 +282,9 @@ export default function ProductForm({ productId }: { productId?: string }) {
             name: product.name,
             description: product.description || '',
             productType: hasVariants ? 'with_variants' : 'simple',
-            price: product.price || undefined,
+            merchantPrice: product.merchantPrice || product.price || undefined,
+            nubianMarkup: product.nubianMarkup || 10,
+            price: product.price || undefined, // Legacy field
             discountPrice: product.discountPrice,
             category: product.category?._id || product.category || '',
             stock: product.stock,
@@ -436,8 +413,9 @@ export default function ProductForm({ productId }: { productId?: string }) {
       
       case 3:
         if (values.productType === 'simple') {
-          return !errors.price && !errors.stock &&
-                 values.price !== undefined && values.price >= 0.01 &&
+          const merchantPrice = values.merchantPrice || values.price
+          return !errors.merchantPrice && !errors.price && !errors.stock &&
+                 merchantPrice !== undefined && merchantPrice >= 0.01 &&
                  values.stock !== undefined && values.stock >= 0
         } else {
           const hasAttributes = !!(values.attributes && Array.isArray(values.attributes) && values.attributes.length > 0)
@@ -610,13 +588,7 @@ export default function ProductForm({ productId }: { productId?: string }) {
           return
         }
         
-        const discountPrice = parseNumber(values.discountPrice)
-        if (discountPrice !== undefined && discountPrice > 0 && discountPrice > price) {
-          toast.error('السعر المخفض يجب أن يكون أقل من أو يساوي السعر الأصلي')
-          isSubmittingRef.current = false
-          setLoading(false)
-          return
-        }
+        // Note: discountPrice validation removed - pricing is now handled by smart pricing system
         
         const stock = parseNumber(values.stock)
         if (stock === undefined || stock < 0 || !Number.isInteger(stock)) {
@@ -640,18 +612,7 @@ export default function ProductForm({ productId }: { productId?: string }) {
           return
         }
         
-        for (let i = 0; i < values.variants.length; i++) {
-          const variant = values.variants[i]
-          const variantPrice = variant.price
-          const variantDiscountPrice = variant.discountPrice
-          
-          if (variantPrice !== undefined && variantDiscountPrice !== undefined && variantDiscountPrice > variantPrice) {
-            toast.error(`المتغير ${i + 1}: السعر المخفض يجب أن يكون أقل من أو يساوي السعر الأصلي`)
-            isSubmittingRef.current = false
-            setLoading(false)
-            return
-          }
-        }
+        // Note: variant discountPrice validation removed - pricing is now handled by smart pricing system
       }
       
       const imagesArray = Array.isArray(validImages) ? validImages : []
@@ -686,12 +647,16 @@ export default function ProductForm({ productId }: { productId?: string }) {
       }
 
       if (values.productType === 'simple') {
-        const priceValue = parseNumber(values.price)
+        // Smart pricing: prioritize merchantPrice, fallback to price for backward compatibility
+        const merchantPriceValue = parseNumber(values.merchantPrice) || parseNumber(values.price)
+        const nubianMarkupValue = parseNumber(values.nubianMarkup) || 10
         const discountPriceValue = parseNumber(values.discountPrice)
         const stockValue = parseNumber(values.stock)
         
-        if (priceValue !== undefined && priceValue > 0) {
-          dataToSend.price = priceValue
+        if (merchantPriceValue !== undefined && merchantPriceValue > 0) {
+          dataToSend.merchantPrice = merchantPriceValue
+          // Also send as price for backward compatibility
+          dataToSend.price = merchantPriceValue
         } else {
           toast.error('خطأ في السعر. يرجى التحقق من القيمة المدخلة.')
           isSubmittingRef.current = false
@@ -699,9 +664,12 @@ export default function ProductForm({ productId }: { productId?: string }) {
           return
         }
         
-        if (discountPriceValue !== undefined && discountPriceValue > 0) {
-          dataToSend.discountPrice = discountPriceValue
+        // Send nubianMarkup if provided
+        if (nubianMarkupValue !== undefined && nubianMarkupValue >= 0) {
+          dataToSend.nubianMarkup = nubianMarkupValue
         }
+        
+        // Note: discountPrice removed - pricing is now handled by smart pricing system
         
         if (stockValue !== undefined && stockValue >= 0) {
           dataToSend.stock = Math.floor(stockValue)
@@ -766,7 +734,6 @@ export default function ProductForm({ productId }: { productId?: string }) {
           description: '',
           productType: '' as any,
           price: undefined,
-          discountPrice: undefined,
           category: '',
           stock: undefined,
           attributes: [],
@@ -1124,10 +1091,10 @@ export default function ProductForm({ productId }: { productId?: string }) {
                         <div className="grid grid-cols-2 gap-4">
                           <FormField
                             control={form.control as any}
-                            name="price"
+                            name="merchantPrice"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>السعر الأصلي *</FormLabel>
+                                <FormLabel>سعر التاجر *</FormLabel>
                                 <FormControl>
                                   <Input
                                     type="number"
@@ -1142,11 +1109,16 @@ export default function ProductForm({ productId }: { productId?: string }) {
                                       } else {
                                         const numValue = parseFloat(value)
                                         field.onChange(isNaN(numValue) ? undefined : numValue)
+                                        // Also update legacy price field for backward compatibility
+                                        form.setValue('price', isNaN(numValue) ? undefined : numValue)
                                       }
-                                      form.trigger(['discountPrice', 'price'])
+                                      form.trigger(['merchantPrice', 'nubianMarkup'])
                                     }}
                                   />
                                 </FormControl>
+                                <FormDescription>
+                                  السعر الأساسي الذي يحدده التاجر
+                                </FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -1154,15 +1126,15 @@ export default function ProductForm({ productId }: { productId?: string }) {
 
                           <FormField
                             control={form.control as any}
-                            name="discountPrice"
+                            name="nubianMarkup"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>السعر بعد الخصم (اختياري)</FormLabel>
+                                <FormLabel>هامش ربح نوبيان (%)</FormLabel>
                                 <FormControl>
                                   <Input
                                     type="number"
                                     step="0.01"
-                                    placeholder="السعر قبل الخصم"
+                                    placeholder="10"
                                     {...field}
                                     value={field.value ?? ''}
                                     onChange={(e) => {
@@ -1173,15 +1145,26 @@ export default function ProductForm({ productId }: { productId?: string }) {
                                         const numValue = parseFloat(value)
                                         field.onChange(isNaN(numValue) ? undefined : numValue)
                                       }
-                                      form.trigger(['discountPrice', 'price'])
+                                      form.trigger(['merchantPrice', 'nubianMarkup'])
                                     }}
                                   />
                                 </FormControl>
+                                <FormDescription>
+                                  نسبة هامش الربح الافتراضية (10% افتراضي)
+                                </FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
+
                         </div>
+
+                        {/* Pricing Preview */}
+                        <PricingPreview
+                          merchantPrice={form.watch('merchantPrice') || form.watch('price') || 0}
+                          nubianMarkup={form.watch('nubianMarkup') || 10}
+                          dynamicMarkup={0} // Dynamic markup is calculated by system
+                        />
 
                         <FormField
                           control={form.control as any}
@@ -1317,12 +1300,6 @@ export default function ProductForm({ productId }: { productId?: string }) {
                             <Label className="text-sm font-semibold">السعر:</Label>
                             <p className="text-sm">{form.getValues('price') || 'غير محدد'} ر.س</p>
                           </div>
-                          {form.getValues('discountPrice') && (
-                            <div>
-                              <Label className="text-sm font-semibold">السعر بعد الخصم:</Label>
-                              <p className="text-sm">{form.getValues('discountPrice')} ر.س</p>
-                            </div>
-                          )}
                           <div>
                             <Label className="text-sm font-semibold">المخزون:</Label>
                             <p className="text-sm">{form.getValues('stock') ?? 'غير محدد'}</p>

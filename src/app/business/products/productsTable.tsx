@@ -71,7 +71,11 @@ export type Product = {
   _id: string;
   name: string;
   price: number;
-  discountPrice: number; 
+  discountPrice?: number; // Legacy field
+  merchantPrice?: number; // Base merchant price
+  nubianMarkup?: number; // Nubian markup percentage
+  dynamicMarkup?: number; // Dynamic markup percentage
+  finalPrice?: number; // Smart pricing final price
   stock: number;
   isActive: boolean;
   description: string;
@@ -461,13 +465,11 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
         )
       },
       cell: ({ row }) => {
-        // price = original price, discountPrice = final selling price
-        const priceValue = row.getValue("price")
-        const discountPriceValue = row.getValue("discountPrice")
-        const originalPrice = typeof priceValue === 'number' && !isNaN(priceValue) ? priceValue : (typeof priceValue === 'string' ? parseFloat(priceValue) : 0)
-        const finalPrice = typeof discountPriceValue === 'number' && !isNaN(discountPriceValue) && discountPriceValue > 0
-          ? discountPriceValue
-          : originalPrice
+        // Smart pricing: finalPrice > discountPrice > price
+        const product = row.original;
+        const merchantPrice = product.merchantPrice || product.price || 0;
+        const finalPrice = product.finalPrice || product.discountPrice || product.price || 0;
+        const originalPrice = merchantPrice;
         const validFinalPrice = !isNaN(finalPrice) && isFinite(finalPrice) ? finalPrice : 0
         const formatted = new Intl.NumberFormat("ar-SD", {
           style: "currency",
@@ -481,22 +483,16 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
       accessorKey: "discountPrice",
       header: () => <div className="text-right">السعر النهائي</div>,
       cell: ({ row }) => {
-        // price = original price, discountPrice = final selling price
-        const priceValue = row.getValue("price")
-        const discountPriceValue = row.getValue("discountPrice")
-        
-        const originalPrice = typeof priceValue === 'number' && !isNaN(priceValue) 
-          ? priceValue 
-          : (typeof priceValue === 'string' ? parseFloat(priceValue) : 0)
-        const validOriginalPrice = !isNaN(originalPrice) && isFinite(originalPrice) ? originalPrice : 0
-        
-        const finalPrice = typeof discountPriceValue === 'number' && !isNaN(discountPriceValue) && discountPriceValue > 0
-          ? discountPriceValue
-          : originalPrice
-        const validFinalPrice = !isNaN(finalPrice) && isFinite(finalPrice) ? finalPrice : 0
+        // Smart pricing: finalPrice > discountPrice > price
+        const product = row.original;
+        const merchantPrice = product.merchantPrice || product.price || 0;
+        const finalPrice = product.finalPrice || product.discountPrice || product.price || 0;
+        const originalPrice = merchantPrice;
+        const validOriginalPrice = !isNaN(originalPrice) && isFinite(originalPrice) ? originalPrice : 0;
+        const validFinalPrice = !isNaN(finalPrice) && isFinite(finalPrice) ? finalPrice : 0;
         
         // Show original price (strikethrough) if there's a discount
-        const hasDiscount = validFinalPrice < validOriginalPrice && discountPriceValue && typeof discountPriceValue === 'number' && discountPriceValue > 0
+        const hasDiscount = validFinalPrice < validOriginalPrice
         if (hasDiscount) {
           const formatted = new Intl.NumberFormat("ar-SD", {
             style: "currency",

@@ -215,12 +215,47 @@ function OrderDialog({
                 <span className="font-semibold">تاريخ الطلب:</span>{" "}
                 {formatDate(selectedRow.orderDate)}
               </p>
+              {selectedRow.couponDetails && selectedRow.couponDetails.code && (
+                <p className="md:col-span-2">
+                  <span className="font-semibold">كوبون الخصم:</span>{" "}
+                  <span className="font-mono font-bold text-primary">
+                    {selectedRow.couponDetails.code}
+                  </span>
+                  {selectedRow.discountAmount > 0 && (
+                    <span className="text-green-600 mr-2">
+                      {" "}(خصم: {new Intl.NumberFormat("en-SD", {
+                        minimumFractionDigits: 2,
+                      }).format(selectedRow.discountAmount)} ج.س)
+                    </span>
+                  )}
+                </p>
+              )}
               <p>
-                <span className="font-semibold">إجمالي المبلغ:</span>{" "}
+                <span className="font-semibold">المجموع الفرعي:</span>{" "}
                 {new Intl.NumberFormat("en-SD", {
                   minimumFractionDigits: 2,
                 }).format(selectedRow.totalAmount)}{" "}
                 ج.س
+              </p>
+              {selectedRow.discountAmount > 0 && (
+                <p>
+                  <span className="font-semibold">الخصم:</span>{" "}
+                  <span className="text-green-600">
+                    -{new Intl.NumberFormat("en-SD", {
+                      minimumFractionDigits: 2,
+                    }).format(selectedRow.discountAmount)}{" "}
+                    ج.س
+                  </span>
+                </p>
+              )}
+              <p>
+                <span className="font-semibold">إجمالي المبلغ:</span>{" "}
+                <span className="font-bold text-primary">
+                  {new Intl.NumberFormat("en-SD", {
+                    minimumFractionDigits: 2,
+                  }).format(selectedRow.finalAmount || selectedRow.totalAmount)}{" "}
+                  ج.س
+                </span>
               </p>
             </div>
             {/* حالة الدفع */}

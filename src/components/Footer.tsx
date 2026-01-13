@@ -2,7 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Facebook, Instagram, Twitter, Linkedin, MapPin, Phone, Mail, ArrowLeft } from 'lucide-react';
+import Image from 'next/image';
+import { Facebook, Instagram, Twitter, Linkedin, MapPin, Phone, Mail, ArrowLeft, Smartphone } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -33,6 +34,37 @@ export default function Footer() {
             <p className="text-muted-foreground leading-relaxed max-w-md mr-auto text-base md:text-lg font-medium">
               منصة التجارة الإلكترونية الرائدة في السودان. اكتشف منتجات فريدة وتسوّق بأمان مع توصيل سريع.
             </p>
+            <div className="mt-6 space-y-4">
+              <a
+                href="https://play.google.com/store/apps/details?id=dev.expo.nubian"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-3 px-6 py-3 rounded-lg bg-background/50 border border-border/50 text-foreground hover:text-primary hover:bg-primary/5 hover:border-primary/50 transition-all duration-300 group"
+                aria-label="حمّل تطبيق نوبيان من Google Play"
+              >
+                <Smartphone className="w-5 h-5" />
+                <span className="font-semibold">حمّل التطبيق</span>
+                <ArrowLeft className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </a>
+              <div className="flex flex-col items-center gap-2 pt-2">
+                <p className="text-xs text-muted-foreground">امسح الكود</p>
+                <a
+                  href="https://play.google.com/store/apps/details?id=dev.expo.nubian"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block bg-background/50 backdrop-blur-sm p-2 rounded-lg border border-border/50 hover:border-primary/50 transition-all duration-300 hover:scale-105"
+                  aria-label="QR Code - حمّل تطبيق نوبيان"
+                >
+                  <Image
+                    src="/qr-code.svg"
+                    alt="QR Code - حمّل تطبيق نوبيان"
+                    width={120}
+                    height={120}
+                    className="w-[120px] h-[120px]"
+                  />
+                </a>
+              </div>
+            </div>
             <div className="flex justify-end gap-4 mt-6">
               {[
                 { icon: Facebook, label: "Facebook", href: "#" },

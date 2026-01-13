@@ -19,7 +19,11 @@ interface Product {
   _id: string;
   name: string;
   price: number;
-  discountPrice: number;
+  discountPrice?: number; // Legacy field
+  merchantPrice?: number; // Base merchant price
+  nubianMarkup?: number; // Nubian markup percentage
+  dynamicMarkup?: number; // Dynamic markup percentage
+  finalPrice?: number; // Smart pricing final price
   stock: number;
   isActive: boolean;
   description: string;
@@ -66,14 +70,13 @@ export function ProductDetailsDialog({ product }: ProductDetailsDialogProps) {
     }).format(amount);
   };
 
-  // price = original price, discountPrice = final selling price
-  const originalPrice = typeof product.price === 'number' && !isNaN(product.price) && isFinite(product.price) ? product.price : 0;
-  const finalPrice = typeof product.discountPrice === 'number' && !isNaN(product.discountPrice) && isFinite(product.discountPrice) && product.discountPrice > 0
-    ? product.discountPrice 
-    : originalPrice;
-  const hasDiscount = finalPrice < originalPrice && product.discountPrice && product.discountPrice > 0;
-  const discountPercentage = hasDiscount
-    ? Math.round(((originalPrice - finalPrice) / originalPrice) * 100)
+  // Smart pricing: finalPrice > discountPrice > price
+  const merchantPrice = product.merchantPrice || product.price || 0;
+  const finalPrice = product.finalPrice || product.discountPrice || product.price || 0;
+  const originalPrice = merchantPrice;
+  const hasDiscount = finalPrice < merchantPrice;
+  const discountPercentage = hasDiscount && merchantPrice > 0
+    ? Math.round(((merchantPrice - finalPrice) / merchantPrice) * 100)
     : 0;
 
   const validImages = product.images?.filter((_, index) => !imageErrors.has(index)) || [];

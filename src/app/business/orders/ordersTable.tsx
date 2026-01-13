@@ -215,13 +215,30 @@ export const columns: ColumnDef<Order>[] = [
       return <div className="max-w-[200px] truncate" title={fullAddress}>{fullAddress}</div>;
     },
   },
+  // كوبون
+  {
+    header: 'كوبون',
+    accessorKey: 'couponDetails',
+    cell: ({ row }) => {
+      const coupon = row.original.couponDetails;
+      return coupon?.code ? (
+        <div className="font-mono font-bold text-primary">{coupon.code}</div>
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      );
+    },
+  },
   // خصم
   {
     header: 'الخصم',
     accessorKey: 'discountAmount',
     cell: ({ row }) => {
       const value = row.original.discountAmount;
-      return value ? `${value} ج.س` : '-';
+      return value ? (
+        <span className="text-green-600 font-semibold">-{new Intl.NumberFormat("en-SD", {
+          minimumFractionDigits: 2,
+        }).format(value)} ج.س</span>
+      ) : '-';
     },
   },
   // المجموع بعد الخصم

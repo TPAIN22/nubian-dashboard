@@ -68,24 +68,6 @@ export const stats: Stat[] = [
 
 export const testimonials: Testimonial[] = [
   {
-    quote: "تجربة تسوق رائعة! المنتجات أصلية والتوصيل سريع جداً. أنصح بها بشدة لكل من يبحث عن جودة وثقة.",
-    name: "وائل",
-    rating: 5,
-    avatar: "https://placehold.co/60x60/FF0038/000000?text=AA",
-  },
-  {
-    quote: "i was a bit skeptical at first, but now i'm a regular customer. the quality of the products is outstanding. i'll be a lifelong customer.",
-    name: "umar saleh",
-    rating: 4,
-    avatar: "https://placehold.co/60x60/0000AA/000000?text=UM",
-  },
-  {
-    quote: "كنت مترددًا في البداية، لكن نوبيان فاجأتني بجودة المنتجات وسهولة عملية الشراء. سأكون عميلاً دائمًا.",
-    name: "ناصر محمود",
-    rating: 4,
-    avatar: "https://placehold.co/60x60/90EE90/000000?text=NM",
-  },
-  {
     quote: "it's my first time using this platform and I'm really impressed with the quality of the products . I'll be a regular customer forever.",
     name: "mohamed khaled",
     rating: 5,

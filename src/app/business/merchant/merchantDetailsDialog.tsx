@@ -23,7 +23,11 @@ interface Product {
   _id: string;
   name: string;
   price: number;
-  discountPrice: number;
+  discountPrice?: number; // Legacy field
+  merchantPrice?: number; // Base merchant price
+  nubianMarkup?: number; // Nubian markup percentage
+  dynamicMarkup?: number; // Dynamic markup percentage
+  finalPrice?: number; // Smart pricing final price
   stock: number;
   isActive: boolean;
   description: string;
@@ -278,11 +282,9 @@ function ProductCard({ product }: { product: Product }) {
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-primary">
                   {(() => {
-                    // price = original price, discountPrice = final selling price
-                    const originalPrice = typeof product.price === 'number' && !isNaN(product.price) && isFinite(product.price) ? product.price : 0;
-                    const finalPrice = typeof product.discountPrice === 'number' && !isNaN(product.discountPrice) && isFinite(product.discountPrice) && product.discountPrice > 0
-                      ? product.discountPrice
-                      : originalPrice;
+                    // Smart pricing: finalPrice > discountPrice > price
+                    const merchantPrice = product.merchantPrice || product.price || 0;
+                    const finalPrice = product.finalPrice || product.discountPrice || product.price || 0;
                     return new Intl.NumberFormat("ar-SA", {
                       style: "currency",
                       currency: "SDG",
@@ -290,18 +292,16 @@ function ProductCard({ product }: { product: Product }) {
                   })()}
                 </span>
                 {(() => {
-                  // price = original price, discountPrice = final selling price
-                  const originalPrice = typeof product.price === 'number' && !isNaN(product.price) && isFinite(product.price) ? product.price : 0;
-                  const finalPrice = typeof product.discountPrice === 'number' && !isNaN(product.discountPrice) && isFinite(product.discountPrice) && product.discountPrice > 0
-                    ? product.discountPrice
-                    : originalPrice;
-                  const hasDiscount = finalPrice < originalPrice && product.discountPrice && product.discountPrice > 0;
+                  // Smart pricing: finalPrice > discountPrice > price
+                  const merchantPrice = product.merchantPrice || product.price || 0;
+                  const finalPrice = product.finalPrice || product.discountPrice || product.price || 0;
+                  const hasDiscount = finalPrice < merchantPrice;
                   return hasDiscount ? (
                     <span className="text-xs text-muted-foreground line-through">
                       {new Intl.NumberFormat("ar-SA", {
                         style: "currency",
                         currency: "SDG",
-                      }).format(originalPrice)}
+                      }).format(merchantPrice)}
                     </span>
                   ) : null;
                 })()}

@@ -59,14 +59,14 @@ export default function FeaturesSection({ features }: FeaturesSectionProps) {
           {/* Heading */}
           <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-foreground leading-tight">
             {SECTION_CONTENT.heading.prefix}
-            <span className="block md:inline bg-gradient-to-r from-primary via-primary/90 to-accent bg-clip-text text-transparent mt-2 md:mt-0 md:mx-3 drop-shadow-sm">
+            <p className="block md:inline bg-gradient-to-r from-primary via-primary/90 to-accent bg-clip-text text-transparent mt-2 md:mt-0 md:mx-3 drop-shadow-sm">
               {SECTION_CONTENT.heading.highlight}
-            </span>
+            </p>
             {SECTION_CONTENT.heading.suffix}
           </h2>
 
           {/* Description */}
-          <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed font-medium">
+          <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-3xl mx-2 leading-relaxed font-medium">
             {SECTION_CONTENT.description}
           </p>
         </div>

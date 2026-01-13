@@ -33,6 +33,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Stepper } from '@/components/ui/stepper'
 import { AttributeDefinitionManager } from '@/components/product/AttributeDefinitionManager'
 import { VariantManager } from '@/components/product/VariantManager'
+import { PricingPreview } from '@/components/product/PricingPreview'
 import { ProductAttribute, ProductVariant } from '@/types/product.types'
 import { ChevronRight, ChevronLeft } from 'lucide-react'
 
@@ -47,10 +48,11 @@ const formSchema = z.object({
     message: 'Product type must be either simple or with_variants',
   }),
   
-  // For simple products
-  // Price and stock are conditionally required (required if productType is 'simple')
+  // For simple products - Smart pricing fields
+  merchantPrice: z.number().min(0.01, 'Merchant price must be greater than 0').optional().or(z.undefined()),
+  nubianMarkup: z.number().min(0, 'Nubian markup cannot be negative').max(100, 'Nubian markup cannot exceed 100%').optional().or(z.undefined()),
+  // Legacy fields (for backward compatibility)
   price: z.number().min(0.01, 'Price must be greater than 0').optional().or(z.undefined()),
-  discountPrice: z.number().min(0, 'DiscountPrice cannot be negative').optional().or(z.undefined()),
   stock: z.number().int().min(0, 'Stock cannot be negative').optional().or(z.undefined()),
   
   // For variant-based products
@@ -66,7 +68,7 @@ const formSchema = z.object({
     sku: z.string().min(1),
     attributes: z.record(z.string()),
     price: z.number().min(0.01),
-    discountPrice: z.number().min(0).optional(),
+    // discountPrice removed - pricing handled by smart pricing system
     stock: z.number().int().min(0),
     images: z.array(z.string()).optional(),
     isActive: z.boolean(),
@@ -90,36 +92,7 @@ const formSchema = z.object({
     })
   }
   
-  // Validate price and discountPrice relationship for simple products
-  if (productType === 'simple') {
-    const price = data.price
-    const discountPrice = data.discountPrice
-    
-    // If both prices are provided, discountPrice should be less than or equal to price
-    if (price !== undefined && discountPrice !== undefined && discountPrice > price) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'السعر المخفض يجب أن يكون أقل من أو يساوي السعر الأصلي',
-        path: ['discountPrice'],
-      })
-    }
-  }
-  
-  // Validate price and discountPrice relationship for variants
-  if (data.variants && Array.isArray(data.variants)) {
-    data.variants.forEach((variant, index) => {
-      const variantPrice = variant.price
-      const variantDiscountPrice = variant.discountPrice
-      
-      if (variantPrice !== undefined && variantDiscountPrice !== undefined && variantDiscountPrice > variantPrice) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'السعر المخفض يجب أن يكون أقل من أو يساوي السعر الأصلي',
-          path: ['variants', index, 'discountPrice'],
-        })
-      }
-    })
-  }
+  // Note: discountPrice validation removed - pricing is now handled by smart pricing system
 })
 
 interface Category {
@@ -148,8 +121,9 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       name: '',
       description: '',
       productType: '' as any, // Empty string initially, will be validated when user selects
-      price: undefined, // Changed from 0 to undefined so validation can properly detect it's missing
-      discountPrice: undefined,
+      merchantPrice: undefined,
+      nubianMarkup: 10, // Default 10%
+      price: undefined, // Legacy field
       category: '',
       stock: undefined, // Changed from 0 to undefined so validation can properly detect it's missing
       attributes: [],
@@ -197,8 +171,9 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
           break
         case 3:
           if (formValues.productType === 'simple') {
-            isCompleted = !formErrors.price && !formErrors.stock &&
-                         formValues.price !== undefined && formValues.price >= 0.01 &&
+            const merchantPrice = formValues.merchantPrice || formValues.price
+            isCompleted = !formErrors.merchantPrice && !formErrors.price && !formErrors.stock &&
+                         merchantPrice !== undefined && merchantPrice >= 0.01 &&
                          formValues.stock !== undefined && formValues.stock >= 0
           } else {
             const hasAttrs = !!(formValues.attributes && Array.isArray(formValues.attributes) && formValues.attributes.length > 0)
@@ -236,6 +211,7 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
     formErrors.description,
     formErrors.category,
     formErrors.productType,
+    formErrors.merchantPrice,
     formErrors.price,
     formErrors.stock,
     formErrors.images,
@@ -243,6 +219,7 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
     formValues.description,
     formValues.category,
     formValues.productType,
+    formValues.merchantPrice,
     formValues.price,
     formValues.stock,
     formValues.attributes,
@@ -279,8 +256,9 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       
       case 3: // Product Details
         if (values.productType === 'simple') {
-          return !errors.price && !errors.stock &&
-                 values.price !== undefined && values.price >= 0.01 &&
+          const merchantPrice = values.merchantPrice || values.price
+          return !errors.merchantPrice && !errors.price && !errors.stock &&
+                 merchantPrice !== undefined && merchantPrice >= 0.01 &&
                  values.stock !== undefined && values.stock >= 0
         } else {
           const hasAttributes = !!(values.attributes && Array.isArray(values.attributes) && values.attributes.length > 0)
@@ -436,7 +414,9 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
             name: product.name,
             description: product.description || '',
             productType: hasVariants ? 'with_variants' : 'simple',
-            price: product.price || undefined,
+            merchantPrice: product.merchantPrice || product.price || undefined,
+            nubianMarkup: product.nubianMarkup || 10,
+            price: product.price || undefined, // Legacy field
             discountPrice: product.discountPrice,
             category: product.category?._id || product.category || '',
             stock: product.stock,
@@ -602,23 +582,16 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       
       // Validate price and stock only for simple products
       if (values.productType === 'simple') {
-      // Validate price
-        const price = parseNumber(values.price)
-        if (price === undefined || price <= 0) {
+      // Validate price - prioritize merchantPrice, fallback to price
+        const merchantPrice = parseNumber(values.merchantPrice) || parseNumber(values.price)
+        if (merchantPrice === undefined || merchantPrice <= 0) {
         toast.error('يرجى إدخال سعر صحيح (أكبر من 0)')
         isSubmittingRef.current = false
         setLoading(false)
         return
       }
       
-      // Validate discountPrice - must be less than or equal to price
-        const discountPrice = parseNumber(values.discountPrice)
-        if (discountPrice !== undefined && discountPrice > 0 && discountPrice > price) {
-          toast.error('السعر المخفض يجب أن يكون أقل من أو يساوي السعر الأصلي')
-          isSubmittingRef.current = false
-          setLoading(false)
-          return
-        }
+      // Note: discountPrice validation removed - pricing is now handled by smart pricing system
       
       // Validate stock (must be integer)
         const stock = parseNumber(values.stock)
@@ -644,19 +617,7 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
           return
         }
         
-        // Validate variant prices - discountPrice must be less than or equal to price
-        for (let i = 0; i < values.variants.length; i++) {
-          const variant = values.variants[i]
-          const variantPrice = variant.price
-          const variantDiscountPrice = variant.discountPrice
-          
-          if (variantPrice !== undefined && variantDiscountPrice !== undefined && variantDiscountPrice > variantPrice) {
-            toast.error(`المتغير ${i + 1}: السعر المخفض يجب أن يكون أقل من أو يساوي السعر الأصلي`)
-            isSubmittingRef.current = false
-            setLoading(false)
-            return
-          }
-        }
+        // Note: variant discountPrice validation removed - pricing is now handled by smart pricing system
       }
       
       // Filter sizes to match model enum: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'xxxl']
@@ -702,21 +663,22 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       }
 
       if (values.productType === 'simple') {
-        // Simple product - use the validated price and stock
-        // Use the same parseNumber helper function defined above
-        const priceValue = parseNumber(values.price)
-        const discountPriceValue = parseNumber(values.discountPrice)
+        // Simple product - Smart pricing: prioritize merchantPrice, fallback to price
+        const merchantPriceValue = parseNumber(values.merchantPrice) || parseNumber(values.price)
+        const nubianMarkupValue = parseNumber(values.nubianMarkup) || 10
         const stockValue = parseNumber(values.stock)
         
         // Price is required and validated, so it should always be included
-        if (priceValue !== undefined && priceValue > 0) {
-          dataToSend.price = priceValue
+        if (merchantPriceValue !== undefined && merchantPriceValue > 0) {
+          dataToSend.merchantPrice = merchantPriceValue
+          // Also send as price for backward compatibility
+          dataToSend.price = merchantPriceValue
         } else {
           console.error('❌ Price validation failed:', { 
-            priceValue, 
-            rawPrice: values.price, 
-            type: typeof values.price,
-            stringValue: String(values.price)
+            merchantPriceValue, 
+            rawPrice: values.merchantPrice || values.price, 
+            type: typeof (values.merchantPrice || values.price),
+            stringValue: String(values.merchantPrice || values.price)
           })
           toast.error('خطأ في السعر. يرجى التحقق من القيمة المدخلة.')
           isSubmittingRef.current = false
@@ -724,10 +686,12 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
           return
         }
         
-        // Only include discountPrice if it has a valid value (don't send 0 or undefined)
-        if (discountPriceValue !== undefined && discountPriceValue > 0) {
-          dataToSend.discountPrice = discountPriceValue
+        // Send nubianMarkup if provided
+        if (nubianMarkupValue !== undefined && nubianMarkupValue >= 0) {
+          dataToSend.nubianMarkup = nubianMarkupValue
         }
+        
+        // Note: discountPrice removed - pricing is now handled by smart pricing system
         
         if (stockValue !== undefined && stockValue >= 0) {
           dataToSend.stock = Math.floor(stockValue) // Ensure integer for stock
@@ -747,10 +711,8 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
         // Debug log for price values
         console.log('💰 Price values being sent:', {
           rawPrice: values.price,
-          rawDiscountPrice: values.discountPrice,
           rawStock: values.stock,
           finalPrice: dataToSend.price,
-          finalDiscountPrice: dataToSend.discountPrice,
           finalStock: dataToSend.stock,
         })
         // Keep legacy sizes for backward compatibility
@@ -825,7 +787,9 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
           name: '',
           description: '',
           productType: '' as any,
-          price: undefined,
+          merchantPrice: undefined,
+          nubianMarkup: 10,
+          price: undefined, // Legacy field
           discountPrice: undefined,
           category: '',
           stock: undefined,
@@ -1131,69 +1095,83 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                 
                 {productType === 'simple' ? (
                   <>
-                <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control as any}
-                        name="discountPrice"
-                  render={({ field }) => (
-                    <FormItem>
-                            <FormLabel>السعر بعد الخصم (اختياري)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="السعر قبل الخصم"
-                          {...field}
-                                value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value
-                                  if (value === '' || value === null || value === undefined) {
-                                    field.onChange(undefined)
-                                  } else {
-                                    const numValue = parseFloat(value)
-                                    field.onChange(isNaN(numValue) ? undefined : numValue)
-                                  }
-                                  // Trigger validation to check price relationship
-                                  form.trigger(['discountPrice', 'price'])
-                                }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control as any}
+                            name="merchantPrice"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>سعر التاجر *</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="0.00"
+                                    {...field}
+                                    value={field.value ?? ''}
+                                    onChange={(e) => {
+                                      const value = e.target.value
+                                      if (value === '' || value === null || value === undefined) {
+                                        field.onChange(undefined)
+                                      } else {
+                                        const numValue = parseFloat(value)
+                                        field.onChange(isNaN(numValue) ? undefined : numValue)
+                                        // Also update legacy price field for backward compatibility
+                                        form.setValue('price', isNaN(numValue) ? undefined : numValue)
+                                      }
+                                      form.trigger(['merchantPrice', 'nubianMarkup'])
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  السعر الأساسي الذي تريد بيعه به
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                <FormField
-                  control={form.control as any}
-                        name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                            <FormLabel>السعر الأصلي *</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          {...field}
-                                value={field.value ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value
-                                  if (value === '' || value === null || value === undefined) {
-                                    field.onChange(undefined)
-                                  } else {
-                                    const numValue = parseFloat(value)
-                                    field.onChange(isNaN(numValue) ? undefined : numValue)
-                                  }
-                                  // Trigger validation to check price relationship
-                                  form.trigger(['discountPrice', 'price'])
-                                }}
+                          <FormField
+                            control={form.control as any}
+                            name="nubianMarkup"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>هامش ربح نوبيان (%)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="10"
+                                    {...field}
+                                    value={field.value ?? ''}
+                                    onChange={(e) => {
+                                      const value = e.target.value
+                                      if (value === '' || value === null || value === undefined) {
+                                        field.onChange(undefined)
+                                      } else {
+                                        const numValue = parseFloat(value)
+                                        field.onChange(isNaN(numValue) ? undefined : numValue)
+                                      }
+                                      form.trigger(['merchantPrice', 'nubianMarkup'])
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  نسبة هامش الربح الافتراضية (10% افتراضي)
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        {/* Pricing Preview */}
+                        <PricingPreview
+                          merchantPrice={form.watch('merchantPrice') || form.watch('price') || 0}
+                          nubianMarkup={form.watch('nubianMarkup') || 10}
+                          dynamicMarkup={0} // Dynamic markup is calculated by system
+                          isMerchantView={true} // Enable merchant-specific alerts
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
 
               <FormField
                 control={form.control as any}

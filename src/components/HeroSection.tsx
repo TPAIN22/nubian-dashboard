@@ -1,7 +1,8 @@
 import React from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, ArrowRight, Play, ChevronDown } from "lucide-react";
+import { Sparkles, ArrowRight, Play, ChevronDown, Store, CreditCard, BarChart3, Truck } from "lucide-react";
 import Image from "next/image";
 import { Stat } from "./data";
 
@@ -14,6 +15,7 @@ type CTAButton = {
   variant: "default" | "outline";
   icon: React.ReactNode;
   ariaLabel: string;
+  href: string;
 };
 
 const HERO_CONTENT: {
@@ -28,24 +30,26 @@ const HERO_CONTENT: {
     ariaLabel: "Sudanese Market Badge",
   },
   title: {
-    main: "منـــــصــــة",
-    brand: "نـوبـيــــــان",
-    subtitle: "للتســـوق الرقـــمــــي",
+    main: "نُوبيان — سوق يوصّل منتجاتك للعالم",
+    brand: "",
+    subtitle: "",
   },
   description:
-    "بوابتك إلى منتجات فريدة. تسوق مباشرةً من بائعين موثوقين احصل على عروض وتخفيضات مع توصيل سريع وآمن.",
+    "منصة رقمية تجمع التجار والمشترين. للتجار: ابدأ البيع ووصل لعملاء جدد. للمشترين: تسوق منتجات أصيلة بثقة.",
   ctaButtons: [
     {
-      label: "اّب ســــــتـــــور",
+      label: "ابدأ البيع كتاجر",
       variant: "default",
       icon: <ArrowRight className="w-4 h-4 mr-2 group-hover:translate-x-1 transition-transform" />,
-      ariaLabel: "Download from App Store",
+      ariaLabel: "ابدأ البيع كتاجر - Start Selling as Merchant",
+      href: "/merchant/apply",
     },
     {
-      label: "قـــووقـــل بـــلاي",
+      label: "تسوّق الآن",
       variant: "outline",
       icon: <Play className="w-4 h-4 ml-2 group-hover:scale-110 transition-transform" />,
-      ariaLabel: "Download from Google Play",
+      ariaLabel: "تسوّق الآن - Shop Now",
+      href: "https://play.google.com/store/apps/details?id=dev.expo.nubian",
     },
   ],
   image: {
@@ -63,7 +67,7 @@ export default function HeroSection({ stats }: HeroSectionProps) {
   };
 
   return (
-    <section className="relative w-full overflow-hidden" aria-label="Hero Section">
+    <section className="relative w-full overflow-hidden pt-20 md:pt-24" aria-label="Hero Section">
       {/* Hero Banner Image - Full Width */}
       <div className="relative w-full h-screen min-h-[600px] max-h-[900px]">
         {/* Background Image with Ken Burns effect */}
@@ -110,16 +114,20 @@ export default function HeroSection({ stats }: HeroSectionProps) {
 
               {/* Title with Staggered Animation */}
               <header className="space-y-2 mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-                <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black leading-[1.05] tracking-tight">
+                <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.1] tracking-tight">
                   <span className="block text-white drop-shadow-[0_8px_16px_rgba(0,0,0,0.9)] animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
                     {HERO_CONTENT.title.main}
                   </span>
-                  <span className="block bg-gradient-to-r from-primary via-primary/90 to-primary/80 bg-clip-text text-transparent drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)] mt-1 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-                    {HERO_CONTENT.title.brand}
-                  </span>
-                  <span className="block text-white drop-shadow-[0_8px_16px_rgba(0,0,0,0.9)] mt-1 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
-                    {HERO_CONTENT.title.subtitle}
-                  </span>
+                  {HERO_CONTENT.title.brand && (
+                    <span className="block bg-gradient-to-r from-primary via-primary/90 to-primary/80 bg-clip-text text-transparent drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)] mt-1 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+                      {HERO_CONTENT.title.brand}
+                    </span>
+                  )}
+                  {HERO_CONTENT.title.subtitle && (
+                    <span className="block text-white drop-shadow-[0_8px_16px_rgba(0,0,0,0.9)] mt-1 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
+                      {HERO_CONTENT.title.subtitle}
+                    </span>
+                  )}
                 </h1>
               </header>
 
@@ -128,41 +136,142 @@ export default function HeroSection({ stats }: HeroSectionProps) {
                 {HERO_CONTENT.description}
               </p>
 
-              {/* Modern CTA Buttons */}
-              <nav 
-                className="flex flex-col sm:flex-row gap-4 animate-fade-in-up" 
-                style={{ animationDelay: '0.7s' }}
-                aria-label="Download Links"
-              >
-                {HERO_CONTENT.ctaButtons.map((button, index) => (
-                  <Button
-                    key={`cta-${index}`}
-                    size="lg"
-                    variant={button.variant}
-                    className={
-                      button.variant === "default"
-                        ? "relative bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white border-0 shadow-2xl hover:shadow-primary/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 group font-bold px-8 py-7 text-lg rounded-xl overflow-hidden"
-                        : "relative border-2 border-white/90 text-white hover:bg-white hover:text-black transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 group backdrop-blur-xl bg-white/10 shadow-xl font-bold px-8 py-7 text-lg rounded-xl overflow-hidden"
+              {/* Modern CTA Buttons with QR Code */}
+              <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6 lg:gap-8 animate-fade-in-up" style={{ animationDelay: '0.7s' }}>
+                {/* CTA Buttons */}
+                <nav 
+                  className="flex flex-col sm:flex-row gap-4"
+                  aria-label="Call to Action Links"
+                >
+                  {HERO_CONTENT.ctaButtons.map((button, index) => {
+                    const buttonClassName = button.variant === "default"
+                      ? "relative bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white border-0 shadow-2xl hover:shadow-primary/50 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 group font-bold px-8 py-7 text-lg rounded-xl overflow-hidden"
+                      : "relative border-2 border-white/90 text-white hover:bg-white hover:text-black transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 group backdrop-blur-xl bg-white/10 shadow-xl font-bold px-8 py-7 text-lg rounded-xl overflow-hidden";
+
+                    const buttonContent = (
+                      <>
+                        <span className="relative z-10 flex items-center">
+                          {button.variant === "default" ? (
+                            <>
+                              {button.label}
+                              {button.icon}
+                            </>
+                          ) : (
+                            <>
+                              {button.icon}
+                              {button.label}
+                            </>
+                          )}
+                        </span>
+                        <div className={`absolute inset-0 ${button.variant === "default" ? "bg-gradient-to-r from-primary/0 via-white/20 to-primary/0" : "bg-white/0"} translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700`} />
+                      </>
+                    );
+
+                    if (button.href.startsWith('#')) {
+                      return (
+                        <a
+                          key={`cta-link-${index}`}
+                          href={button.href}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            const element = document.querySelector(button.href);
+                            element?.scrollIntoView({ behavior: 'smooth' });
+                          }}
+                          className="block"
+                        >
+                          <Button
+                            size="lg"
+                            variant={button.variant}
+                            className={buttonClassName}
+                            aria-label={button.ariaLabel}
+                          >
+                            {buttonContent}
+                          </Button>
+                        </a>
+                      );
                     }
-                    aria-label={button.ariaLabel}
-                  >
-                    <span className="relative z-10 flex items-center">
-                      {button.variant === "default" ? (
-                        <>
-                          {button.label}
-                          {button.icon}
-                        </>
-                      ) : (
-                        <>
-                          {button.icon}
-                          {button.label}
-                        </>
-                      )}
-                    </span>
-                    <div className={`absolute inset-0 ${button.variant === "default" ? "bg-gradient-to-r from-primary/0 via-white/20 to-primary/0" : "bg-white/0"} translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700`} />
-                  </Button>
-                ))}
-              </nav>
+
+                    if (button.href.startsWith('http')) {
+                      return (
+                        <a
+                          key={`cta-link-${index}`}
+                          href={button.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block"
+                        >
+                          <Button
+                            size="lg"
+                            variant={button.variant}
+                            className={buttonClassName}
+                            aria-label={button.ariaLabel}
+                          >
+                            {buttonContent}
+                          </Button>
+                        </a>
+                      );
+                    }
+
+                    return (
+                      <Link key={`cta-link-${index}`} href={button.href}>
+                        <Button
+                          size="lg"
+                          variant={button.variant}
+                          className={buttonClassName}
+                          aria-label={button.ariaLabel}
+                        >
+                          {buttonContent}
+                        </Button>
+                      </Link>
+                    );
+                  })}
+                </nav>
+
+                {/* QR Code - Beside buttons on desktop, below on mobile */}
+                <div className="flex flex-col items-center gap-3 lg:pt-2 lg:ml-8 lg:mr-auto">
+                  <div className="relative group">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-accent/20 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-300"></div>
+                    <a
+                      href="https://play.google.com/store/apps/details?id=dev.expo.nubian"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="relative inline-block bg-white p-4 rounded-2xl shadow-2xl hover:shadow-white/50 transition-all duration-300 hover:scale-105"
+                      aria-label="QR Code - حمّل تطبيق نوبيان من Google Play"
+                    >
+                      <Image
+                        src="/qr-code.svg"
+                        alt="QR Code - حمّل تطبيق نوبيان"
+                        width={140}
+                        height={140}
+                        className="w-[140px] h-[140px]"
+                      />
+                    </a>
+                  </div>
+                  <p className="text-white/90 text-xs font-medium text-center max-w-[140px]">
+                    امسح الكود لتحميل التطبيق
+                  </p>
+                </div>
+              </div>
+
+              {/* Trust Row */}
+              <div className="flex flex-wrap items-center gap-6 mt-6 animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
+                <div className="flex items-center gap-2 text-white/90">
+                  <Store className="w-5 h-5" />
+                  <span className="text-sm font-medium">دعم للتجار</span>
+                </div>
+                <div className="flex items-center gap-2 text-white/90">
+                  <CreditCard className="w-5 h-5" />
+                  <span className="text-sm font-medium">مدفوعات</span>
+                </div>
+                <div className="flex items-center gap-2 text-white/90">
+                  <BarChart3 className="w-5 h-5" />
+                  <span className="text-sm font-medium">لوحة تحكم</span>
+                </div>
+                <div className="flex items-center gap-2 text-white/90">
+                  <Truck className="w-5 h-5" />
+                  <span className="text-sm font-medium">شحن</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

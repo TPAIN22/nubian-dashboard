@@ -20,14 +20,19 @@ type NavLink = {
 
 const NAV_LINKS: NavLink[] = [
   {
-    href: '/about',
-    label: 'عن نوبيان',
-    ariaLabel: 'عن نوبيان - About Nubian',
+    href: '#shoppers',
+    label: 'للمشترين',
+    ariaLabel: 'للمشترين - For Shoppers',
   },
   {
-    href: '/contact',
-    label: 'اتصل بنا',
-    ariaLabel: 'اتصل بنا - Contact Us',
+    href: '#merchants',
+    label: 'للتجار',
+    ariaLabel: 'للتجار - For Merchants',
+  },
+  {
+    href: '#faq',
+    label: 'الأسئلة الشائعة',
+    ariaLabel: 'الأسئلة الشائعة - FAQ',
   },
 ];
 
@@ -90,11 +95,18 @@ export default function Header() {
             aria-label="Primary Navigation"
           >
             {NAV_LINKS.map((link, index) => (
-              <Link
+              <a
                 key={`nav-${index}`}
                 href={link.href}
                 className="relative px-6 py-2 text-base font-bold text-foreground/80 hover:text-primary transition-all duration-300 group"
                 aria-label={link.ariaLabel}
+                onClick={(e) => {
+                  if (link.href.startsWith('#')) {
+                    e.preventDefault();
+                    const element = document.querySelector(link.href);
+                    element?.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }}
               >
                 <span className="relative z-10">{link.label}</span>
                 
@@ -103,9 +115,30 @@ export default function Header() {
                 
                 {/* Bottom border animation */}
                 <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent group-hover:w-full transition-all duration-300" />
-              </Link>
+              </a>
             ))}
           </nav>
+
+          {/* Desktop CTA Buttons - Left Side (RTL) */}
+          <div className="hidden md:flex items-center gap-3 absolute left-0 pl-6">
+            <Link href="/merchant/apply">
+              <Button 
+                className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 font-bold px-6 py-2"
+                aria-label="سجّل كتاجر - Register as Merchant"
+              >
+                سجّل كتاجر
+              </Button>
+            </Link>
+            <Link href="/sign-in">
+              <Button 
+                variant="outline"
+                className="border-2 border-foreground/20 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 font-bold px-5 py-2"
+                aria-label="تسجيل الدخول - Sign In"
+              >
+                تسجيل الدخول
+              </Button>
+            </Link>
+          </div>
 
           {/* Mobile Menu Button - Left Side (RTL) */}
           <div className="md:hidden flex items-center pl-4">
@@ -140,10 +173,17 @@ export default function Header() {
                     asChild
                     className="p-0 focus:bg-transparent"
                   >
-                    <Link 
+                    <a 
                       href={link.href} 
                       className="flex items-center w-full px-4 py-3 text-base font-bold text-right text-foreground/90 hover:text-primary hover:bg-primary/5 rounded-lg transition-all duration-200 group"
-                      onClick={() => setIsOpen(false)}
+                      onClick={(e) => {
+                        setIsOpen(false);
+                        if (link.href.startsWith('#')) {
+                          e.preventDefault();
+                          const element = document.querySelector(link.href);
+                          element?.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      }}
                       aria-label={link.ariaLabel}
                     >
                       <span className="flex-1">{link.label}</span>
@@ -157,9 +197,30 @@ export default function Header() {
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                       </svg>
-                    </Link>
+                    </a>
                   </DropdownMenuItem>
                 ))}
+                
+                {/* Mobile CTAs */}
+                <div className="mt-4 pt-4 border-t border-border/30 space-y-2">
+                  <Link href="/merchant/apply" onClick={() => setIsOpen(false)}>
+                    <Button 
+                      className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg font-bold"
+                      aria-label="سجّل كتاجر - Register as Merchant"
+                    >
+                      سجّل كتاجر
+                    </Button>
+                  </Link>
+                  <Link href="/sign-in" onClick={() => setIsOpen(false)}>
+                    <Button 
+                      variant="outline"
+                      className="w-full border-2 font-bold"
+                      aria-label="تسجيل الدخول - Sign In"
+                    >
+                      تسجيل الدخول
+                    </Button>
+                  </Link>
+                </div>
                 
                 {/* Decorative bottom border */}
                 <div className="mt-2 pt-2 border-t border-border/30">

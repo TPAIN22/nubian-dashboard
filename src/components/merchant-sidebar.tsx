@@ -9,6 +9,7 @@ import {
   IconSettings,
   IconShoppingBag,
   IconInnerShadowTop,
+  IconTicket,
 } from "@tabler/icons-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -44,6 +45,11 @@ const merchantNavData = {
       title: "التحليلات",
       url: "/merchant/analytics",
       icon: IconChartBar,
+    },
+    {
+      title: "الكوبونات",
+      url: "/merchant/coupons",
+      icon: IconTicket,
     },
     {
       title: "إعدادات المتجر",
