@@ -46,7 +46,7 @@ export default function Header() {
         dir="rtl"
         className="fixed top-0 left-0 right-0 z-50 w-full"
       >
-        <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 pt-5">
+        <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
           <div
             className={[
               "mt-3 rounded-2xl border backdrop-blur-xl transition-all duration-300",

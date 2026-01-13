@@ -32,7 +32,7 @@ export default function AnimatedBackground() {
   const ty2 = useMemo(() => Math.max(-30, Math.min(30, mousePosition.y * -0.01)), [mousePosition.y]);
 
   return (
-    <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden pt-10">
       {/* دائرة 1 */}
       <div
         className="absolute rounded-full blur-3xl transition-transform duration-1000 ease-out

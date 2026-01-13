@@ -100,7 +100,7 @@ export default function HeroSection({ stats }: HeroSectionProps) {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
             <div className="max-w-4xl">
               {/* Badge with Modern Design */}
-              <div className="mb-6 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+              <div className="mb-6 mt-24 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
                 <Badge
                   variant="secondary"
                   className="bg-gradient-to-r from-primary/90 to-primary text-white border-0 hover:scale-105 transition-all duration-300 inline-flex items-center shadow-2xl px-5 py-2 text-sm font-bold backdrop-blur-xl rounded-full"
