@@ -14,6 +14,7 @@ interface Order {
   paymentStatus: string
   totalAmount: number
   merchantRevenue: number
+  transferProof?: string
   products: any[]
   productsCount: number
   customerInfo: {

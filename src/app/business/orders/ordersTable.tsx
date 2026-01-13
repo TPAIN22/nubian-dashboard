@@ -228,6 +228,32 @@ export const columns: ColumnDef<Order>[] = [
       );
     },
   },
+  // صورة التحويل
+  {
+    header: 'صورة التحويل',
+    accessorKey: 'transferProof',
+    cell: ({ row }) => {
+      const transferProof = row.original.transferProof;
+      return transferProof ? (
+        <div className="flex items-center gap-2">
+          <a
+            href={transferProof}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline text-sm flex items-center gap-1"
+          >
+            <span>عرض</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+          </a>
+        </div>
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      );
+    },
+  },
   // خصم
   {
     header: 'الخصم',
@@ -413,6 +439,10 @@ export function DataTable({ orders }: { orders: Order[] }) {
                   totalAmount: "المجموع",
                   productsCount: "عدد المنتجات",
                   orderDate: "تاريخ الطلب",
+                  transferProof: "صورة التحويل",
+                  couponDetails: "كوبون",
+                  discountAmount: "الخصم",
+                  finalAmount: "المجموع النهائي",
                 };
 
                 return (

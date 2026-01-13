@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAuth } from "@clerk/nextjs";
@@ -184,32 +184,36 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
     }
   };
 
+  // Watch form values
+  const type = useWatch({ control: form.control, name: "type" });
+  const value = useWatch({ control: form.control, name: "value" });
+  const maxDiscount = useWatch({ control: form.control, name: "maxDiscount" });
+  const minOrderAmount = useWatch({ control: form.control, name: "minOrderAmount" });
+
   const discountPreview = React.useMemo(() => {
     const orderAmount = 1000; // Example amount for preview
-    const type = form.watch("type");
-    const value = form.watch("value") || 0;
-    const maxDiscount = form.watch("maxDiscount");
-    const minOrderAmount = form.watch("minOrderAmount") || 0;
+    const valueNum = value || 0;
+    const minOrderAmountNum = minOrderAmount || 0;
 
-    if (orderAmount < minOrderAmount) {
+    if (orderAmount < minOrderAmountNum) {
       return { discountAmount: 0, finalAmount: orderAmount };
     }
 
     let discountAmount = 0;
     if (type === "percentage") {
-      discountAmount = (orderAmount * value) / 100;
+      discountAmount = (orderAmount * valueNum) / 100;
       if (maxDiscount && discountAmount > maxDiscount) {
         discountAmount = maxDiscount;
       }
     } else {
-      discountAmount = value;
+      discountAmount = valueNum;
     }
 
     return {
       discountAmount: Math.min(discountAmount, orderAmount),
       finalAmount: Math.max(0, orderAmount - discountAmount),
     };
-  }, [form.watch("type"), form.watch("value"), form.watch("maxDiscount"), form.watch("minOrderAmount")]);
+  }, [type, value, maxDiscount, minOrderAmount]);
 
   return (
     <Form {...form}>

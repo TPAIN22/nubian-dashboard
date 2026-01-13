@@ -326,6 +326,29 @@ function OrderDialog({
                 </SelectContent>
               </Select>
             </div>
+            {/* Payment Proof Image */}
+            {selectedRow.transferProof && (
+              <div className="mt-4">
+                <h3 className="text-lg font-semibold mb-2">صورة التحويل البنكي:</h3>
+                <div className="relative">
+                  <img
+                    src={selectedRow.transferProof}
+                    alt="Payment Proof"
+                    className="max-w-full h-auto rounded-lg border border-gray-200 shadow-sm"
+                    style={{ maxHeight: '400px' }}
+                  />
+                  <a
+                    href={selectedRow.transferProof}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-block text-primary hover:underline text-sm"
+                  >
+                    فتح الصورة في نافذة جديدة
+                  </a>
+                </div>
+              </div>
+            )}
+
             {/* تفاصيل المنتجات */}
             <div className="mt-4">
               <h3 className="text-lg font-semibold mb-2">المنتجات:</h3>
