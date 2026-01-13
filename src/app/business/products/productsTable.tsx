@@ -18,6 +18,7 @@ import {
 import { ArrowUpDown, ChevronDown, MoreHorizontal, Edit, Trash2, Eye, Download, RefreshCw, Power, PowerOff, RotateCcw, AlertTriangle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import logger from "@/lib/logger"
 import { useAuth } from "@clerk/nextjs"
 import { axiosInstance } from '@/lib/axiosInstance'
 import { toast } from 'sonner'
