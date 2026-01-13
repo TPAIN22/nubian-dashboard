@@ -285,7 +285,6 @@ export default function ProductForm({ productId }: { productId?: string }) {
             merchantPrice: product.merchantPrice || product.price || undefined,
             nubianMarkup: product.nubianMarkup || 10,
             price: product.price || undefined, // Legacy field
-            discountPrice: product.discountPrice,
             category: product.category?._id || product.category || '',
             stock: product.stock,
             attributes: product.attributes || [],
@@ -650,7 +649,6 @@ export default function ProductForm({ productId }: { productId?: string }) {
         // Smart pricing: prioritize merchantPrice, fallback to price for backward compatibility
         const merchantPriceValue = parseNumber(values.merchantPrice) || parseNumber(values.price)
         const nubianMarkupValue = parseNumber(values.nubianMarkup) || 10
-        const discountPriceValue = parseNumber(values.discountPrice)
         const stockValue = parseNumber(values.stock)
         
         if (merchantPriceValue !== undefined && merchantPriceValue > 0) {
