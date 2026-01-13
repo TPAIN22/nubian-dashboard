@@ -57,7 +57,7 @@ export default function Page() {
       <ModernNoubian />
 
       {/* SEO-Optimized Hidden Content for Search Engines */}
-      <div className="pt-24 sm:pt-28">
+      <div className="pt-2 overflow-x-hidden">
         <h1>نوبيان - Nubian: أفضل متجر إلكتروني في السودان</h1>
         <h2>متجر نوبيان للتسوق الإلكتروني | Nubian Online Store Sudan</h2>
         <p>

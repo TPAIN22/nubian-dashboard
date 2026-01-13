@@ -155,8 +155,8 @@ export default function RootLayout({
       signInFallbackRedirectUrl="/"
       signUpFallbackRedirectUrl="/"
     >
-      <html lang="ar" dir="rtl" suppressHydrationWarning>
-        <head>
+<html lang="ar" dir="rtl" suppressHydrationWarning className="overflow-x-clip">
+<head>
         </head>
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
           <ErrorBoundary>

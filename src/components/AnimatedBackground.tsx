@@ -17,7 +17,7 @@ export default function AnimatedBackground() {
   }, []);
 
   return (
-    <div className="fixed inset-0 pointer-events-none -z-10">
+    <div className="fixed inset-0 pointer-events-none w-full h-full -z-10 overflow-hidden">
       <div
         className="absolute w-96 h-96 bg-gradient-to-r from-amber-200/20 to-orange-200/20 rounded-full blur-3xl transition-transform duration-1000 ease-out"
         style={{

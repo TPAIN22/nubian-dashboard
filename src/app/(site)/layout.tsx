@@ -9,7 +9,7 @@ export default function SiteLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div dir="rtl" className="min-h-screen main-bg">
+    <div className="min-h-screen main-bg">
       <AnimatedBackground />
       <Header />
       {children}
