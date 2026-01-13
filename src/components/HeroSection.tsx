@@ -67,7 +67,7 @@ export default function HeroSection({ stats }: HeroSectionProps) {
   };
 
   return (
-    <section className="relative w-full overflow-hidden pt-20 md:pt-24" aria-label="Hero Section">
+    <section className="relative w-full overflow-auto sm:pt-34" aria-label="Hero Section">
       {/* Hero Banner Image - Full Width */}
       <div className="relative w-full h-screen min-h-[600px] max-h-[900px]">
         {/* Background Image with Ken Burns effect */}
@@ -277,18 +277,7 @@ export default function HeroSection({ stats }: HeroSectionProps) {
         </div>
 
         {/* Modern Scroll Indicator */}
-        <button
-          onClick={scrollToStats}
-          className="absolute bottom-12 left-1/2 transform -translate-x-1/2 z-20 animate-bounce-slow cursor-pointer group"
-          aria-label="Scroll to statistics"
-        >
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-8 h-12 border-2 border-white/80 rounded-full flex items-start justify-center p-2 backdrop-blur-md bg-black/20 group-hover:bg-black/30 transition-all duration-300 group-hover:border-white">
-              <div className="w-1.5 h-3 bg-white rounded-full animate-scroll-down" />
-            </div>
-            <ChevronDown className="w-5 h-5 text-white/80 group-hover:text-white transition-colors" />
-          </div>
-        </button>
+      
       </div>
 
       {/* Enhanced Stats Section */}
