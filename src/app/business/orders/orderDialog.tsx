@@ -237,7 +237,7 @@ function OrderDialog({
                 }).format(selectedRow.totalAmount)}{" "}
                 ج.س
               </p>
-              {selectedRow.discountAmount > 0 && (
+              {selectedRow.discountAmount && selectedRow.discountAmount > 0 && (
                 <p>
                   <span className="font-semibold">الخصم:</span>{" "}
                   <span className="text-green-600">
