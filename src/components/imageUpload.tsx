@@ -73,50 +73,58 @@ export function ImageUpload({ onUploadComplete, initialUrls = [] }: ImageUploadP
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize with initial URLs
-  useEffect(() => {
-    const initialUrlsString = JSON.stringify(initialUrls || []);
-    if (initialUrlsString !== lastInitialUrlsRef.current) {
-      lastInitialUrlsRef.current = initialUrlsString;
-      
-      if (initialUrls && initialUrls.length > 0) {
-        const existingFiles: SelectedFile[] = initialUrls.map((url, index) => ({
-          id: `existing-${index}`,
-          name: url.split('/').pop() || `Image ${index + 1}`,
-          isExisting: true,
-          url: url,
-        }));
-        
-        setSelectedFiles(existingFiles);
-        
-        const newStatus: Record<string | number, UploadStatus> = {};
-        const newUrls: Record<string | number, string> = {};
-        existingFiles.forEach((f) => {
-          newStatus[f.id] = "success";
-          if (f.url) newUrls[f.id] = f.url;
-        });
-        
-        setUploadStatus(newStatus);
-        setUploadedUrls(newUrls);
-      } else if (initialUrls && initialUrls.length === 0 && selectedFiles.length > 0) {
-        // If initialUrls becomes empty, clear selected files that are "existing"
-        setSelectedFiles(prev => prev.filter(f => !f.isExisting));
-        setUploadStatus(prev => {
-          const next = { ...prev };
-          Object.keys(next).forEach(k => {
-            if (String(k).startsWith('existing-')) delete next[k];
-          });
-          return next;
-        });
-        setUploadedUrls(prev => {
-          const next = { ...prev };
-          Object.keys(next).forEach(k => {
-            if (String(k).startsWith('existing-')) delete next[k];
-          });
-          return next;
-        });
-      }
-    }
-  }, [initialUrls]); // Run when initialUrls changes
+ // Initialize with initial URLs
+useEffect(() => {
+  const initialUrlsString = JSON.stringify(initialUrls || []);
+  if (initialUrlsString === lastInitialUrlsRef.current) return;
+
+  lastInitialUrlsRef.current = initialUrlsString;
+
+  // لو عندك initialUrls: اعرضها كـ existing
+  if (initialUrls && initialUrls.length > 0) {
+    const existingFiles: SelectedFile[] = initialUrls.map((url, index) => ({
+      id: `existing-${index}`,
+      name: url.split("/").pop() || `Image ${index + 1}`,
+      isExisting: true,
+      url,
+    }));
+
+    setSelectedFiles(existingFiles);
+
+    const newStatus: Record<string | number, UploadStatus> = {};
+    const newUrls: Record<string | number, string> = {};
+
+    existingFiles.forEach((f) => {
+      newStatus[f.id] = "success";
+      if (f.url) newUrls[f.id] = f.url;
+    });
+
+    setUploadStatus(newStatus);
+    setUploadedUrls(newUrls);
+    return;
+  }
+
+  // لو initialUrls بقت فاضية: شيل existing فقط (بدون ما تعتمد على selectedFiles.length)
+  if (initialUrls && initialUrls.length === 0) {
+    setSelectedFiles((prev) => prev.filter((f) => !f.isExisting));
+
+    setUploadStatus((prev) => {
+      const next = { ...prev };
+      Object.keys(next).forEach((k) => {
+        if (String(k).startsWith("existing-")) delete next[k];
+      });
+      return next;
+    });
+
+    setUploadedUrls((prev) => {
+      const next = { ...prev };
+      Object.keys(next).forEach((k) => {
+        if (String(k).startsWith("existing-")) delete next[k];
+      });
+      return next;
+    });
+  }
+}, [initialUrls]);
 
   const authenticator = async (): Promise<AuthParams> => {
     try {

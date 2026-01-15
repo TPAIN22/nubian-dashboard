@@ -92,18 +92,21 @@ const formSchema = z
       )
       .optional(),
 
-    variants: z
-      .array(
-        z.object({
-          sku: z.string().min(1),
-          attributes: z.record(z.string()),
-          price: z.number().min(0.01),
-          stock: z.number().int().min(0),
-          images: z.array(z.string()).optional(),
-          isActive: z.boolean(),
-        })
-      )
-      .optional(),
+      variants: z.array(z.object({
+        sku: z.string().min(1),
+        attributes: z.record(z.string()),
+        // NEW (supports dynamic pricing per variant)
+        merchantPrice: z.number().min(0.01).optional(),
+        nubianMarkup: z.number().min(0).max(100).optional(),
+      
+        // keep price for backward compatibility
+        price: z.number().min(0.01).optional(),
+      
+        stock: z.number().int().min(0),
+        images: z.array(z.string()).optional(),
+        isActive: z.boolean(),
+      })).optional(),
+      
 
     // Legacy fields
     sizes: z.array(z.string()).optional(),
@@ -681,11 +684,20 @@ export default function ProductForm({ productId }: { productId?: string }) {
         }
       } else {
         dataToSend.attributes = values.attributes || [];
-        dataToSend.variants = (values.variants || []).map((v: any) => ({
-          ...v,
-          price: v.price || 0,
-          isActive: v.isActive !== false,
-        }));
+        dataToSend.variants = (values.variants || []).map((v) => {
+          const mp = (v as any).merchantPrice ?? v.price ?? 0;
+          const nm = (v as any).nubianMarkup ?? 10;
+          const price = v.price ?? mp ?? 0;
+        
+          return {
+            ...v,
+            merchantPrice: mp,
+            nubianMarkup: nm,
+            price,
+            isActive: v.isActive !== false,
+          };
+        });
+        
       }
 
       if (userRole === "admin") {
