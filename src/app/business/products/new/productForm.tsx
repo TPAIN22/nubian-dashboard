@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { toast } from 'sonner'
 import { axiosInstance } from '@/lib/axiosInstance'
+import { Sparkles } from "lucide-react";
 import logger from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -225,12 +226,8 @@ export default function ProductForm({ productId }: { productId?: string }) {
         }
         // Fetch approved merchants for admin selection
         const res = await axiosInstance.get('/merchants', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          params: {
-            status: 'APPROVED',
-          },
+          headers: { Authorization: `Bearer ${token}` },
+          params: { status: 'APPROVED' },
         })
         // Handle different response formats
         const merchantsData = res.data?.data || res.data?.merchants || res.data || []
@@ -675,9 +672,7 @@ export default function ProductForm({ productId }: { productId?: string }) {
         dataToSend.attributes = values.attributes || []
         dataToSend.variants = (values.variants || []).map(v => ({
           ...v,
-          merchantPrice: v.merchantPrice || v.price || 0,
-          price: v.price || v.merchantPrice || 0,
-          nubianMarkup: v.nubianMarkup ?? 10,
+          price: v.price || 0,
           isActive: v.isActive !== false,
         }))
       }
@@ -1416,7 +1411,7 @@ export default function ProductForm({ productId }: { productId?: string }) {
                                 {categories.find(c => c._id === form.getValues('category'))?.name || 'فئة غير محددة'}
                               </p>
                             </div>
-                            <Badge variant={form.getValues('isActive') ? "success" : "secondary"}>
+                            <Badge variant={form.getValues('isActive') ? "default" : "outline"}>
                               {form.getValues('isActive') ? 'نشط' : 'غير نشط'}
                             </Badge>
                           </div>
