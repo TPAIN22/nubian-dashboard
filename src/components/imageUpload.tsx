@@ -250,7 +250,7 @@ useEffect(() => {
 
     if (isExisting || !file) return;
 
-    setUploadStatus((prev) => ({ ...prev, [id]: "uploading" }));
+    setUploadStatus((prev) => ({ ...prev, [id]: "uploading" } as Record<string | number, UploadStatus>));
     setUploadProgress((prev) => ({ ...prev, [id]: 0 }));
     setErrorMessages((prev) => ({ ...prev, [id]: "" }));
 
@@ -274,7 +274,7 @@ useEffect(() => {
         abortSignal: abortController.signal,
       });
 
-      setUploadStatus((prev) => ({ ...prev, [id]: "success" }));
+      setUploadStatus((prev) => ({ ...prev, [id]: "success" } as Record<string | number, UploadStatus>));
       
       // Extract URL from ImageKit response - check multiple possible fields
       const imageUrl = uploadResponse.url || uploadResponse.filePath;
@@ -314,7 +314,7 @@ useEffect(() => {
       );
     } catch (error: any) {
       // Explicitly type error as 'any' or a more specific type if known
-      setUploadStatus((prev) => ({ ...prev, [id]: "error" }));
+      setUploadStatus((prev) => ({ ...prev, [id]: "error" } as Record<string | number, UploadStatus>));
 
       let errorMessage = "";
       if (error instanceof ImageKitAbortError) {
