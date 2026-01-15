@@ -685,18 +685,35 @@ export default function ProductForm({ productId }: { productId?: string }) {
       } else {
         dataToSend.attributes = values.attributes || [];
         dataToSend.variants = (values.variants || []).map((v) => {
-          const mp = (v as any).merchantPrice ?? v.price ?? 0;
-          const nm = (v as any).nubianMarkup ?? 10;
-          const price = v.price ?? mp ?? 0;
+          // TS-safe: لا تستخدم v.merchantPrice مباشرة لأن النوع ما فيه الحقل
+          const anyV = v as any;
+        
+          const merchantPrice =
+            (typeof anyV.merchantPrice === "number" && Number.isFinite(anyV.merchantPrice))
+              ? anyV.merchantPrice
+              : (typeof v.price === "number" && Number.isFinite(v.price))
+              ? v.price
+              : 0;
+        
+          const nubianMarkup =
+            (typeof anyV.nubianMarkup === "number" && Number.isFinite(anyV.nubianMarkup))
+              ? anyV.nubianMarkup
+              : 10;
+        
+          const price =
+            (typeof v.price === "number" && Number.isFinite(v.price))
+              ? v.price
+              : merchantPrice;
         
           return {
             ...v,
-            merchantPrice: mp,
-            nubianMarkup: nm,
+            merchantPrice,
+            nubianMarkup,
             price,
             isActive: v.isActive !== false,
           };
         });
+        
         
       }
 
