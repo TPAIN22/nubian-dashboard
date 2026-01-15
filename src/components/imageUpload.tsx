@@ -200,8 +200,8 @@ useEffect(() => {
     setSelectedFiles((prev) => [...prev, ...newFiles]);
 
     // Initialize status for new files
-    const newStatus: Record<number, UploadStatus> = {};
-    const newProgress: Record<number, number> = {};
+    const newStatus: Record<string | number, UploadStatus> = {};
+    const newProgress: Record<string | number, number> = {};
     newFiles.forEach((f) => {
       newStatus[f.id] = "idle";
       newProgress[f.id] = 0;
