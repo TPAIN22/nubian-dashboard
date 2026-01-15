@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Sparkles, Trash2, Plus } from 'lucide-react'
+import { Sparkles, Trash2, Plus, Image as ImageIcon } from 'lucide-react'
+import ImageUpload from '@/components/imageUpload'
 
 interface VariantManagerProps {
   attributes: ProductAttribute[]
@@ -67,15 +68,15 @@ export function VariantManager({ attributes, variants, onChange }: VariantManage
                Object.keys(vAttrs).length === Object.keys(combo).length
       })
       
-      if (existing) {
+        if (existing) {
         return existing
       }
       
       return {
         sku,
         attributes: combo,
+        merchantPrice: 0,
         price: 0,
-        discountPrice: undefined,
         stock: 0,
         isActive: true
       }
@@ -88,8 +89,8 @@ export function VariantManager({ attributes, variants, onChange }: VariantManage
     const newVariant: ProductVariant = {
       sku: '',
       attributes: {},
+      merchantPrice: 0,
       price: 0,
-      discountPrice: undefined,
       stock: 0,
       isActive: true
     }
@@ -176,7 +177,7 @@ export function VariantManager({ attributes, variants, onChange }: VariantManage
               </Button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label className="text-sm">رمز SKU *</Label>
                 <Input
@@ -187,26 +188,30 @@ export function VariantManager({ attributes, variants, onChange }: VariantManage
                 />
               </div>
               <div>
-                <Label className="text-sm">السعر *</Label>
+                <Label className="text-sm">سعر التاجر *</Label>
                 <Input
                   type="number"
                   step="0.01"
                   placeholder="0.00"
-                  value={variant.price || 0}
-                  onChange={(e) => updateVariant(index, { price: parseFloat(e.target.value) || 0 })}
+                  value={variant.merchantPrice || 0}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value) || 0
+                    updateVariant(index, { merchantPrice: val, price: val })
+                  }}
                   className="mt-1"
                 />
               </div>
               <div>
-                <Label className="text-sm">سعر الخصم (اختياري)</Label>
+                <Label className="text-sm">هامش نوبيان (%)</Label>
                 <Input
                   type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={variant.discountPrice || ''}
-                  onChange={(e) => updateVariant(index, { 
-                    discountPrice: e.target.value ? parseFloat(e.target.value) : undefined 
-                  })}
+                  step="0.1"
+                  placeholder="10"
+                  value={variant.nubianMarkup ?? 10}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value) || 0
+                    updateVariant(index, { nubianMarkup: val })
+                  }}
                   className="mt-1"
                 />
               </div>
@@ -223,6 +228,20 @@ export function VariantManager({ attributes, variants, onChange }: VariantManage
                   className="mt-1"
                 />
               </div>
+            </div>
+
+            <div className="space-y-2 pt-2 border-t">
+              <Label className="text-sm flex items-center gap-2">
+                <ImageIcon className="w-4 h-4" />
+                صور المتغير (اختياري)
+              </Label>
+              <ImageUpload 
+                onUploadComplete={(urls) => updateVariant(index, { images: urls })}
+                initialUrls={variant.images}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                يمكنك إضافة صور خاصة لهذا المتغير (مثل لون محدد). إذا لم تضف صوراً، سيتم استخدام صور المنتج الرئيسية.
+              </p>
             </div>
             
             {/* Allow setting attribute values for this variant */}

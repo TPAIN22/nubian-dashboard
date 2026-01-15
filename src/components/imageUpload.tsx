@@ -25,19 +25,22 @@ import {
 // Props for the ImageUpload component
 interface ImageUploadProps {
   onUploadComplete?: (urls: string[]) => void;
+  initialUrls?: string[];
 }
 
 // Represents a file selected by the user
 interface SelectedFile {
-  id: number;
-  file: File;
+  id: string | number;
+  file?: File;
   name: string;
-  size: number;
-  type: string;
+  size?: number;
+  type?: string;
+  isExisting?: boolean;
+  url?: string;
 }
 
 // Status of an individual file upload
-type UploadStatus = "idle" | "uploading" | "success" | "error";
+type UploadStatus = "idle" | "uploading" | "success" | "error" | "existing";
 
 // Authentication parameters from the backend
 interface AuthParams {
@@ -50,22 +53,70 @@ interface AuthParams {
 
 // --- ImageUpload Component ---
 
-export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
+export function ImageUpload({ onUploadComplete, initialUrls = [] }: ImageUploadProps) {
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [uploadProgress, setUploadProgress] = useState<Record<number, number>>(
+  const [uploadProgress, setUploadProgress] = useState<Record<string | number, number>>(
     {}
   );
   const [uploadStatus, setUploadStatus] = useState<
-    Record<number, UploadStatus>
+    Record<string | number, UploadStatus>
   >({});
-  const [errorMessages, setErrorMessages] = useState<Record<number, string>>(
+  const [errorMessages, setErrorMessages] = useState<Record<string | number, string>>(
     {}
   );
-  const [uploadedUrls, setUploadedUrls] = useState<Record<number, string>>({});
+  const [uploadedUrls, setUploadedUrls] = useState<Record<string | number, string>>({});
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const lastNotifiedUrlsRef = useRef<string>("");
+  const lastInitialUrlsRef = useRef<string>("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Initialize with initial URLs
+  useEffect(() => {
+    const initialUrlsString = JSON.stringify(initialUrls || []);
+    if (initialUrlsString !== lastInitialUrlsRef.current) {
+      lastInitialUrlsRef.current = initialUrlsString;
+      
+      if (initialUrls && initialUrls.length > 0) {
+        const existingFiles: SelectedFile[] = initialUrls.map((url, index) => ({
+          id: `existing-${index}`,
+          name: url.split('/').pop() || `Image ${index + 1}`,
+          isExisting: true,
+          url: url,
+        }));
+        
+        setSelectedFiles(existingFiles);
+        
+        const newStatus: Record<string | number, UploadStatus> = {};
+        const newUrls: Record<string | number, string> = {};
+        existingFiles.forEach((f) => {
+          newStatus[f.id] = "success";
+          if (f.url) newUrls[f.id] = f.url;
+        });
+        
+        setUploadStatus(newStatus);
+        setUploadedUrls(newUrls);
+      } else if (initialUrls && initialUrls.length === 0 && selectedFiles.length > 0) {
+        // If initialUrls becomes empty, clear selected files that are "existing"
+        setSelectedFiles(prev => prev.filter(f => !f.isExisting));
+        setUploadStatus(prev => {
+          const next = { ...prev };
+          Object.keys(next).forEach(k => {
+            if (String(k).startsWith('existing-')) delete next[k];
+          });
+          return next;
+        });
+        setUploadedUrls(prev => {
+          const next = { ...prev };
+          Object.keys(next).forEach(k => {
+            if (String(k).startsWith('existing-')) delete next[k];
+          });
+          return next;
+        });
+      }
+    }
+  }, [initialUrls]); // Run when initialUrls changes
 
   const authenticator = async (): Promise<AuthParams> => {
     try {
@@ -150,6 +201,11 @@ export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
 
     setUploadStatus((prev) => ({ ...prev, ...newStatus }));
     setUploadProgress((prev) => ({ ...prev, ...newProgress }));
+
+    // Start uploading automatically
+    newFiles.forEach((fileObj) => {
+      uploadSingleFile(fileObj);
+    });
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -182,7 +238,9 @@ export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
   };
 
   const uploadSingleFile = async (fileObj: SelectedFile) => {
-    const { id, file } = fileObj;
+    const { id, file, isExisting } = fileObj;
+
+    if (isExisting || !file) return;
 
     setUploadStatus((prev) => ({ ...prev, [id]: "uploading" }));
     setUploadProgress((prev) => ({ ...prev, [id]: 0 }));
@@ -279,7 +337,7 @@ export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
     await Promise.all(uploadPromises);
   };
 
-  const removeFile = (fileId: number) => {
+  const removeFile = (fileId: string | number) => {
     setSelectedFiles((prev) => prev.filter((f) => f.id !== fileId));
     setUploadStatus((prev) => {
       const newStatus = { ...prev };
@@ -311,16 +369,17 @@ export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
     setUploadedUrls({});
   };
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return "0 Bytes";
+  const formatFileSize = (bytes?: number): string => {
+    if (bytes === undefined || bytes === 0) return "0 Bytes";
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const isImage = (file: File): boolean => {
-    return file && file.type.startsWith("image/");
+  const isImage = (file?: File, isExisting?: boolean): boolean => {
+    if (isExisting) return true; // Assume existing URLs are images for simplicity in this component
+    return !!(file && file.type.startsWith("image/"));
   };
 
   const getOverallStats = () => {
@@ -345,18 +404,19 @@ export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
       (url): url is string => typeof url === 'string' && url.trim().length > 0 && (url.startsWith('http://') || url.startsWith('https://'))
     );
     
-    setImageUrls(urlsArray);
+    const urlsString = JSON.stringify(urlsArray.sort());
     
-    console.log('ImageUpload: URLs updated', {
-      uploadedUrlsCount: Object.keys(uploadedUrls).length,
-      urlsArrayLength: urlsArray.length,
-      urlsArray: urlsArray,
-    });
-    
-    // Always call callback with current URLs (even if empty)
-    // This ensures form state is always in sync
-    onUploadComplete?.(urlsArray);
-  }, [uploadedUrls, onUploadComplete]); // Add onUploadComplete to dependency array
+    if (urlsString !== lastNotifiedUrlsRef.current) {
+      setImageUrls(urlsArray);
+      lastNotifiedUrlsRef.current = urlsString;
+      onUploadComplete?.(urlsArray);
+      
+      console.log('ImageUpload: Parent notified of URL changes', {
+        count: urlsArray.length,
+        urls: urlsArray,
+      });
+    }
+  }, [uploadedUrls, onUploadComplete]);
 
   const stats = getOverallStats();
 
@@ -449,7 +509,15 @@ export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center space-x-3 flex-1 min-w-0">
-                    {isImage(fileObj.file) ? (
+                    {fileObj.isExisting && fileObj.url ? (
+                      <div className="relative w-10 h-10 rounded border overflow-hidden flex-shrink-0">
+                        <img 
+                          src={fileObj.url} 
+                          alt={fileObj.name} 
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
+                    ) : isImage(fileObj.file, fileObj.isExisting) ? (
                       <Image className="h-6 w-6 text-blue-600 flex-shrink-0" />
                     ) : (
                       <File className="h-6 w-6 text-gray-600 flex-shrink-0" />
@@ -459,11 +527,11 @@ export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
                         {fileObj.name}
                       </p>
                       <div className="flex items-center space-x-2 text-sm text-gray-500">
-                        <span>{formatFileSize(fileObj.size)}</span>
+                        {fileObj.size && <span>{formatFileSize(fileObj.size)}</span>}
                         {uploadStatus[fileObj.id] === "success" && (
                           <span className="text-green-600 flex items-center">
                             <Check className="w-3 h-3 mr-1" />
-                            Uploaded
+                            {fileObj.isExisting ? "Existing" : "Uploaded"}
                           </span>
                         )}
                         {uploadStatus[fileObj.id] === "uploading" && (
@@ -522,34 +590,16 @@ export function ImageUpload({ onUploadComplete }: ImageUploadProps) {
             ))}
           </div>
 
-          {/* Upload All Button */}
-          {stats.pending > 0 || stats.failed > 0 ? (
-            <div className="flex space-x-3">
-              <button
-                onClick={handleUploadAll}
-                disabled={stats.uploading > 0}
-                className="flex-1 bg-[#fff] text-black py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
-              >
-                {stats.uploading > 0
-                  ? `Uploading ${stats.uploading} files...`
-                  : stats.failed > 0
-                  ? `Retry Failed & Upload Pending (${
-                      stats.pending + stats.failed
-                    })`
-                  : `Upload All Files (${stats.pending})`}
-              </button>
-            </div>
-          ) : (
-            stats.completed === stats.total &&
+          {/* Success Summary */}
+          {stats.completed === stats.total &&
             stats.total > 0 && (
-              <div className="text-center p-4  border border-[#fff] rounded-lg">
+              <div className="text-center p-4 border border-[#fff] rounded-lg">
                 <Check className="mx-auto h-8 w-8 text-green-600 mb-2" />
                 <p className="text-green-800 font-medium">
                   All files uploaded successfully!
                 </p>
               </div>
-            )
-          )}
+            )}
         </div>
       )}
     </div>

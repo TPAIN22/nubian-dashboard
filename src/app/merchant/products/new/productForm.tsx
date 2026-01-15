@@ -30,13 +30,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import ImageUpload from '@/components/imageUpload'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Stepper } from '@/components/ui/stepper'
 import { AttributeDefinitionManager } from '@/components/product/AttributeDefinitionManager'
 import { VariantManager } from '@/components/product/VariantManager'
 import { PricingPreview } from '@/components/product/PricingPreview'
-import { ProductAttribute, ProductVariant } from '@/types/product.types'
-import { ChevronRight, ChevronLeft } from 'lucide-react'
+import { ProductAttributeDefDTO as ProductAttribute, ProductVariantDTO as ProductVariant } from '@/domain/product/product.types'
+import { ChevronRight, ChevronLeft, Package, Info, CheckCircle2, Type, Layers, Image as ImageIcon, Eye } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
 
 const formSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -142,6 +145,18 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
   const attributes = useWatch({ control: form.control, name: 'attributes' })
   const variants = useWatch({ control: form.control, name: 'variants' })
   const images = useWatch({ control: form.control, name: 'images' })
+  const name = useWatch({ control: form.control, name: 'name' })
+  const description = useWatch({ control: form.control, name: 'description' })
+
+  // Memoize variants for VariantManager to avoid re-renders
+  const memoizedVariants = useMemo(() => {
+    return (variants || []).map(v => ({
+      ...v,
+      merchantPrice: (v as any).merchantPrice ?? v.price,
+      price: v.price ?? (v as any).merchantPrice,
+      isActive: v.isActive !== false,
+    }))
+  }, [variants])
 
   // Memoize step enabled check to avoid recalculation
   // Only recalculate when form values actually change
@@ -154,6 +169,20 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       completed: [false, false, false, false, false],
     }
     
+    // Use watched values for better performance and stability
+    const currentValues = {
+      name,
+      description,
+      category: form.getValues('category'),
+      productType,
+      merchantPrice: form.getValues('merchantPrice'),
+      price: form.getValues('price'),
+      stock: form.getValues('stock'),
+      attributes,
+      variants,
+      images
+    }
+
     // Calculate enabled and completed states
     for (let i = 1; i <= 5; i++) {
       // Check if step is completed
@@ -161,30 +190,27 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       switch (i) {
         case 1:
           isCompleted = !formErrors.name && !formErrors.description && !formErrors.category &&
-                       !!formValues.name?.trim() && !!formValues.description?.trim() && !!formValues.category?.trim()
+                       !!currentValues.name?.trim() && !!currentValues.description?.trim() && !!currentValues.category?.trim()
           break
         case 2:
-          // Step 2 is only completed if productType is explicitly selected
-          const productTypeVal = formValues.productType as string
           isCompleted = !formErrors.productType && 
-                       !!productTypeVal && 
-                       (productTypeVal === 'simple' || productTypeVal === 'with_variants')
+                       !!currentValues.productType && 
+                       (currentValues.productType === 'simple' || currentValues.productType === 'with_variants')
           break
         case 3:
-          if (formValues.productType === 'simple') {
-            const merchantPrice = formValues.merchantPrice || formValues.price
+          if (currentValues.productType === 'simple') {
+            const mPrice = currentValues.merchantPrice || currentValues.price
             isCompleted = !formErrors.merchantPrice && !formErrors.price && !formErrors.stock &&
-                         merchantPrice !== undefined && merchantPrice >= 0.01 &&
-                         formValues.stock !== undefined && formValues.stock >= 0
+                         mPrice !== undefined && mPrice >= 0.01 &&
+                         currentValues.stock !== undefined && currentValues.stock >= 0
           } else {
-            const hasAttrs = !!(formValues.attributes && Array.isArray(formValues.attributes) && formValues.attributes.length > 0)
-            const hasVars = !!(formValues.variants && Array.isArray(formValues.variants) && formValues.variants.length > 0)
+            const hasAttrs = !!(currentValues.attributes && Array.isArray(currentValues.attributes) && currentValues.attributes.length > 0)
+            const hasVars = !!(currentValues.variants && Array.isArray(currentValues.variants) && currentValues.variants.length > 0)
             isCompleted = hasAttrs && hasVars
           }
           break
         case 4:
-          const imgArray = formValues.images || []
-          isCompleted = !formErrors.images && Array.isArray(imgArray) && imgArray.length > 0
+          isCompleted = !formErrors.images && Array.isArray(currentValues.images) && currentValues.images.length > 0
           break
         case 5:
           isCompleted = true
@@ -194,7 +220,6 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       states.completed[i - 1] = isCompleted
       
       if (i > 1) {
-        // Check if all previous steps are completed
         let allPreviousCompleted = true
         for (let j = 0; j < i - 1; j++) {
           if (!states.completed[j]) {
@@ -208,24 +233,14 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
     
     return states
   }, [
-    formErrors.name,
-    formErrors.description,
-    formErrors.category,
-    formErrors.productType,
-    formErrors.merchantPrice,
-    formErrors.price,
-    formErrors.stock,
-    formErrors.images,
-    formValues.name,
-    formValues.description,
-    formValues.category,
-    formValues.productType,
-    formValues.merchantPrice,
-    formValues.price,
-    formValues.stock,
-    formValues.attributes,
-    formValues.variants,
-    formValues.images,
+    formErrors,
+    name,
+    description,
+    productType,
+    attributes,
+    variants,
+    images,
+    form
   ])
 
   // Check if a step is enabled
@@ -442,7 +457,6 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
   }, [productId, isLoaded, user])
 
   const handleUploadDone = useCallback((urls: string[]) => {
-    // Ensure all URLs are valid strings (absolute URLs)
     const validUrls = urls.filter((url: string) => 
       url && 
       typeof url === 'string' && 
@@ -450,74 +464,32 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       (url.startsWith('http://') || url.startsWith('https://'))
     )
     
-    logger.info('ImageUpload callback received URLs', {
-      urlsCount: urls.length,
-      validUrlsCount: validUrls.length,
-      urls: urls,
-      validUrls: validUrls,
-    })
-    
-    // Always set images, even if empty array (to clear previous state)
     form.setValue('images', validUrls, { 
       shouldValidate: true,
       shouldDirty: true,
       shouldTouch: true,
-    })
-    
-    // Verify it was set correctly
-    const currentImages = form.getValues('images')
-    console.log('Form images after setValue:', {
-      setValueCalled: true,
-      currentImages: currentImages,
-      currentImagesLength: currentImages?.length || 0,
-      matchesValidUrls: JSON.stringify(currentImages) === JSON.stringify(validUrls),
     })
   }, [form])
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     // Prevent double submission
     if (isSubmittingRef.current || loading) {
-      logger.warn('Form submission blocked - already submitting', {
-        isSubmitting: isSubmittingRef.current,
-        loading,
-      })
       return
     }
 
-    // Mark as submitting
     isSubmittingRef.current = true
     setLoading(true)
 
-    // Log form values before processing
-    logger.info('Form submission started', {
-      formValues: {
-        ...values,
-        imagesCount: values.images?.length || 0,
-        images: values.images,
-      },
-      formState: {
-        isValid: form.formState.isValid,
-        errors: form.formState.errors,
-      }
-    })
-
-    // Check images from form values
     const currentImages = values.images || form.getValues('images') || []
     
     if (!currentImages || !Array.isArray(currentImages) || currentImages.length < 1) {
       toast.error('يرجى رفع صورة واحدة على الأقل قبل الحفظ')
-      logger.warn('No images in form', {
-        valuesImages: values.images,
-        formImages: form.getValues('images'),
-        currentImages
-      })
       isSubmittingRef.current = false
       setLoading(false)
       return
     }
 
     try {
-      // Get authentication token
       const token = await getToken()
       if (!token) {
         toast.error('فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.')
@@ -525,16 +497,9 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
         return
       }
 
-      // Filter out any invalid image URLs (empty strings, undefined, null)
       const validImages = currentImages.filter((img: string) => 
         img && typeof img === 'string' && img.trim().length > 0 && (img.startsWith('http://') || img.startsWith('https://'))
       )
-
-      logger.info('Images validation', {
-        originalCount: currentImages.length,
-        validCount: validImages.length,
-        validImages: validImages,
-      })
 
       if (validImages.length === 0) {
         toast.error('يرجى رفع صورة واحدة على الأقل بصيغة صحيحة')
@@ -543,7 +508,6 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
         return
       }
 
-      // Validate description (model requires it, even though validator allows optional)
       if (!values.description || String(values.description).trim().length === 0) {
         toast.error('يرجى إدخال وصف للمنتج')
         isSubmittingRef.current = false
@@ -551,7 +515,6 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
         return
       }
       
-      // Validate category (must be MongoDB ObjectId)
       if (!values.category || String(values.category).trim().length === 0) {
         toast.error('يرجى اختيار فئة للمنتج')
         isSubmittingRef.current = false
@@ -559,16 +522,14 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
         return
       }
       
-      // Validate productType
-      const productType = values.productType as string
-      if (!productType || (productType !== 'simple' && productType !== 'with_variants')) {
+      const productTypeVal = values.productType as string
+      if (!productTypeVal || (productTypeVal !== 'simple' && productTypeVal !== 'with_variants')) {
         toast.error('يرجى اختيار نوع المنتج')
         isSubmittingRef.current = false
         setLoading(false)
         return
       }
       
-      // Helper function to safely parse number (used for both validation and data preparation)
       const parseNumber = (value: any): number | undefined => {
         if (value === undefined || value === null || value === '') {
           return undefined
@@ -580,29 +541,23 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
         return isNaN(parsed) ? undefined : parsed
       }
       
-      // Validate price and stock only for simple products
       if (values.productType === 'simple') {
-      // Validate price - prioritize merchantPrice, fallback to price
         const merchantPrice = parseNumber(values.merchantPrice) || parseNumber(values.price)
         if (merchantPrice === undefined || merchantPrice <= 0) {
-        toast.error('يرجى إدخال سعر صحيح (أكبر من 0)')
-        isSubmittingRef.current = false
-        setLoading(false)
-        return
-      }
-      
-      // Note: discountPrice validation removed - pricing is now handled by smart pricing system
-      
-      // Validate stock (must be integer)
+          toast.error('يرجى إدخال سعر صحيح (أكبر من 0)')
+          isSubmittingRef.current = false
+          setLoading(false)
+          return
+        }
+        
         const stock = parseNumber(values.stock)
         if (stock === undefined || stock < 0 || !Number.isInteger(stock)) {
-        toast.error('يرجى إدخال مخزون صحيح (رقم صحيح أكبر من أو يساوي 0)')
-        isSubmittingRef.current = false
-        setLoading(false)
-        return
+          toast.error('يرجى إدخال مخزون صحيح (رقم صحيح أكبر من أو يساوي 0)')
+          isSubmittingRef.current = false
+          setLoading(false)
+          return
         }
       } else {
-        // Validate attributes and variants for variant products
         if (!values.attributes || !Array.isArray(values.attributes) || values.attributes.length === 0) {
           toast.error('يرجى إضافة خاصية واحدة على الأقل للمنتج')
           isSubmittingRef.current = false
@@ -616,44 +571,10 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
           setLoading(false)
           return
         }
-        
-        // Note: variant discountPrice validation removed - pricing is now handled by smart pricing system
       }
       
-      // Filter sizes to match model enum: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'xxxl']
-      // Note: 'xxxl' must be lowercase, others are uppercase
-      const validSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'xxxl']
-      const filteredSizes = Array.isArray(values.sizes) 
-        ? values.sizes.map((size: string) => {
-            const sizeStr = String(size).trim()
-            // Convert XXXL to lowercase xxxl, others to uppercase
-            if (sizeStr.toUpperCase() === 'XXXL') return 'xxxl'
-            return sizeStr.toUpperCase()
-          }).filter((size: string) => validSizes.includes(size))
-        : []
-      
-      // Ensure all required fields are present and properly formatted
-      // CRITICAL: Make sure images is a proper array
       const imagesArray = Array.isArray(validImages) ? validImages : []
       
-      // Final validation - this should never fail if we got here
-      if (imagesArray.length < 1) {
-        const currentFormImages = form.getValues('images')
-        toast.error(`خطأ: لا توجد صور. الصور الحالية في النموذج: ${currentFormImages?.length || 0}`)
-        logger.error('FINAL CHECK: No images in array', {
-          validImages,
-          validImagesType: typeof validImages,
-          validImagesIsArray: Array.isArray(validImages),
-          formImages: currentFormImages,
-          formImagesType: typeof currentFormImages,
-          formImagesIsArray: Array.isArray(currentFormImages),
-        })
-        isSubmittingRef.current = false
-        setLoading(false)
-        return
-      }
-
-      // Build data based on product type
       const dataToSend: any = {
         name: String(values.name).trim(),
         description: String(values.description).trim(),
@@ -663,133 +584,71 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       }
 
       if (values.productType === 'simple') {
-        // Simple product - Smart pricing: prioritize merchantPrice, fallback to price
         const merchantPriceValue = parseNumber(values.merchantPrice) || parseNumber(values.price)
         const nubianMarkupValue = parseNumber(values.nubianMarkup) || 10
         const stockValue = parseNumber(values.stock)
         
-        // Price is required and validated, so it should always be included
         if (merchantPriceValue !== undefined && merchantPriceValue > 0) {
           dataToSend.merchantPrice = merchantPriceValue
-          // Also send as price for backward compatibility
           dataToSend.price = merchantPriceValue
         } else {
-          console.error('❌ Price validation failed:', { 
-            merchantPriceValue, 
-            rawPrice: values.merchantPrice || values.price, 
-            type: typeof (values.merchantPrice || values.price),
-            stringValue: String(values.merchantPrice || values.price)
-          })
           toast.error('خطأ في السعر. يرجى التحقق من القيمة المدخلة.')
           isSubmittingRef.current = false
           setLoading(false)
           return
         }
         
-        // Send nubianMarkup if provided
         if (nubianMarkupValue !== undefined && nubianMarkupValue >= 0) {
           dataToSend.nubianMarkup = nubianMarkupValue
         }
-        
-        // Note: discountPrice removed - pricing is now handled by smart pricing system
+
+        // discountPrice removed - handled automatically by dynamic pricing
         
         if (stockValue !== undefined && stockValue >= 0) {
-          dataToSend.stock = Math.floor(stockValue) // Ensure integer for stock
+          dataToSend.stock = Math.floor(stockValue)
         } else {
-          console.error('❌ Stock validation failed:', { 
-            stockValue, 
-            rawStock: values.stock, 
-            type: typeof values.stock,
-            stringValue: String(values.stock)
-          })
           toast.error('خطأ في المخزون. يرجى التحقق من القيمة المدخلة.')
           isSubmittingRef.current = false
           setLoading(false)
           return
         }
-        
-        // Debug log for price values
-        console.log('💰 Price values being sent:', {
-          rawPrice: values.price,
-          rawStock: values.stock,
-          finalPrice: dataToSend.price,
-          finalStock: dataToSend.stock,
-        })
-        // Keep legacy sizes for backward compatibility
-        if (filteredSizes.length > 0) {
-          dataToSend.sizes = filteredSizes
-        }
       } else {
-        // Variant-based product
         dataToSend.attributes = values.attributes || []
         dataToSend.variants = (values.variants || []).map(v => ({
           ...v,
-          price: v.price || 0,
+          merchantPrice: v.merchantPrice || v.price || 0,
+          price: v.price || v.merchantPrice || 0,
+          nubianMarkup: v.nubianMarkup ?? 10,
           isActive: v.isActive !== false,
         }))
       }
-
-      // Log the data being sent for debugging - BEFORE stringification
-      console.log('📤 SENDING PRODUCT DATA:', {
-        imagesCount: dataToSend.images.length,
-        images: dataToSend.images,
-        imagesType: typeof dataToSend.images,
-        imagesIsArray: Array.isArray(dataToSend.images),
-        fullData: JSON.stringify(dataToSend, null, 2),
-      })
-
-      logger.info('Sending product data to backend', {
-        dataToSend: {
-          ...dataToSend,
-          imagesCount: dataToSend.images.length,
-          images: dataToSend.images, // Log full images array
-          imagesType: typeof dataToSend.images,
-          imagesIsArray: Array.isArray(dataToSend.images),
-          firstImage: dataToSend.images[0]?.substring(0, 50) + '...'
-        }
-      })
 
       const headers = {
         Authorization: `Bearer ${token}`,
       }
 
-      // Final console log right before axios call
-      console.log('🚀 ABOUT TO SEND TO AXIOS:', {
-        url: isEdit ? `/products/${productId}` : '/products',
-        method: isEdit ? 'PUT' : 'POST',
-        images: dataToSend.images,
-        imagesLength: dataToSend.images.length,
-        imagesType: typeof dataToSend.images,
-        isArray: Array.isArray(dataToSend.images),
-        fullData: dataToSend,
-      })
-
       if (isEdit && productId) {
         await axiosInstance.put(`/products/${productId}`, dataToSend, { headers })
         toast.success('تم تحديث المنتج بنجاح')
         
-        // Reset submission flag before navigation
         isSubmittingRef.current = false
         setLoading(false)
         
-        // Redirect to products table after successful update
         router.push('/merchant/products')
       } else {
         await axiosInstance.post('/products', dataToSend, { headers })
         toast.success('تم إنشاء المنتج بنجاح')
 
-      // Reset submission flag before navigation
-      isSubmittingRef.current = false
-      setLoading(false)
-      
-        // Reset form to initial state and redirect to products table
+        isSubmittingRef.current = false
+        setLoading(false)
+        
         form.reset({
           name: '',
           description: '',
           productType: '' as any,
           merchantPrice: undefined,
           nubianMarkup: 10,
-          price: undefined, // Legacy field
+          price: undefined,
           category: '',
           stock: undefined,
           attributes: [],
@@ -799,62 +658,38 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
           images: [],
           isActive: true,
         })
-        setCurrentStep(1) // Reset to first step
+        setCurrentStep(1)
         
-        // Redirect to products table after successful creation
         setTimeout(() => {
-      router.push('/merchant/products')
-        }, 500) // Small delay to show success message
+          router.push('/merchant/products')
+        }, 500)
       }
     } catch (error: any) {
-      // Reset submission flag on error
       isSubmittingRef.current = false
+      setLoading(false)
       
       logger.error('Error saving product', { 
         error: error instanceof Error ? error.message : String(error),
         status: error.response?.status,
         responseData: error.response?.data,
-        requestData: {
-          ...values,
-          images: values.images,
-          imagesCount: values.images?.length
-        }
       })
       
-      // More specific error messages
       if (error.response?.status === 401) {
         toast.error('فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.')
         router.push('/sign-in')
       } else if (error.response?.status === 403) {
         toast.error('ليس لديك صلاحية لإضافة منتجات. يرجى التأكد من أن حسابك معتمد.')
       } else if (error.response?.status === 400) {
-        // Extract validation errors from response
         const errorData = error.response?.data
         const errorDetails = errorData?.error?.details || errorData?.details || errorData?.errors
         
-        logger.error('Validation error details', {
-          errorData,
-          errorDetails,
-          fullResponse: error.response?.data
-        })
-        
         if (errorDetails && Array.isArray(errorDetails)) {
-          // Handle validation error details format from handleValidationErrors
           const errorMessages = errorDetails.map((e: any) => {
             const field = e.field || e.path || e.param || 'unknown'
             const msg = e.message || e.msg || 'Invalid value'
             return `${field}: ${msg}`
           })
           toast.error(`خطأ في التحقق: ${errorMessages.join('; ')}`)
-          
-          // Also log each error for debugging
-          errorDetails.forEach((e: any) => {
-            logger.error('Validation error', {
-              field: e.field || e.path || e.param,
-              message: e.message || e.msg,
-              value: e.value
-            })
-          })
         } else if (errorDetails && typeof errorDetails === 'string') {
           toast.error(`خطأ في التحقق: ${errorDetails}`)
         } else {
@@ -864,13 +699,6 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
       } else {
         toast.error(error.response?.data?.message || 'فشل حفظ المنتج')
       }
-    } finally {
-      // Ensure we reset submission flag in finally block as well
-      // (though it should already be reset in try/catch)
-      if (isSubmittingRef.current) {
-        isSubmittingRef.current = false
-      }
-      setLoading(false)
     }
   }
 
@@ -946,154 +774,225 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
   ]
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{isEdit ? 'تعديل المنتج' : 'إنشاء منتج'}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {/* Stepper */}
-        <div className="mb-8">
-          <Stepper steps={steps} />
+    <div className="min-h-screen bg-gradient-to-br p-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 shadow-lg bg-primary/10">
+            <Package className="w-8 h-8 text-primary" />
+          </div>
+          <h1 className="text-3xl font-bold mb-2">{isEdit ? 'تعديل المنتج' : 'إضافة منتج جديد'}</h1>
+          <p className="text-muted-foreground">{isEdit ? 'قم بتعديل معلومات المنتج' : 'أضف منتجك الجديد إلى المتجر بسهولة'}</p>
         </div>
 
-        <Form {...form}>
-          <form 
-            onSubmit={(e) => {
-              e.preventDefault()
-              // On step 5, submit the form
-              if (currentStep === 5) {
-              if (isSubmittingRef.current || loading) {
-                return
-              }
-                form.handleSubmit(onSubmit as any, (errors) => {
-                  logger.error('Form validation failed', { errors })
-                  const errorMessages = Object.entries(errors).map(([key, error]) => {
-                    if (error?.message) {
-                      return `${key}: ${error.message}`
+        <Card>
+          <CardHeader>
+            <CardTitle>{isEdit ? 'تعديل المنتج' : 'إنشاء منتج جديد'}</CardTitle>
+            <p className="text-muted-foreground text-sm">{isEdit ? 'قم بتعديل معلومات المنتج في جميع الخطوات' : 'املأ جميع الخطوات لإضافة منتج جديد'}</p>
+          </CardHeader>
+          <CardContent>
+            {/* Stepper */}
+            <div className="mb-8">
+              <Stepper steps={steps} />
+            </div>
+
+            <Form {...form}>
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (currentStep === 5) {
+                    if (isSubmittingRef.current || loading) {
+                      return
                     }
-                    return key
-                  })
-                  toast.error(`خطأ في التحقق: ${errorMessages.join(', ')}`)
-                })(e)
-              } else {
-                // Otherwise, go to next step
-                goToNextStep()
-              }
-            }} 
-            className="space-y-6"
-          >
-            {/* Step 1: Basic Information */}
-            {currentStep === 1 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold mb-4">المعلومات الأساسية</h3>
-            <FormField
-              control={form.control as any}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>اسم المنتج *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="أدخل اسم المنتج" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    form.handleSubmit(onSubmit as any, (errors) => {
+                      logger.error('Form validation failed', { errors })
+                      const errorMessages = Object.entries(errors).map(([key, error]) => {
+                        if (error?.message) {
+                          return `${key}: ${error.message}`
+                        }
+                        return key
+                      })
+                      toast.error(`خطأ في التحقق: ${errorMessages.join(', ')}`)
+                    })(e)
+                  } else {
+                    goToNextStep()
+                  }
+                }} 
+                className="space-y-6"
+              >
+                {/* Step 1: Basic Information */}
+                {currentStep === 1 && (
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Type className="w-5 h-5 text-primary" />
+                      <h3 className="text-lg font-semibold">المعلومات الأساسية للمنتج</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 gap-6">
+                      <FormField
+                        control={form.control as any}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="font-semibold">اسم المنتج *</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="مثال: فستان سهرة مخمل، هاتف سامسونج S24" 
+                                className="h-11 rounded-lg"
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormDescription>سيظهر هذا الاسم للمتسوقين في المتجر</FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-              
-            <FormField
-              control={form.control as any}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                      <FormLabel>الوصف *</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="أدخل وصف المنتج"
-                      rows={4}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                      <FormField
+                        control={form.control as any}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="font-semibold">الوصف التفصيلي *</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="اكتب وصفاً جذاباً وشاملاً لمميزات المنتج ومواصفاته..."
+                                rows={5}
+                                className="rounded-lg resize-none"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-            <FormField
-              control={form.control as any}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>الفئة *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر فئة" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category._id} value={category._id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-              </div>
-            )}
+                      <FormField
+                        control={form.control as any}
+                        name="category"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="font-semibold">الفئة *</FormLabel>
+                            <Select 
+                              onValueChange={field.onChange} 
+                              value={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="h-11 rounded-lg">
+                                  <SelectValue placeholder="اختر فئة المنتج" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {categories.map((category) => (
+                                  <SelectItem key={category._id} value={category._id}>
+                                    {category.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                )}
 
-            {/* Step 2: Product Type */}
-            {currentStep === 2 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold mb-4">اختر نوع المنتج</h3>
-            <FormField
-              control={form.control as any}
-              name="productType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>نوع المنتج *</FormLabel>
-                      <Select 
-                        onValueChange={(value) => {
-                          // Update the field value
-                          field.onChange(value)
-                          // Trigger validation immediately
-                          form.trigger('productType')
-                        }} 
-                        value={field.value || ''}
+                {/* Step 2: Product Type */}
+                {currentStep === 2 && (
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Layers className="w-5 h-5 text-primary" />
+                      <h3 className="text-lg font-semibold">اختر نوع المنتج</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div 
+                        className={cn(
+                          "relative cursor-pointer rounded-xl border-2 p-6 transition-all hover:border-primary/50",
+                          productType === 'simple' ? "border-primary bg-primary/5 shadow-md" : "border-muted bg-card"
+                        )}
+                        onClick={() => {
+                          form.setValue('productType', 'simple');
+                          form.trigger('productType');
+                        }}
                       >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر نوع المنتج" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="simple">منتج بسيط (سعر ومخزون واحد)</SelectItem>
-                      <SelectItem value="with_variants">منتج بمتغيرات (أحجام، ألوان، إلخ)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                      <p className="text-sm text-muted-foreground mt-2">
-                        اختر &quot;منتج بسيط&quot; للمنتجات التي لها سعر ومخزون واحد، أو &quot;منتج بمتغيرات&quot; للمنتجات التي لها أحجام أو ألوان مختلفة.
-                      </p>
-                </FormItem>
-              )}
-            />
-              </div>
-            )}
+                        <div className="flex flex-col items-center text-center gap-3">
+                          <div className={cn(
+                            "w-12 h-12 rounded-full flex items-center justify-center transition-colors",
+                            productType === 'simple' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                          )}>
+                            <Package className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-lg">منتج بسيط</h4>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              للمنتجات التي لها سعر ومخزون واحد فقط (مثل كتاب، زجاجة عطر)
+                            </p>
+                          </div>
+                          {productType === 'simple' && (
+                            <div className="absolute top-3 right-3">
+                              <CheckCircle2 className="w-5 h-5 text-primary" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
 
-            {/* Step 3: Product Details */}
-            {currentStep === 3 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold mb-4">
-                  {productType === 'simple' ? 'السعر والمخزون' : 'الخصائص والمتغيرات'}
-                </h3>
-                
-                {productType === 'simple' ? (
-                  <>
+                      <div 
+                        className={cn(
+                          "relative cursor-pointer rounded-xl border-2 p-6 transition-all hover:border-primary/50",
+                          productType === 'with_variants' ? "border-primary bg-primary/5 shadow-md" : "border-muted bg-card"
+                        )}
+                        onClick={() => {
+                          form.setValue('productType', 'with_variants');
+                          form.trigger('productType');
+                        }}
+                      >
+                        <div className="flex flex-col items-center text-center gap-3">
+                          <div className={cn(
+                            "w-12 h-12 rounded-full flex items-center justify-center transition-colors",
+                            productType === 'with_variants' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                          )}>
+                            <Layers className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-lg">منتج بمتغيرات</h4>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              للمنتجات التي لها أحجام، ألوان، أو مواصفات مختلفة (مثل الملابس، الإلكترونيات)
+                            </p>
+                          </div>
+                          {productType === 'with_variants' && (
+                            <div className="absolute top-3 right-3">
+                              <CheckCircle2 className="w-5 h-5 text-primary" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <FormField
+                      control={form.control as any}
+                      name="productType"
+                      render={({ field }) => (
+                        <FormItem className="hidden">
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
+
+                {/* Step 3: Product Details */}
+                {currentStep === 3 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold mb-4">
+                      {productType === 'simple' ? 'السعر والمخزون' : 'الخصائص والمتغيرات'}
+                    </h3>
+                    
+                    {productType === 'simple' ? (
+                      <>
                         <div className="grid grid-cols-2 gap-4">
                           <FormField
                             control={form.control as any}
@@ -1115,7 +1014,6 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                                       } else {
                                         const numValue = parseFloat(value)
                                         field.onChange(isNaN(numValue) ? undefined : numValue)
-                                        // Also update legacy price field for backward compatibility
                                         form.setValue('price', isNaN(numValue) ? undefined : numValue)
                                       }
                                       form.trigger(['merchantPrice', 'nubianMarkup'])
@@ -1168,192 +1066,323 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                         <PricingPreview
                           merchantPrice={form.watch('merchantPrice') || form.watch('price') || 0}
                           nubianMarkup={form.watch('nubianMarkup') || 10}
-                          dynamicMarkup={0} // Dynamic markup is calculated by system
-                          isMerchantView={true} // Enable merchant-specific alerts
+                          dynamicMarkup={0}
+                          isMerchantView={true}
                         />
 
-              <FormField
-                control={form.control as any}
-                name="stock"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>المخزون *</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="0"
-                        {...field}
-                              value={field.value ?? ''}
-                              onChange={(e) => {
-                                const value = e.target.value
-                                if (value === '' || value === null || value === undefined) {
-                                  field.onChange(undefined)
-                                } else {
-                                  const intValue = parseInt(value, 10)
-                                  field.onChange(isNaN(intValue) ? undefined : intValue)
-                                }
+                        <FormField
+                          control={form.control as any}
+                          name="stock"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>المخزون *</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  {...field}
+                                  value={field.value ?? ''}
+                                  onChange={(e) => {
+                                    const value = e.target.value
+                                    if (value === '' || value === null || value === undefined) {
+                                      field.onChange(undefined)
+                                    } else {
+                                      const intValue = parseInt(value, 10)
+                                      field.onChange(isNaN(intValue) ? undefined : intValue)
+                                    }
+                                  }}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </>
+                    ) : (
+                      <div className="space-y-6">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>تعريف الخصائص</CardTitle>
+                            <p className="text-muted-foreground text-sm">
+                              قم بتعريف الخصائص التي سيتم استخدامها في المتغيرات (مثل: الحجم، اللون، المادة)
+                            </p>
+                          </CardHeader>
+                          <CardContent>
+                            <AttributeDefinitionManager
+                              attributes={attributes || []}
+                              onChange={(attrs) => {
+                                const normalized = (attrs || []).map((a) => ({
+                                  ...a,
+                                  type: a?.type ?? "select",
+                                  required: a?.required ?? false,
+                                  options: a?.options ?? [],
+                                }));
+                                form.setValue("attributes", normalized, { shouldValidate: false });
                               }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-                  </>
-                ) : (
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>تعريف الخصائص</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <AttributeDefinitionManager
-                          attributes={attributes || []}
-                          onChange={(attrs) => {
-                      form.setValue('attributes', attrs, { shouldValidate: false })
-                    }}
-                    />
-                  </CardContent>
-                </Card>
+                            />
+                          </CardContent>
+                        </Card>
 
-                    {attributes && attributes.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>المتغيرات</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <VariantManager
-                            attributes={attributes || []}
-                            variants={(variants || []).map(v => ({
-                          ...v,
-                              isActive: v.isActive !== false,
-                        }))}
-                            onChange={(vars) => {
-                              form.setValue('variants', vars, { shouldValidate: false })
-                            }}
-                      />
-                    </CardContent>
-                  </Card>
+                        {attributes && attributes.length > 0 && (
+                          <Card>
+                            <CardHeader>
+                              <CardTitle>المتغيرات</CardTitle>
+                              <p className="text-muted-foreground text-sm">
+                                قم بإضافة المتغيرات للمنتج بناءً على الخصائص المعرفة
+                              </p>
+                            </CardHeader>
+                            <CardContent>
+                              <VariantManager
+                                attributes={attributes || []}
+                                variants={memoizedVariants}
+                                onChange={(vars) => {
+                                  form.setValue('variants', vars, { shouldValidate: false })
+                                }}
+                              />
+                            </CardContent>
+                          </Card>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
-              </div>
-            )}
 
-            {/* Step 4: Images */}
-            {currentStep === 4 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold mb-4">صور المنتج</h3>
-            <div>
-              <Label className="mb-2 block">صور المنتج *</Label>
-              <ImageUpload onUploadComplete={handleUploadDone} />
-                  {images && images.length > 0 && (
-                <p className="text-sm text-muted-foreground mt-2">
-                      تم رفع {images.length} صورة
-                </p>
-              )}
-              {form.formState.errors.images && (
-                <p className="text-sm font-medium text-destructive mt-1">
-                  {form.formState.errors.images.message}
-                </p>
-              )}
-            </div>
-              </div>
-            )}
+                {/* Step 4: Images */}
+                {currentStep === 4 && (
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <ImageIcon className="w-5 h-5 text-primary" />
+                      <h3 className="text-lg font-semibold">صور المنتج</h3>
+                    </div>
+                    
+                    <div className="bg-muted/30 p-6 rounded-xl border-2 border-dashed">
+                      <Label className="mb-4 block text-center font-medium">قم برفع صور المنتج (صورة واحدة على الأقل) *</Label>
+                      <ImageUpload 
+                        onUploadComplete={handleUploadDone} 
+                        initialUrls={form.getValues('images')}
+                      />
+                      <div className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                        <Info className="w-4 h-4" />
+                        <span>يُنصح برفع صور واضحة وذات خلفية بيضاء لأفضل النتائج.</span>
+                      </div>
+                      
+                      {images && images.length > 0 && (
+                        <div className="mt-6">
+                          <Separator className="mb-4" />
+                          <div className="flex justify-between items-center px-2">
+                            <span className="text-sm font-medium">عدد الصور المختارة:</span>
+                            <Badge variant="secondary">{images.length}</Badge>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {form.formState.errors.images && (
+                        <p className="text-sm font-medium text-destructive mt-4 text-center">
+                          {form.formState.errors.images.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
-            {/* Step 5: Review */}
-            {currentStep === 5 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold mb-4">مراجعة المعلومات</h3>
-                <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-                  <div>
-                    <Label className="text-sm font-semibold">اسم المنتج:</Label>
-                    <p className="text-sm">{form.getValues('name') || 'غير محدد'}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold">الوصف:</Label>
-                    <p className="text-sm">{form.getValues('description') || 'غير محدد'}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold">الفئة:</Label>
-                    <p className="text-sm">
-                      {categories.find(c => c._id === form.getValues('category'))?.name || 'غير محدد'}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-semibold">نوع المنتج:</Label>
-                    <p className="text-sm">
-                      {productType === 'simple' ? 'منتج بسيط' : 'منتج بمتغيرات'}
-                    </p>
-                  </div>
-                  {productType === 'simple' && (
-                    <>
-                      <div>
-                        <Label className="text-sm font-semibold">السعر:</Label>
-                        <p className="text-sm">{form.getValues('price') || 'غير محدد'} ر.س</p>
+                {/* Step 5: Review */}
+                {currentStep === 5 && (
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Eye className="w-5 h-5 text-primary" />
+                      <h3 className="text-lg font-semibold">مراجعة معلومات المنتج</h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Left: Product Images Preview */}
+                      <div className="md:col-span-1 space-y-4">
+                        <div className="aspect-square rounded-xl border bg-muted/30 overflow-hidden relative group">
+                          {images && images.length > 0 ? (
+                            <img 
+                              src={images[0]} 
+                              alt="Product Preview" 
+                              className="object-cover w-full h-full"
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                              <ImageIcon className="w-12 h-12 mb-2 opacity-20" />
+                              <span className="text-xs">لا توجد صور</span>
+                            </div>
+                          )}
+                          <div className="absolute top-2 right-2">
+                            <Badge className="bg-black/50 backdrop-blur-sm border-none">الرئيسية</Badge>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-4 gap-2">
+                          {images?.slice(1, 5).map((img, i) => (
+                            <div key={i} className="aspect-square rounded-lg border overflow-hidden">
+                              <img src={img} alt={`Preview ${i+2}`} className="object-cover w-full h-full" />
+                            </div>
+                          ))}
+                          {images && images.length > 5 && (
+                            <div className="aspect-square rounded-lg border bg-muted flex items-center justify-center text-xs font-bold">
+                              +{images.length - 5}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <Label className="text-sm font-semibold">المخزون:</Label>
-                        <p className="text-sm">{form.getValues('stock') ?? 'غير محدد'}</p>
+
+                      {/* Right: Product Details */}
+                      <div className="md:col-span-2 space-y-6">
+                        <div className="rounded-xl border p-6 bg-card space-y-4 shadow-sm">
+                          <div className="flex justify-between items-start border-b pb-4">
+                            <div className="space-y-1">
+                              <h4 className="text-2xl font-bold">{form.getValues('name') || 'اسم غير محدد'}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {categories.find(c => c._id === form.getValues('category'))?.name || 'فئة غير محددة'}
+                              </p>
+                            </div>
+                            <Badge variant={form.getValues('isActive') ? "success" : "secondary"}>
+                              {form.getValues('isActive') ? 'نشط' : 'غير نشط'}
+                            </Badge>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-y-4 gap-x-8 pt-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wider">نوع المنتج</Label>
+                              <div className="flex items-center gap-2">
+                                {productType === 'simple' ? <Package className="w-4 h-4" /> : <Layers className="w-4 h-4" />}
+                                <p className="font-semibold">{productType === 'simple' ? 'منتج بسيط' : 'منتج بمتغيرات'}</p>
+                              </div>
+                            </div>
+
+                            {productType === 'simple' && (
+                              <>
+                                <div className="space-y-1">
+                                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">السعر النهائي</Label>
+                                  <p className="text-xl font-bold text-primary">
+                                    {(form.getValues('merchantPrice') || form.getValues('price') || 0) * (1 + (form.getValues('nubianMarkup') || 10) / 100)} ج.س
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground">يشمل هامش ربح نوبيان ({form.getValues('nubianMarkup') || 10}%)</p>
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">المخزون المتوفر</Label>
+                                  <p className={cn("text-lg font-bold", (form.getValues('stock') || 0) < 10 ? "text-destructive" : "text-foreground")}>
+                                    {form.getValues('stock') ?? 0} قطعة
+                                  </p>
+                                </div>
+                              </>
+                            )}
+                          </div>
+
+                          <div className="pt-4 border-t">
+                            <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">الوصف</Label>
+                            <p className="text-sm leading-relaxed text-muted-foreground line-clamp-3 italic">
+                              &quot;{form.getValues('description') || 'لا يوجد وصف متاح'}&quot;
+                            </p>
+                          </div>
+
+                          {productType === 'with_variants' && (
+                            <div className="pt-4 border-t space-y-4">
+                              <div className="flex gap-4">
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-xs text-muted-foreground">عدد الخصائص</span>
+                                  <Badge variant="outline" className="w-fit">{(attributes || []).length} خصائص</Badge>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-xs text-muted-foreground">عدد المتغيرات</span>
+                                  <Badge variant="outline" className="w-fit">{(variants || []).length} متغيرات</Badge>
+                                </div>
+                              </div>
+                              
+                              {/* Show variant image summary if any variant has images */}
+                              {variants?.some(v => v.images && v.images.length > 0) && (
+                                <div className="space-y-2">
+                                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">صور المتغيرات</Label>
+                                  <div className="flex flex-wrap gap-2">
+                                    {variants.filter(v => v.images && v.images.length > 0).map((v, i) => (
+                                      <div key={i} className="relative group">
+                                        <img 
+                                          src={v.images![0]} 
+                                          className="w-10 h-10 rounded border object-cover" 
+                                          alt={`Variant ${v.sku}`}
+                                        />
+                                        <div className="absolute -top-1 -right-1 bg-primary text-[8px] text-white rounded-full w-3 h-3 flex items-center justify-center">
+                                          {v.images?.length}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/5 border border-primary/10">
+                          <CheckCircle2 className="w-5 h-5 text-primary" />
+                          <p className="text-sm text-primary font-medium">كل شيء يبدو جيداً! يمكنك الآن الضغط على {isEdit ? 'تحديث' : 'إنشاء'} لحفظ المنتج.</p>
+                        </div>
                       </div>
-                    </>
-                  )}
-                  <div>
-                    <Label className="text-sm font-semibold">عدد الصور:</Label>
-                    <p className="text-sm">{images?.length || 0}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Navigation Buttons */}
+                <div className="flex justify-between items-center gap-4 pt-8 mt-8 border-t">
+                  <div className="flex gap-3">
+                    {currentStep > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={goToPreviousStep}
+                        className="h-11 px-6 font-medium"
+                      >
+                        <ChevronRight className="w-4 h-4 ml-2" />
+                        العودة للسابق
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => router.push('/merchant/products')}
+                      className="h-11 px-6 text-muted-foreground hover:text-foreground"
+                    >
+                      إلغاء العملية
+                    </Button>
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    {currentStep < maxStep ? (
+                      <Button
+                        type="submit"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          goToNextStep()
+                        }}
+                        className="h-11 px-8 font-bold shadow-lg shadow-primary/20"
+                      >
+                        الاستمرار للخطوة التالية
+                        <ChevronLeft className="w-4 h-4 mr-2" />
+                      </Button>
+                    ) : (
+                      <Button
+                        type="submit"
+                        disabled={loading || isSubmittingRef.current}
+                        className="h-11 px-10 font-bold shadow-lg shadow-primary/30 min-w-[160px]"
+                      >
+                        {loading || isSubmittingRef.current ? (
+                          <>
+                            <span className="animate-spin ml-2">⏳</span>
+                            جاري الحفظ...
+                          </>
+                        ) : isEdit ? 'تحديث المنتج النهائي' : 'إتمام إنشاء المنتج'}
+                      </Button>
+                    )}
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* Navigation Buttons */}
-            <div className="flex justify-between gap-4 pt-6 border-t">
-              <div className="flex gap-2">
-                {currentStep > 1 && (
-              <Button
-                type="button"
-                variant="outline"
-                    onClick={goToPreviousStep}
-                  >
-                    <ChevronRight className="w-4 h-4 ml-2" />
-                    السابق
-                  </Button>
-                )}
-                <Button
-                  type="button"
-                  variant="ghost"
-                onClick={() => router.push('/merchant/products')}
-              >
-                إلغاء
-              </Button>
-              </div>
-              
-              <div className="flex gap-2">
-                {currentStep < maxStep ? (
-                  <Button
-                    type="submit"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      goToNextStep()
-                    }}
-                  >
-                    التالي
-                    <ChevronLeft className="w-4 h-4 mr-2" />
-                  </Button>
-                ) : (
-                  <Button
-                    type="submit"
-                    disabled={loading || isSubmittingRef.current}
-                  >
-                    {loading || isSubmittingRef.current ? 'جاري الحفظ...' : isEdit ? 'تحديث المنتج' : 'إنشاء المنتج'}
-                  </Button>
-                )}
-              </div>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   )
 }
 

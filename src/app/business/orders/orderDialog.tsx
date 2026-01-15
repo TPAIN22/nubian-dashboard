@@ -1,83 +1,195 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription, // أضفنا DialogDescription لتحسين الوصف
-  DialogFooter, // أضفنا DialogFooter للأزرار
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button"; // نحتاج زر الحفظ
-import { updateOrders } from "@/app/business/orders/orderControler";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@clerk/nextjs";
 import { toast } from "sonner";
-import { Label } from "@/components/ui/label"; // لاستخدام Label مع Select
+import { Label } from "@/components/ui/label";
 import logger from "@/lib/logger";
+import { Input } from "@/components/ui/input";
+
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"; // استخدم مكون Select من shadcn/ui
+} from "@/components/ui/select";
 
-// استيراد نوع Order ودوال المساعدة من ملف ordersTable.tsx
-// تأكد من المسار الصحيح لملف ordersTable.tsx بناءً على مكان هذا الملف.
+import type { Order } from "./ordersTable";
+import { getStatusInArabic, getPaymentStatusInArabic, formatDate } from "./ordersTable";
+
 import {
-  Order, // استوردنا Order type
-  getStatusInArabic,
-  getPaymentStatusInArabic,
-  formatDate,
-} from "./ordersTable"; // تم التأكيد على أن هذا هو اسم الملف الصحيح الآن
+  updateOrderStatus,
+  updatePaymentStatus,
+  approveBankakPayment,
+  rejectBankakPayment,
+  type AdminOrderStatus,
+  type AdminPaymentStatus,
+} from "@/app/business/orders/orderControler";
 
-// قائمة بالخيارات المتاحة للحالة
-const statusOptions = [
-  { value: "pending", label: "بانتظار التأكيد" },
-  { value: "confirmed", label: "تم التأكيد" },
-  { value: "shipped", label: "تم الشحن" },
-  { value: "delivered", label: "تم التوصيل" },
-  { value: "cancelled", label: "ملغي" },
+// خيارات الحالات (الهندسة الجديدة)
+const statusOptions: { value: AdminOrderStatus; label: string }[] = [
+  { value: "PENDING", label: "بانتظار التأكيد" },
+  { value: "AWAITING_PAYMENT_CONFIRMATION", label: "بانتظار موافقة التحويل" },
+  { value: "CONFIRMED", label: "تم التأكيد" },
+  { value: "PROCESSING", label: "قيد التجهيز" },
+  { value: "SHIPPED", label: "تم الشحن" },
+  { value: "DELIVERED", label: "تم التسليم" },
+  { value: "CANCELLED", label: "ملغي" },
+  { value: "PAYMENT_FAILED", label: "فشل الدفع" },
 ];
 
-// قائمة بالخيارات المتاحة لحالة الدفع
-const paymentOptions = [
-  { value: "pending", label: "دفع عند الاستلام" },
-  { value: "paid", label: "مدفوع" },
-  { value: "failed", label: "فشل" },
+const paymentOptions: { value: AdminPaymentStatus; label: string }[] = [
+  { value: "UNPAID", label: "غير مدفوع" },
+  { value: "PENDING_CONFIRMATION", label: "بانتظار موافقة التحويل" },
+  { value: "PAID", label: "مدفوع" },
+  { value: "REJECTED", label: "مرفوض" },
+  { value: "FAILED", label: "فشل" },
 ];
 
 interface OrderDialogProps {
   isModalOpen: boolean;
   setIsModalOpen: (isOpen: boolean) => void;
-  selectedRow: Order | null; // حدد نوع selectedRow بشكل صحيح
+  selectedRow: Order | null;
 }
 
-function OrderDialog({
-  isModalOpen,
-  setIsModalOpen,
-  selectedRow,
-}: OrderDialogProps) {
-  const [status, setStatus] = useState(selectedRow?.status || "");
-  const [paymentStatus, setPaymentStatus] = useState(
-    selectedRow?.paymentStatus || ""
+function money(n: any) {
+  const num = Number(n || 0);
+  return new Intl.NumberFormat("en-SD", { minimumFractionDigits: 2 }).format(
+    Number.isFinite(num) ? num : 0
   );
-  const [loading, setLoading] = useState(false);
+}
+
+function safeText(v: any, fallback = "—") {
+  const s = String(v ?? "").trim();
+  return s ? s : fallback;
+}
+
+function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogProps) {
   const { getToken } = useAuth();
 
-  // قم بتحديث state عندما يتغير selectedRow
+  const [status, setStatus] = useState<string>("");
+  const [paymentStatus, setPaymentStatus] = useState<string>("");
+
+  const [rejectReason, setRejectReason] = useState("");
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
-    if (selectedRow) {
-      setStatus(selectedRow.status || "");
-      setPaymentStatus(selectedRow.paymentStatus || "");
-    }
+    if (!selectedRow) return;
+    setStatus(String(selectedRow.status || ""));
+    setPaymentStatus(String(selectedRow.paymentStatus || ""));
+    setRejectReason("");
   }, [selectedRow]);
 
-  const handleUpdateStatus = async () => {
+  const isBankak = selectedRow?.paymentMethod === "BANKAK";
+  const hasProof = !!selectedRow?.transferProof;
+  const isPendingConfirmation = selectedRow?.paymentStatus === "PENDING_CONFIRMATION";
+
+  const canApproveReject = useMemo(() => {
+    return !!selectedRow && isBankak && hasProof && isPendingConfirmation;
+  }, [selectedRow, isBankak, hasProof, isPendingConfirmation]);
+
+  // ✅ Address block (new+old)
+  const addressBlock = useMemo(() => {
+    if (!selectedRow) return null;
+
+    const snap: any = (selectedRow as any).addressSnapshot;
+    const fullName = snap?.name || selectedRow.customerInfo?.name;
+    const city = snap?.city || selectedRow.city;
+    const area = snap?.area;
+    const street = snap?.street || selectedRow.address;
+    const building = snap?.building;
+
+    const phone = snap?.phone || selectedRow.customerInfo?.phone || selectedRow.phoneNumber;
+    const whatsapp = snap?.whatsapp;
+
+    const parts = [city, area, street, building].filter(Boolean);
+    const fullAddress = parts.length ? parts.join("، ") : safeText(`${selectedRow.address || ""}${selectedRow.city ? `، ${selectedRow.city}` : ""}`, "—");
+
+    return {
+      fullName: safeText(fullName, "غير محدد"),
+      phone: safeText(phone, "غير محدد"),
+      whatsapp: safeText(whatsapp, "غير محدد"),
+      fullAddress: safeText(fullAddress, "—"),
+    };
+  }, [selectedRow]);
+
+  const totals = useMemo(() => {
+    if (!selectedRow) return { total: 0, subtotal: 0, shipping: 0, discount: 0, final: 0 };
+
+    const subtotal =
+      (selectedRow as any).subtotal ??
+      (selectedRow as any).totalAmount ??
+      0;
+
+    const shipping =
+      (selectedRow as any).shippingFee ??
+      0;
+
+    const discount =
+      (selectedRow as any).discountAmount ??
+      (selectedRow as any).couponDetails?.discountAmount ??
+      0;
+
+    const final =
+      (selectedRow as any).finalTotal ??
+      (selectedRow as any).finalAmount ??
+      (selectedRow as any).total ??
+      (selectedRow as any).totalAmount ??
+      0;
+
+    const total =
+      (selectedRow as any).total ??
+      (selectedRow as any).totalAmount ??
+      final;
+
+    return { total, subtotal, shipping, discount, final };
+  }, [selectedRow]);
+
+  const normalizedProducts = useMemo(() => {
+    if (!selectedRow) return [];
+
+    // prefer new items
+    const items: any[] = Array.isArray((selectedRow as any).items) ? (selectedRow as any).items : [];
+    if (items.length) {
+      return items.map((it) => ({
+        name: safeText(it?.name, "منتج غير معروف"),
+        quantity: Number(it?.quantity || 1),
+        price: Number(it?.price || 0),
+      }));
+    }
+
+    // fallback productsDetails
+    const pd: any[] = Array.isArray((selectedRow as any).productsDetails) ? (selectedRow as any).productsDetails : [];
+    if (pd.length) {
+      return pd.map((p) => ({
+        name: safeText(p?.name, "منتج غير معروف"),
+        quantity: Number(p?.quantity || 1),
+        price: Number(p?.price || 0),
+      }));
+    }
+
+    // fallback old products[]
+    const prods: any[] = Array.isArray((selectedRow as any).products) ? (selectedRow as any).products : [];
+    return prods.map((p) => ({
+      name: safeText(p?.product?.name, "منتج غير معروف"),
+      quantity: Number(p?.quantity || 1),
+      price: Number(p?.product?.price || 0),
+    }));
+  }, [selectedRow]);
+
+  const handleSaveChanges = async () => {
     if (!selectedRow) return;
 
     setLoading(true);
     const token = await getToken();
-
     if (!token) {
       toast.error("فشل في الحصول على رمز المصادقة");
       setLoading(false);
@@ -85,330 +197,391 @@ function OrderDialog({
     }
 
     try {
-      const updatedData: Partial<Order> = {}; // استخدم Partial لأننا نرسل جزءًا من الكائن
-      const oldStatus = selectedRow.status;
-      const oldPaymentStatus = selectedRow.paymentStatus;
+      const oldStatus = String(selectedRow.status || "");
+      const oldPayment = String(selectedRow.paymentStatus || "");
 
-      let changesMade = false;
-      if (status !== oldStatus) {
-        updatedData.status = status as Order["status"]; // تأكد من النوع
-        changesMade = true;
-      }
-      if (paymentStatus !== oldPaymentStatus) {
-        updatedData.paymentStatus = paymentStatus as Order["paymentStatus"]; // تأكد من النوع
-        changesMade = true;
-      }
+      const statusChanged = status && status !== oldStatus;
+      const paymentChanged = paymentStatus && paymentStatus !== oldPayment;
 
-      if (!changesMade) {
+      if (!statusChanged && !paymentChanged) {
         toast.error("لم يتم إجراء أي تغييرات.");
-        setLoading(false);
         return;
       }
 
-      // الخطوة 1: تحديث الطلب في قاعدة البيانات
-      await updateOrders(
-        {
-          _id: selectedRow._id,
-          ...updatedData,
-        },
-        token
-      );
-      toast.success("تم تحديث الطلب بنجاح.");
-
-      const emailData = {
-        user: {
-          id: selectedRow.user._id, // تأكد من وجود ID للمستخدم
-          fullName: selectedRow.customerInfo?.name || "غير محدد", // استخدم customerInfo
-          emailAddress: selectedRow.customerInfo?.email || "غير محدد", // استخدم customerInfo
-        },
-        orderNumber: selectedRow.orderNumber,
-        totalAmount: selectedRow.totalAmount,
-        products:
-          selectedRow.productsDetails && selectedRow.productsDetails.length > 0
-            ? selectedRow.productsDetails
-            : selectedRow.products,
-        oldStatus: oldStatus,
-        newStatus: status,
-        paymentStatus: paymentStatus,
-      };
-
-      try {
-        const emailResponse = await fetch("/api/send", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(emailData),
-        });
-
-        if (!emailResponse.ok) {
-          const errorData = await emailResponse.json();
-          toast.warning(
-            `تم تحديث الطلب، لكن فشل إرسال الإشعار بالبريد الإلكتروني: ${errorData.message || "خطأ غير معروف"}`
-          );
-        } else {
-          toast.success("تم إرسال إشعار البريد الإلكتروني بنجاح.");
-        }
-      } catch (emailErr) {
-        logger.error("Error sending email notification", {
-          error: emailErr instanceof Error ? emailErr.message : "Unknown error",
-        });
-        const errorMessage = emailErr instanceof Error ? emailErr.message : "خطأ غير معروف";
-        toast.warning(
-          `تم تحديث الطلب، لكن حدث خطأ أثناء إرسال الإشعار بالبريد الإلكتروني: ${errorMessage}`
-        );
+      if (statusChanged) {
+        await updateOrderStatus(selectedRow._id, status as AdminOrderStatus, token);
+      }
+      if (paymentChanged) {
+        await updatePaymentStatus(selectedRow._id, paymentStatus as AdminPaymentStatus, token);
       }
 
+      toast.success("تم تحديث الطلب بنجاح.");
       setIsModalOpen(false);
-    } catch (err) {
-      logger.error("Error during order update process", {
-        error: err instanceof Error ? err.message : "Unknown error",
-      });
-      const errorMessage = err instanceof Error ? err.message : "خطأ غير معروف";
-      toast.error(`حدث خطأ أثناء التحديث: ${errorMessage}`);
+    } catch (err: any) {
+      logger.error("Error updating order", { error: err?.message || "Unknown" });
+      toast.error(`حدث خطأ أثناء التحديث: ${err?.message || "خطأ غير معروف"}`);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleApprove = async () => {
+    if (!selectedRow) return;
+    setLoading(true);
+
+    const token = await getToken();
+    if (!token) {
+      toast.error("فشل في الحصول على رمز المصادقة");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      await approveBankakPayment(selectedRow._id, token);
+      toast.success("✅ تم قبول التحويل وتأكيد الدفع.");
+      setIsModalOpen(false);
+    } catch (err: any) {
+      logger.error("Approve payment failed", { error: err?.message || "Unknown" });
+      toast.error(`فشل قبول التحويل: ${err?.message || "خطأ غير معروف"}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!selectedRow) return;
+    if (!rejectReason.trim()) {
+      toast.error("اكتب سبب الرفض");
+      return;
+    }
+
+    setLoading(true);
+    const token = await getToken();
+    if (!token) {
+      toast.error("فشل في الحصول على رمز المصادقة");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      await rejectBankakPayment(selectedRow._id, rejectReason.trim(), token);
+      toast.success("⛔ تم رفض التحويل.");
+      setIsModalOpen(false);
+    } catch (err: any) {
+      logger.error("Reject payment failed", { error: err?.message || "Unknown" });
+      toast.error(`فشل رفض التحويل: ${err?.message || "خطأ غير معروف"}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Save as PDF (print) — EXCLUDES transfer proof image
+  const handleSavePdf = () => {
+    if (!selectedRow) return;
+
+    const orderId = selectedRow.orderNumber || selectedRow._id;
+    const created = formatDate(selectedRow.createdAt || selectedRow.orderDate);
+
+    const couponCode = (selectedRow as any)?.couponDetails?.code || "";
+    const discountAmount = totals.discount || 0;
+
+    const productsHtml = normalizedProducts
+      .map((p, i) => {
+        const line = Number(p.price || 0) * Number(p.quantity || 0);
+        return `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${escapeHtml(p.name)}</td>
+            <td>${p.quantity}</td>
+            <td>${money(p.price)} ج.س</td>
+            <td>${money(line)} ج.س</td>
+          </tr>
+        `;
+      })
+      .join("");
+
+    const html = `
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <title>Order ${escapeHtml(String(orderId))}</title>
+  <style>
+    @page { size: A4; margin: 14mm; }
+    body { font-family: Arial, sans-serif; color: #111; }
+    .head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom: 12px; }
+    .brand { font-size: 18px; font-weight: 800; }
+    .muted { color:#555; font-size: 12px; }
+    .card { border:1px solid #ddd; border-radius: 10px; padding: 12px; margin: 10px 0; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .k { color:#555; font-size: 12px; margin-bottom: 4px; }
+    .v { font-weight: 700; }
+    table { width:100%; border-collapse: collapse; margin-top: 8px; }
+    th, td { border:1px solid #ddd; padding: 8px; font-size: 12px; }
+    th { background:#f5f5f5; text-align:right; }
+    .totals { width: 100%; margin-top: 8px; }
+    .totals td { border:none; padding: 4px 0; }
+    .totals .k { width: 55%; }
+    .totals .v { text-align:left; }
+    .badge { display:inline-block; padding: 3px 8px; border-radius: 999px; background:#eee; font-size: 11px; font-weight: 700; }
+    .ok { background:#e6ffed; }
+    .warn { background:#fff4e5; }
+  </style>
+</head>
+<body>
+  <div class="head">
+    <div>
+      <div class="brand">Nubian • Order Summary</div>
+      <div class="muted">تم إنشاء هذا الملخص للطباعة/الحفظ كـ PDF</div>
+    </div>
+    <div class="muted">
+      <div><b>رقم الطلب:</b> ${escapeHtml(String(orderId))}</div>
+      <div><b>التاريخ:</b> ${escapeHtml(String(created))}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="grid">
+      <div>
+        <div class="k">العميل</div>
+        <div class="v">${escapeHtml(addressBlock?.fullName || "غير محدد")}</div>
+        <div class="muted">${escapeHtml(selectedRow.customerInfo?.email || "—")}</div>
+      </div>
+      <div>
+        <div class="k">التواصل</div>
+        <div class="v">هاتف: ${escapeHtml(addressBlock?.phone || "—")}</div>
+        <div class="muted">واتساب: ${escapeHtml(addressBlock?.whatsapp || "—")}</div>
+      </div>
+      <div style="grid-column: 1 / -1">
+        <div class="k">العنوان</div>
+        <div class="v">${escapeHtml(addressBlock?.fullAddress || "—")}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="grid">
+      <div>
+        <div class="k">حالة الطلب</div>
+        <div class="v"><span class="badge">${escapeHtml(getStatusInArabic(String(selectedRow.status || "")))}</span></div>
+      </div>
+      <div>
+        <div class="k">الدفع</div>
+        <div class="v"><span class="badge">${escapeHtml(String(selectedRow.paymentMethod || "—"))}</span></div>
+        <div class="muted">${escapeHtml(getPaymentStatusInArabic(String(selectedRow.paymentStatus || "")))}</div>
+      </div>
+      ${
+        couponCode
+          ? `<div style="grid-column: 1 / -1">
+              <div class="k">الكوبون</div>
+              <div class="v">${escapeHtml(String(couponCode))}</div>
+              ${discountAmount ? `<div class="muted">خصم: -${money(discountAmount)} ج.س</div>` : ""}
+            </div>`
+          : ""
+      }
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="k">المنتجات</div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>المنتج</th>
+          <th>الكمية</th>
+          <th>سعر الوحدة</th>
+          <th>الإجمالي</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${productsHtml || `<tr><td colspan="5">لا توجد منتجات</td></tr>`}
+      </tbody>
+    </table>
+
+    <table class="totals">
+      <tr>
+        <td class="k">المجموع الفرعي</td>
+        <td class="v">${money(totals.subtotal)} ج.س</td>
+      </tr>
+      <tr>
+        <td class="k">الشحن</td>
+        <td class="v">${money(totals.shipping)} ج.س</td>
+      </tr>
+      <tr>
+        <td class="k">الخصم</td>
+        <td class="v">-${money(totals.discount)} ج.س</td>
+      </tr>
+      <tr>
+        <td class="k"><b>الإجمالي النهائي</b></td>
+        <td class="v"><b>${money(totals.final)} ج.س</b></td>
+      </tr>
+    </table>
+  </div>
+
+</body>
+</html>
+`;
+
+    const w = window.open("", "_blank", "noopener,noreferrer,width=900,height=900");
+    if (!w) {
+      toast.error("المتصفح منع فتح نافذة جديدة. فعّل Popups وحاول مرة أخرى.");
+      return;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+
+    // wait a tick then print
+    setTimeout(() => {
+      w.focus();
+      w.print();
+      // w.close(); // لو دايرها تقفل تلقائيًا فعل السطر ده
+    }, 250);
+  };
+
   return (
     <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-      <DialogContent className="sm:max-w-[425px] md:max-w-[700px] lg:max-w-[900px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[425px] md:max-w-[760px] lg:max-w-[980px] max-h-[90vh] overflow-y-auto">
         <DialogHeader className="text-right">
-          {" "}
-          {/* محاذاة لليمين */}
           <DialogTitle>تفاصيل الطلب</DialogTitle>
           <DialogDescription>
-            عرض وتحديث حالة الطلب رقم: {selectedRow?.orderNumber || "N/A"}
+            عرض وتحديث الطلب رقم: {selectedRow?.orderNumber || selectedRow?._id || "N/A"}
           </DialogDescription>
         </DialogHeader>
 
         {selectedRow ? (
           <div className="grid gap-4 py-4 text-right">
-            {" "}
-            {/* محاذاة لليمين */}
-            {/* معلومات العميل والطلب */}
+            {/* معلومات العميل */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-              <p>
-                <span className="font-semibold">رقم الطلب:</span>{" "}
-                {selectedRow.orderNumber}
-              </p>
-              <p>
-                <span className="font-semibold">اسم العميل:</span>{" "}
-                {selectedRow.customerInfo?.name || "غير محدد"}
-              </p>
-              <p>
-                <span className="font-semibold">البريد الإلكتروني:</span>{" "}
-                {selectedRow.customerInfo?.email || "غير محدد"}
-              </p>
-              <p>
-                <span className="font-semibold">رقم الهاتف:</span>{" "}
-                {selectedRow.phoneNumber ||
-                  selectedRow.customerInfo?.phone ||
-                  "غير محدد"}
-              </p>
-              <p className="md:col-span-2">
-                <span className="font-semibold">العنوان:</span>{" "}
-                {`${selectedRow.address}, ${selectedRow.city}`}
-              </p>
-              <p>
-                <span className="font-semibold">تاريخ الطلب:</span>{" "}
-                {formatDate(selectedRow.orderDate)}
-              </p>
-              {selectedRow.couponDetails && selectedRow.couponDetails.code && (
-                <p className="md:col-span-2">
-                  <span className="font-semibold">كوبون الخصم:</span>{" "}
-                  <span className="font-mono font-bold text-primary">
-                    {selectedRow.couponDetails.code}
-                  </span>
-                  {selectedRow.discountAmount && selectedRow.discountAmount > 0 && (
-                    <span className="text-green-600 mr-2">
-                      {" "}(خصم: {new Intl.NumberFormat("en-SD", {
-                        minimumFractionDigits: 2,
-                      }).format(selectedRow.discountAmount)} ج.س)
-                    </span>
-                  )}
-                </p>
-              )}
-              <p>
-                <span className="font-semibold">المجموع الفرعي:</span>{" "}
-                {new Intl.NumberFormat("en-SD", {
-                  minimumFractionDigits: 2,
-                }).format(selectedRow.totalAmount)}{" "}
-                ج.س
-              </p>
-              {selectedRow.discountAmount && selectedRow.discountAmount > 0 && (
-                <p>
-                  <span className="font-semibold">الخصم:</span>{" "}
-                  <span className="text-green-600">
-                    -{new Intl.NumberFormat("en-SD", {
-                      minimumFractionDigits: 2,
-                    }).format(selectedRow.discountAmount)}{" "}
-                    ج.س
-                  </span>
-                </p>
-              )}
-              <p>
-                <span className="font-semibold">إجمالي المبلغ:</span>{" "}
-                <span className="font-bold text-primary">
-                  {new Intl.NumberFormat("en-SD", {
-                    minimumFractionDigits: 2,
-                  }).format(selectedRow.finalAmount || selectedRow.totalAmount)}{" "}
+              <p><span className="font-semibold">اسم العميل:</span> {selectedRow.customerInfo?.name || "غير محدد"}</p>
+              <p><span className="font-semibold">البريد:</span> {selectedRow.customerInfo?.email || "غير محدد"}</p>
+              <p><span className="font-semibold">الهاتف:</span> {selectedRow.customerInfo?.phone || "غير محدد"}</p>
+              <p><span className="font-semibold">تاريخ الطلب:</span> {formatDate(selectedRow.createdAt || selectedRow.orderDate)}</p>
+            </div>
+
+            {/* ✅ العنوان */}
+            {addressBlock ? (
+              <div className="mt-1 rounded-lg border p-4 bg-muted/30">
+                <div className="font-semibold mb-2">العنوان</div>
+                <div className="text-sm">
+                  <div><span className="text-muted-foreground">الاسم:</span> {addressBlock.fullName}</div>
+                  <div><span className="text-muted-foreground">الهاتف:</span> {addressBlock.phone}</div>
+                  <div><span className="text-muted-foreground">واتساب:</span> {addressBlock.whatsapp}</div>
+                  <div className="mt-2"><span className="text-muted-foreground">العنوان الكامل:</span> {addressBlock.fullAddress}</div>
+                </div>
+              </div>
+            ) : null}
+
+            {/* الدفع */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 mt-2">
+              <div>
+                <div className="text-sm text-muted-foreground">طريقة الدفع</div>
+                <div className="font-semibold">{selectedRow.paymentMethod || "—"}</div>
+              </div>
+
+              <div>
+                <div className="text-sm text-muted-foreground">حالة الدفع الحالية</div>
+                <div className="font-semibold">{getPaymentStatusInArabic(String(selectedRow.paymentStatus || ""))}</div>
+              </div>
+
+              <div>
+                <div className="text-sm text-muted-foreground">حالة الطلب الحالية</div>
+                <div className="font-semibold">{getStatusInArabic(String(selectedRow.status || ""))}</div>
+              </div>
+
+              <div>
+                <div className="text-sm text-muted-foreground">الإجمالي</div>
+                <div className="font-bold text-primary">
+                  {money((selectedRow.total ?? selectedRow.finalAmount ?? (selectedRow as any).finalTotal ?? selectedRow.totalAmount ?? 0) as number)}{" "}
                   ج.س
-                </span>
-              </p>
+                </div>
+              </div>
             </div>
-            {/* حالة الدفع */}
-            <div className="grid gap-1 mt-4">
-              <Label htmlFor="paymentStatus" className="font-semibold">
-                حالة الدفع:{" "}
-                <span
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    selectedRow.paymentStatus === "paid"
-                      ? "bg-success/10 text-success"
-                      : selectedRow.paymentStatus === "failed"
-                        ? "bg-destructive/10 text-destructive"
-                        : "bg-warning/10 text-warning"
-                  }`}
-                >
-                  {getPaymentStatusInArabic(selectedRow.paymentStatus)}
-                </span>
-              </Label>
-              <Select value={paymentStatus} onValueChange={setPaymentStatus}>
-                <SelectTrigger
-                  id="paymentStatus"
-                  className="w-[180px] text-right"
-                >
-                  <SelectValue placeholder="اختر حالة الدفع" />
-                </SelectTrigger>
-                <SelectContent dir="rtl">
-                  {paymentOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {/* حالة التوصيل */}
-            <div className="grid gap-1 mt-4">
-              <Label htmlFor="deliveryStatus" className="font-semibold">
-                حالة التوصيل:{" "}
-                <span
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    selectedRow.status === "delivered"
-                      ? "bg-success/10 text-success"
-                      : selectedRow.status === "shipped"
-                        ? "bg-accent/10 text-accent"
-                        : selectedRow.status === "confirmed"
-                          ? "bg-warning/10 text-warning"
-                          : selectedRow.status === "cancelled"
-                            ? "bg-destructive/10 text-destructive"
-                            : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {getStatusInArabic(selectedRow.status)}
-                </span>
-              </Label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger
-                  id="deliveryStatus"
-                  className="w-[180px] text-right"
-                >
-                  <SelectValue placeholder="اختر حالة التوصيل" />
-                </SelectTrigger>
-                <SelectContent dir="rtl">
-                  {statusOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Payment Proof Image */}
-            {selectedRow.transferProof && (
-              <div className="mt-4">
-                <h3 className="text-lg font-semibold mb-2">صورة التحويل البنكي:</h3>
-                <div className="relative">
+
+            {/* صورة التحويل */}
+            {selectedRow.transferProof ? (
+              <div className="mt-2">
+                <h3 className="text-lg font-semibold mb-2">صورة التحويل البنكي</h3>
+                <div className="rounded-lg border overflow-hidden">
                   <img
                     src={selectedRow.transferProof}
                     alt="Payment Proof"
-                    className="max-w-full h-auto rounded-lg border border-gray-200 shadow-sm"
-                    style={{ maxHeight: '400px' }}
+                    className="w-full h-auto max-h-[420px] object-contain bg-black/5"
                   />
-                  <a
-                    href={selectedRow.transferProof}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-block text-primary hover:underline text-sm"
-                  >
-                    فتح الصورة في نافذة جديدة
-                  </a>
+                </div>
+                <a
+                  href={selectedRow.transferProof}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-block text-primary hover:underline text-sm"
+                >
+                  فتح الصورة في نافذة جديدة
+                </a>
+                <p className="text-xs text-muted-foreground mt-1">
+                  * لن يتم تضمين صورة التحويل في PDF.
+                </p>
+              </div>
+            ) : null}
+
+            {/* Approve/Reject */}
+            {canApproveReject ? (
+              <div className="mt-4 p-4 rounded-lg border bg-muted/30">
+                <div className="font-semibold mb-2">✅ موافقة التحويل (BANKAK)</div>
+
+                <div className="flex flex-col md:flex-row gap-2 md:items-end">
+                  <div className="flex-1">
+                    <Label htmlFor="rejectReason">سبب الرفض (في حال الرفض)</Label>
+                    <Input
+                      id="rejectReason"
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      placeholder="مثال: الإيصال غير واضح / المبلغ غير مطابق"
+                      className="text-right"
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button onClick={handleApprove} disabled={loading} className="bg-green-600 hover:bg-green-700">
+                      {loading ? "..." : "قبول التحويل"}
+                    </Button>
+                    <Button onClick={handleReject} disabled={loading} variant="destructive">
+                      {loading ? "..." : "رفض التحويل"}
+                    </Button>
+                  </div>
                 </div>
               </div>
-            )}
+            ) : null}
 
-            {/* تفاصيل المنتجات */}
-            <div className="mt-4">
-              <h3 className="text-lg font-semibold mb-2">المنتجات:</h3>
-              {selectedRow.productsDetails &&
-              selectedRow.productsDetails.length > 0 ? (
-                <ul className="space-y-2 pr-5">
-                  {selectedRow.productsDetails.map((p, i: number) => (
-                    <li
-                      key={i}
-                      className="flex justify-between items-center bg-gray-50 p-3 text-black rounded-md shadow-sm"
-                    >
-                      <span className="font-medium">
-                        {p.name || "منتج غير معروف"}
-                      </span>
-                      <span>الكمية: {p.quantity || 1}</span>
-                      <span>
-                        السعر:{" "}
-                        {(() => {
-                          const validPrice = typeof p.price === 'number' && !isNaN(p.price) && isFinite(p.price) ? p.price : 0;
-                          const validQuantity = typeof p.quantity === 'number' && !isNaN(p.quantity) ? p.quantity : 0;
-                          return new Intl.NumberFormat("en-SD", {
-                          minimumFractionDigits: 2,
-                          }).format(validPrice * validQuantity);
-                        })()}{" "}
-                        ج.س
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : selectedRow.products && selectedRow.products.length > 0 ? (
-                // Fallback if productsDetails is not available but products is
-                <ul className="space-y-2 pr-5">
-                  {selectedRow.products.map((p, i: number) => (
-                    <li
-                      key={i}
-                      className="flex justify-between items-center bg-gray-50 p-3 rounded-md shadow-sm"
-                    >
-                      <span className="font-medium">
-                        {p.product?.name || "منتج غير معروف"}
-                      </span>
-                      <span>الكمية: {p.quantity || 1}</span>
-                      <span>
-                        السعر:{" "}
-                        {(() => {
-                          const validPrice = typeof p.product?.price === 'number' && !isNaN(p.product.price) && isFinite(p.product.price) ? p.product.price : 0;
-                          const validQuantity = typeof p.quantity === 'number' && !isNaN(p.quantity) ? p.quantity : 0;
-                          return new Intl.NumberFormat("en-SD", {
-                          minimumFractionDigits: 2,
-                          }).format(validPrice * validQuantity);
-                        })()}{" "}
-                        ج.س
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-muted-foreground">
-                  لا توجد منتجات لهذا الطلب.
-                </p>
-              )}
+            {/* تعديل الحالات (يدوي) */}
+            <div className="grid gap-4 mt-4 md:grid-cols-2">
+              <div className="grid gap-1">
+                <Label htmlFor="paymentStatus" className="font-semibold">تعديل حالة الدفع</Label>
+                <Select value={paymentStatus} onValueChange={setPaymentStatus}>
+                  <SelectTrigger id="paymentStatus" className="w-full text-right">
+                    <SelectValue placeholder="اختر حالة الدفع" />
+                  </SelectTrigger>
+                  <SelectContent dir="rtl">
+                    {paymentOptions.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-1">
+                <Label htmlFor="deliveryStatus" className="font-semibold">تعديل حالة الطلب</Label>
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger id="deliveryStatus" className="w-full text-right">
+                    <SelectValue placeholder="اختر حالة الطلب" />
+                  </SelectTrigger>
+                  <SelectContent dir="rtl">
+                    {statusOptions.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         ) : (
@@ -417,14 +590,16 @@ function OrderDialog({
 
         <DialogFooter className="mt-6 flex justify-end gap-2">
           <Button onClick={() => setIsModalOpen(false)} variant="outline">
-            إلغاء
+            إغلاق
           </Button>
-          <Button
-            onClick={handleUpdateStatus}
-            disabled={loading}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
-          >
-            {loading ? "جاري التحديث..." : "حفظ التغييرات"}
+
+          {/* ✅ PDF button */}
+          <Button onClick={handleSavePdf} variant="secondary" disabled={!selectedRow}>
+            حفظ PDF (بدون صورة التحويل)
+          </Button>
+
+          <Button onClick={handleSaveChanges} disabled={loading} className="bg-primary hover:bg-primary/90">
+            {loading ? "جاري الحفظ..." : "حفظ التغييرات"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -433,3 +608,15 @@ function OrderDialog({
 }
 
 export default OrderDialog;
+
+// ─────────────────────────────────────────────────────────────
+// Utils for safe HTML in print template
+// ─────────────────────────────────────────────────────────────
+function escapeHtml(input: string) {
+  return input
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}

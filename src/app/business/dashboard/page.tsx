@@ -1,3 +1,4 @@
+import { auth } from '@clerk/nextjs/server';
 import { axiosInstance } from '@/lib/axiosInstance';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Package, Users, ShoppingCart, TrendingUp, DollarSign, AlertCircle } from 'lucide-react';
@@ -15,13 +16,22 @@ interface DashboardStats {
 
 async function getDashboardStats(): Promise<DashboardStats> {
   try {
+    const { getToken } = await auth();
+    const token = await getToken();
+    
     // Fetch individual data directly (stats endpoint doesn't exist yet)
     // Axios already has a 30-second timeout configured in axiosInstance
     // Use Promise.allSettled to handle errors gracefully without blocking
     const [productsRes, merchantsRes, ordersRes] = await Promise.allSettled([
-      axiosInstance.get('/products'),
-      axiosInstance.get('/merchants'),
-      axiosInstance.get('/orders'),
+      axiosInstance.get('/products', {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      axiosInstance.get('/merchants', {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      axiosInstance.get('/orders/admin', {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
     ]);
 
     // Helper function to extract data from response or return empty array

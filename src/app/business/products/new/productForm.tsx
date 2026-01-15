@@ -35,8 +35,11 @@ import { Stepper } from '@/components/ui/stepper'
 import { AttributeDefinitionManager } from '@/components/product/AttributeDefinitionManager'
 import { VariantManager } from '@/components/product/VariantManager'
 import { PricingPreview } from '@/components/product/PricingPreview'
-import { ProductAttribute, ProductVariant } from '@/types/product.types'
-import { ChevronRight, ChevronLeft, Package, Store } from 'lucide-react'
+import { ProductAttributeDefDTO as ProductAttribute, ProductVariantDTO as ProductVariant } from '@/domain/product/product.types'
+import { ChevronRight, ChevronLeft, Package, Store, Info, CheckCircle2, Type, Layers, Image as ImageIcon, Eye } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
 
 const formSchema = z.object({
   name: z.string().min(1, 'اسم المنتج مطلوب'),
@@ -81,6 +84,10 @@ const formSchema = z.object({
   
   // Admin-specific: merchant selection (optional - can be null for general products)
   merchant: z.string().optional(),
+  
+  // Admin ranking controls
+  priorityScore: z.number().min(0).max(100).optional(),
+  featured: z.boolean().optional(),
   
   isActive: z.boolean().optional(),
 }).superRefine((data, ctx) => {
@@ -143,6 +150,8 @@ export default function ProductForm({ productId }: { productId?: string }) {
       colors: [],
       images: [],
       merchant: '',
+      priorityScore: 0,
+      featured: false,
       isActive: true,
     },
   })
@@ -152,44 +161,35 @@ export default function ProductForm({ productId }: { productId?: string }) {
   const attributes = useWatch({ control: form.control, name: 'attributes' })
   const variants = useWatch({ control: form.control, name: 'variants' })
   const images = useWatch({ control: form.control, name: 'images' })
+  const name = useWatch({ control: form.control, name: 'name' })
+  const description = useWatch({ control: form.control, name: 'description' })
 
-  // Verify admin role on component mount
+  // Memoize variants for VariantManager to avoid re-renders
+  const memoizedVariants = useMemo(() => {
+    return (variants || []).map(v => ({
+      ...v,
+      merchantPrice: (v as any).merchantPrice ?? v.price,
+      price: v.price ?? (v as any).merchantPrice,
+      isActive: v.isActive !== false,
+    }))
+  }, [variants])
+
+  // Verify admin/merchant role on component mount
   useEffect(() => {
-    if (!userLoaded) {
-      console.log('[ProductForm] Waiting for user to load...')
-      return
-    }
+    if (!userLoaded) return
     
     if (!user) {
-      console.warn('[ProductForm] No user found, redirecting to sign-in')
       router.replace('/sign-in')
       return
     }
     
     const userRole = user.publicMetadata?.role as string | undefined
-    console.log('[ProductForm] User role check:', { 
-      userRole, 
-      userId: user.id,
-      publicMetadata: user.publicMetadata 
-    })
     
-    // Admins should always be allowed
-    if (userRole === 'admin') {
-      console.log('[ProductForm] Admin access confirmed - allowing access')
+    // Admins and Merchants are allowed
+    if (userRole === 'admin' || userRole === 'merchant') {
       return
     }
     
-    // Merchants should also be allowed (they can create products too)
-    if (userRole === 'merchant') {
-      console.log('[ProductForm] Merchant access confirmed - allowing access')
-      return
-    }
-    
-    // If user is not admin or merchant, don't allow access
-    console.warn('[ProductForm] User is not admin or merchant, redirecting to dashboard:', {
-      userRole,
-      userId: user.id
-    })
     router.replace('/business/dashboard')
   }, [userLoaded, user, router])
 
@@ -262,7 +262,6 @@ export default function ProductForm({ productId }: { productId?: string }) {
             },
           })
           
-          // Handle different response formats
           let product: any = null
           if (res.data?.success && res.data?.data) {
             product = res.data.data
@@ -284,7 +283,7 @@ export default function ProductForm({ productId }: { productId?: string }) {
             productType: hasVariants ? 'with_variants' : 'simple',
             merchantPrice: product.merchantPrice || product.price || undefined,
             nubianMarkup: product.nubianMarkup || 10,
-            price: product.price || undefined, // Legacy field
+            price: product.price || undefined,
             category: product.category?._id || product.category || '',
             stock: product.stock,
             attributes: product.attributes || [],
@@ -297,6 +296,8 @@ export default function ProductForm({ productId }: { productId?: string }) {
             colors: product.colors || [],
             images: product.images || [],
             merchant: product.merchant?._id || product.merchant || '',
+            priorityScore: product.priorityScore || 0,
+            featured: product.featured || false,
             isActive: product.isActive !== false,
           })
         } catch (error) {
@@ -319,34 +320,48 @@ export default function ProductForm({ productId }: { productId?: string }) {
       completed: [false, false, false, false, false],
     }
     
+    // Use watched values for better performance and stability
+    const currentValues = {
+      name,
+      description,
+      category: form.getValues('category'),
+      productType,
+      merchantPrice: form.getValues('merchantPrice'),
+      price: form.getValues('price'),
+      stock: form.getValues('stock'),
+      attributes,
+      variants,
+      images
+    }
+
     // Calculate enabled and completed states
     for (let i = 1; i <= 5; i++) {
+      // Check if step is completed
       let isCompleted = false
       switch (i) {
         case 1:
           isCompleted = !formErrors.name && !formErrors.description && !formErrors.category &&
-                       !!formValues.name?.trim() && !!formValues.description?.trim() && !!formValues.category?.trim()
+                       !!currentValues.name?.trim() && !!currentValues.description?.trim() && !!currentValues.category?.trim()
           break
         case 2:
-          const productTypeVal = formValues.productType as string
           isCompleted = !formErrors.productType && 
-                       !!productTypeVal && 
-                       (productTypeVal === 'simple' || productTypeVal === 'with_variants')
+                       !!currentValues.productType && 
+                       (currentValues.productType === 'simple' || currentValues.productType === 'with_variants')
           break
         case 3:
-          if (formValues.productType === 'simple') {
+          if (currentValues.productType === 'simple') {
+            const mPrice = currentValues.merchantPrice || currentValues.price
             isCompleted = !formErrors.price && !formErrors.stock &&
-                         formValues.price !== undefined && formValues.price >= 0.01 &&
-                         formValues.stock !== undefined && formValues.stock >= 0
+                         mPrice !== undefined && mPrice >= 0.01 &&
+                         currentValues.stock !== undefined && currentValues.stock >= 0
           } else {
-            const hasAttrs = !!(formValues.attributes && Array.isArray(formValues.attributes) && formValues.attributes.length > 0)
-            const hasVars = !!(formValues.variants && Array.isArray(formValues.variants) && formValues.variants.length > 0)
+            const hasAttrs = !!(currentValues.attributes && Array.isArray(currentValues.attributes) && currentValues.attributes.length > 0)
+            const hasVars = !!(currentValues.variants && Array.isArray(currentValues.variants) && currentValues.variants.length > 0)
             isCompleted = hasAttrs && hasVars
           }
           break
         case 4:
-          const imgArray = formValues.images || []
-          isCompleted = !formErrors.images && Array.isArray(imgArray) && imgArray.length > 0
+          isCompleted = !formErrors.images && Array.isArray(currentValues.images) && currentValues.images.length > 0
           break
         case 5:
           isCompleted = true
@@ -369,22 +384,14 @@ export default function ProductForm({ productId }: { productId?: string }) {
     
     return states
   }, [
-    formErrors.name,
-    formErrors.description,
-    formErrors.category,
-    formErrors.productType,
-    formErrors.price,
-    formErrors.stock,
-    formErrors.images,
-    formValues.name,
-    formValues.description,
-    formValues.category,
-    formValues.productType,
-    formValues.price,
-    formValues.stock,
-    formValues.attributes,
-    formValues.variants,
-    formValues.images,
+    formErrors,
+    name,
+    description,
+    productType,
+    attributes,
+    variants,
+    images,
+    form
   ])
 
   const isStepEnabled = useCallback((step: number): boolean => {
@@ -490,22 +497,12 @@ export default function ProductForm({ productId }: { productId?: string }) {
       (url.startsWith('http://') || url.startsWith('https://'))
     )
     
-    // In edit mode, merge with existing images to preserve them
-    const currentImages = form.getValues('images') || []
-    const existingImages = isEdit ? currentImages.filter((img: string) => 
-      img && typeof img === 'string' && img.trim().length > 0
-    ) : []
-    
-    // Combine existing images with new ones, removing duplicates
-    const allImages = [...existingImages, ...validUrls]
-    const uniqueImages = Array.from(new Set(allImages))
-    
-    form.setValue('images', uniqueImages, { 
+    form.setValue('images', validUrls, { 
       shouldValidate: true,
       shouldDirty: true,
       shouldTouch: true,
     })
-  }, [form, isEdit])
+  }, [form])
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     // Prevent double submission
@@ -646,14 +643,12 @@ export default function ProductForm({ productId }: { productId?: string }) {
       }
 
       if (values.productType === 'simple') {
-        // Smart pricing: prioritize merchantPrice, fallback to price for backward compatibility
         const merchantPriceValue = parseNumber(values.merchantPrice) || parseNumber(values.price)
         const nubianMarkupValue = parseNumber(values.nubianMarkup) || 10
         const stockValue = parseNumber(values.stock)
         
         if (merchantPriceValue !== undefined && merchantPriceValue > 0) {
           dataToSend.merchantPrice = merchantPriceValue
-          // Also send as price for backward compatibility
           dataToSend.price = merchantPriceValue
         } else {
           toast.error('خطأ في السعر. يرجى التحقق من القيمة المدخلة.')
@@ -662,12 +657,11 @@ export default function ProductForm({ productId }: { productId?: string }) {
           return
         }
         
-        // Send nubianMarkup if provided
         if (nubianMarkupValue !== undefined && nubianMarkupValue >= 0) {
           dataToSend.nubianMarkup = nubianMarkupValue
         }
-        
-        // Note: discountPrice removed - pricing is now handled by smart pricing system
+
+        // discountPrice removed - handled automatically by dynamic pricing
         
         if (stockValue !== undefined && stockValue >= 0) {
           dataToSend.stock = Math.floor(stockValue)
@@ -681,9 +675,17 @@ export default function ProductForm({ productId }: { productId?: string }) {
         dataToSend.attributes = values.attributes || []
         dataToSend.variants = (values.variants || []).map(v => ({
           ...v,
-          price: v.price || 0,
+          merchantPrice: v.merchantPrice || v.price || 0,
+          price: v.price || v.merchantPrice || 0,
+          nubianMarkup: v.nubianMarkup ?? 10,
           isActive: v.isActive !== false,
         }))
+      }
+
+      // Add ranking fields if provided (admin only)
+      if (user?.publicMetadata?.role === 'admin') {
+        dataToSend.priorityScore = values.priorityScore || 0
+        dataToSend.featured = !!values.featured
       }
 
       logger.info('Sending product data to backend', {
@@ -873,7 +875,7 @@ export default function ProductForm({ productId }: { productId?: string }) {
         <Card>
           <CardHeader>
             <CardTitle>{isEdit ? 'تعديل المنتج' : 'إنشاء منتج جديد'}</CardTitle>
-            <CardDescription>{isEdit ? 'قم بتعديل معلومات المنتج في جميع الخطوات' : 'املأ جميع الخطوات لإضافة منتج جديد'}</CardDescription>
+            <p className="text-muted-foreground text-sm">{isEdit ? 'قم بتعديل معلومات المنتج في جميع الخطوات' : 'املأ جميع الخطوات لإضافة منتج جديد'}</p>
           </CardHeader>
           <CardContent>
             {/* Stepper */}
@@ -907,170 +909,251 @@ export default function ProductForm({ productId }: { productId?: string }) {
               >
                 {/* Step 1: Basic Information */}
                 {currentStep === 1 && (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold mb-4">المعلومات الأساسية</h3>
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Type className="w-5 h-5 text-primary" />
+                      <h3 className="text-lg font-semibold">المعلومات الأساسية للمنتج</h3>
+                    </div>
                     
-                    <FormField
-                      control={form.control as any}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            <Package className="w-4 h-4" />
-                            اسم المنتج *
-                          </FormLabel>
-                          <FormControl>
-                            <Input placeholder="أدخل اسم المنتج" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control as any}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            <Package className="w-4 h-4" />
-                            الوصف *
-                          </FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="أدخل وصف المنتج"
-                              rows={4}
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control as any}
-                      name="category"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>الفئة *</FormLabel>
-                          <Select 
-                            onValueChange={field.onChange} 
-                            value={field.value}
-                            disabled={categoriesLoading}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder={categoriesLoading ? "جاري التحميل..." : "اختر فئة"} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {categoriesLoading ? (
-                                <SelectItem value="loading" disabled>
-                                  جاري تحميل التصنيفات...
-                                </SelectItem>
-                              ) : categories.length === 0 ? (
-                                <SelectItem value="no-categories" disabled>
-                                  لا توجد تصنيفات متاحة
-                                </SelectItem>
-                              ) : (
-                                categories.map((category) => (
-                                  <SelectItem key={category._id} value={category._id}>
-                                    {category.name}
-                                  </SelectItem>
-                                ))
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Admin-specific: Merchant selection */}
-                    {user?.publicMetadata?.role === 'admin' && (
+                    <div className="grid grid-cols-1 gap-6">
                       <FormField
                         control={form.control as any}
-                        name="merchant"
+                        name="name"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="flex items-center gap-2">
-                              <Store className="w-4 h-4" />
-                              التاجر (اختياري)
-                            </FormLabel>
+                            <FormLabel className="font-semibold">اسم المنتج *</FormLabel>
                             <FormControl>
-                              <Select 
-                                onValueChange={(value) => field.onChange(value === 'none' ? '' : value)} 
-                                value={field.value || 'none'}
-                                disabled={merchantsLoading}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder={merchantsLoading ? "جاري التحميل..." : "اختر تاجر (اختياري)"} />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="none">لا تاجر (منتج عام)</SelectItem>
-                                  {merchantsLoading ? (
-                                    <SelectItem value="loading" disabled>
-                                      جاري تحميل التجار...
-                                    </SelectItem>
-                                  ) : merchants.length === 0 ? (
-                                    <SelectItem value="no-merchants" disabled>
-                                      لا يوجد تجار متاحين
-                                    </SelectItem>
-                                  ) : (
-                                    merchants.map((merchant) => (
-                                      <SelectItem key={merchant._id} value={merchant._id}>
-                                        {merchant.businessName}
-                                      </SelectItem>
-                                    ))
-                                  )}
-                                </SelectContent>
-                              </Select>
+                              <Input 
+                                placeholder="مثال: فستان سهرة مخمل، هاتف سامسونج S24" 
+                                className="h-11 rounded-lg"
+                                {...field} 
+                              />
                             </FormControl>
-                            <FormDescription>
-                              يمكنك ترك هذا الحقل فارغاً لإنشاء منتج عام، أو اختيار تاجر محدد
-                            </FormDescription>
+                            <FormDescription>سيظهر هذا الاسم للمتسوقين في المتجر</FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                    )}
+
+                      <FormField
+                        control={form.control as any}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="font-semibold">الوصف التفصيلي *</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="اكتب وصفاً جذاباً وشاملاً لمميزات المنتج ومواصفاته..."
+                                rows={5}
+                                className="rounded-lg resize-none"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control as any}
+                        name="category"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="font-semibold">الفئة *</FormLabel>
+                            <Select 
+                              onValueChange={field.onChange} 
+                              value={field.value}
+                              disabled={categoriesLoading}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="h-11 rounded-lg">
+                                  <SelectValue placeholder={categoriesLoading ? "جاري تحميل التصنيفات..." : "اختر فئة المنتج"} />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {categories.map((category) => (
+                                  <SelectItem key={category._id} value={category._id}>
+                                    {category.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {user?.publicMetadata?.role === 'admin' && (
+                        <div className="p-4 rounded-xl border border-yellow-200 bg-yellow-50/30 space-y-4">
+                          <h4 className="text-sm font-bold text-yellow-800 flex items-center gap-2">
+                            <Sparkles className="w-4 h-4" />
+                            تحكم المسؤول (الترتيب والتميز)
+                          </h4>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <FormField
+                              control={form.control as any}
+                              name="merchant"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="font-semibold">التاجر المرتبط</FormLabel>
+                                  <Select 
+                                    onValueChange={(value) => field.onChange(value === 'none' ? '' : value)} 
+                                    value={field.value || 'none'}
+                                    disabled={merchantsLoading}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger className="h-11 rounded-lg bg-white">
+                                        <SelectValue placeholder={merchantsLoading ? "جاري التحميل..." : "اختر تاجر (اختياري)"} />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="none">بدون تاجر (منتج عام)</SelectItem>
+                                      {merchants.map((merchant) => (
+                                        <SelectItem key={merchant._id} value={merchant._id}>
+                                          {merchant.businessName}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control as any}
+                              name="priorityScore"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="font-semibold">أولوية الظهور (0-100)</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      type="number" 
+                                      min={0} 
+                                      max={100} 
+                                      className="h-11 rounded-lg bg-white"
+                                      {...field}
+                                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <FormField
+                            control={form.control as any}
+                            name="featured"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-white shadow-sm">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="font-bold">تمييز المنتج (Featured)</FormLabel>
+                                  <FormDescription>
+                                    سيظهر هذا المنتج في قسم "المميز" وفي أعلى نتائج البحث
+                                  </FormDescription>
+                                </div>
+                                <FormControl>
+                                  <input
+                                    type="checkbox"
+                                    className="w-5 h-5 accent-primary"
+                                    checked={field.value}
+                                    onChange={(e) => field.onChange(e.target.checked)}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      )}
+                      </div>
+                    </div>
                   </div>
                 )}
 
                 {/* Step 2: Product Type */}
                 {currentStep === 2 && (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold mb-4">اختر نوع المنتج</h3>
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Layers className="w-5 h-5 text-primary" />
+                      <h3 className="text-lg font-semibold">اختر نوع المنتج</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div 
+                        className={cn(
+                          "relative cursor-pointer rounded-xl border-2 p-6 transition-all hover:border-primary/50",
+                          productType === 'simple' ? "border-primary bg-primary/5 shadow-md" : "border-muted bg-card"
+                        )}
+                        onClick={() => {
+                          form.setValue('productType', 'simple');
+                          form.trigger('productType');
+                        }}
+                      >
+                        <div className="flex flex-col items-center text-center gap-3">
+                          <div className={cn(
+                            "w-12 h-12 rounded-full flex items-center justify-center transition-colors",
+                            productType === 'simple' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                          )}>
+                            <Package className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-lg">منتج بسيط</h4>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              للمنتجات التي لها سعر ومخزون واحد فقط (مثل كتاب، زجاجة عطر)
+                            </p>
+                          </div>
+                          {productType === 'simple' && (
+                            <div className="absolute top-3 right-3">
+                              <CheckCircle2 className="w-5 h-5 text-primary" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div 
+                        className={cn(
+                          "relative cursor-pointer rounded-xl border-2 p-6 transition-all hover:border-primary/50",
+                          productType === 'with_variants' ? "border-primary bg-primary/5 shadow-md" : "border-muted bg-card"
+                        )}
+                        onClick={() => {
+                          form.setValue('productType', 'with_variants');
+                          form.trigger('productType');
+                        }}
+                      >
+                        <div className="flex flex-col items-center text-center gap-3">
+                          <div className={cn(
+                            "w-12 h-12 rounded-full flex items-center justify-center transition-colors",
+                            productType === 'with_variants' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                          )}>
+                            <Layers className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-lg">منتج بمتغيرات</h4>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              للمنتجات التي لها أحجام، ألوان، أو مواصفات مختلفة (مثل الملابس، الإلكترونيات)
+                            </p>
+                          </div>
+                          {productType === 'with_variants' && (
+                            <div className="absolute top-3 right-3">
+                              <CheckCircle2 className="w-5 h-5 text-primary" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
                     <FormField
                       control={form.control as any}
                       name="productType"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>نوع المنتج *</FormLabel>
-                          <Select 
-                            onValueChange={(value) => {
-                              field.onChange(value)
-                              form.trigger('productType')
-                            }} 
-                            value={field.value || undefined}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="اختر نوع المنتج" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="simple">منتج بسيط (سعر ومخزون واحد)</SelectItem>
-                              <SelectItem value="with_variants">منتج بمتغيرات (أحجام، ألوان، إلخ)</SelectItem>
-                            </SelectContent>
-                          </Select>
+                        <FormItem className="hidden">
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
                           <FormMessage />
-                          <FormDescription>
-                            اختر &quot;منتج بسيط&quot; للمنتجات التي لها سعر ومخزون واحد، أو &quot;منتج بمتغيرات&quot; للمنتجات التي لها أحجام أو ألوان مختلفة.
-                          </FormDescription>
                         </FormItem>
                       )}
                     />
@@ -1154,7 +1237,6 @@ export default function ProductForm({ productId }: { productId?: string }) {
                               </FormItem>
                             )}
                           />
-
                         </div>
 
                         {/* Pricing Preview */}
@@ -1197,15 +1279,23 @@ export default function ProductForm({ productId }: { productId?: string }) {
                         <Card>
                           <CardHeader>
                             <CardTitle>تعريف الخصائص</CardTitle>
-                            <CardDescription>
+                            <p className="text-muted-foreground text-sm">
                               قم بتعريف الخصائص التي سيتم استخدامها في المتغيرات (مثل: الحجم، اللون، المادة)
-                            </CardDescription>
+                            </p>
                           </CardHeader>
                           <CardContent>
                             <AttributeDefinitionManager
                               attributes={attributes || []}
                               onChange={(attrs) => {
-                                form.setValue('attributes', attrs, { shouldValidate: false })
+                                // Backend schema defaults: type="select", required=false, options=[]
+                                // Keep DTO permissive, but always write a fully-specified shape into the form.
+                                const normalized = (attrs || []).map((a) => ({
+                                  ...a,
+                                  type: a?.type ?? "select",
+                                  required: a?.required ?? false,
+                                  options: a?.options ?? [],
+                                }));
+                                form.setValue("attributes", normalized, { shouldValidate: false });
                               }}
                             />
                           </CardContent>
@@ -1215,17 +1305,14 @@ export default function ProductForm({ productId }: { productId?: string }) {
                           <Card>
                             <CardHeader>
                               <CardTitle>المتغيرات</CardTitle>
-                              <CardDescription>
+                              <p className="text-muted-foreground text-sm">
                                 قم بإضافة المتغيرات للمنتج بناءً على الخصائص المعرفة
-                              </CardDescription>
+                              </p>
                             </CardHeader>
                             <CardContent>
                               <VariantManager
                                 attributes={attributes || []}
-                                variants={(variants || []).map(v => ({
-                                  ...v,
-                                  isActive: v.isActive !== false,
-                                }))}
+                                variants={memoizedVariants}
                                 onChange={(vars) => {
                                   form.setValue('variants', vars, { shouldValidate: false })
                                 }}
@@ -1240,18 +1327,35 @@ export default function ProductForm({ productId }: { productId?: string }) {
 
                 {/* Step 4: Images */}
                 {currentStep === 4 && (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold mb-4">صور المنتج</h3>
-                    <div>
-                      <Label className="mb-2 block">صور المنتج *</Label>
-                      <ImageUpload onUploadComplete={handleUploadDone} />
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <ImageIcon className="w-5 h-5 text-primary" />
+                      <h3 className="text-lg font-semibold">صور المنتج</h3>
+                    </div>
+                    
+                    <div className="bg-muted/30 p-6 rounded-xl border-2 border-dashed">
+                      <Label className="mb-4 block text-center font-medium">قم برفع صور المنتج (صورة واحدة على الأقل) *</Label>
+                      <ImageUpload 
+                        onUploadComplete={handleUploadDone} 
+                        initialUrls={form.getValues('images')}
+                      />
+                      <div className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                        <Info className="w-4 h-4" />
+                        <span>يُنصح برفع صور واضحة وذات خلفية بيضاء لأفضل النتائج.</span>
+                      </div>
+                      
                       {images && images.length > 0 && (
-                        <p className="text-sm text-muted-foreground mt-2">
-                          تم رفع {images.length} صورة
-                        </p>
+                        <div className="mt-6">
+                          <Separator className="mb-4" />
+                          <div className="flex justify-between items-center px-2">
+                            <span className="text-sm font-medium">عدد الصور المختارة:</span>
+                            <Badge variant="secondary">{images.length}</Badge>
+                          </div>
+                        </div>
                       )}
+                      
                       {form.formState.errors.images && (
-                        <p className="text-sm font-medium text-destructive mt-1">
+                        <p className="text-sm font-medium text-destructive mt-4 text-center">
                           {form.formState.errors.images.message}
                         </p>
                       )}
@@ -1261,92 +1365,180 @@ export default function ProductForm({ productId }: { productId?: string }) {
 
                 {/* Step 5: Review */}
                 {currentStep === 5 && (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold mb-4">مراجعة المعلومات</h3>
-                    <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-                      <div>
-                        <Label className="text-sm font-semibold">اسم المنتج:</Label>
-                        <p className="text-sm">{form.getValues('name') || 'غير محدد'}</p>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-semibold">الوصف:</Label>
-                        <p className="text-sm">{form.getValues('description') || 'غير محدد'}</p>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-semibold">الفئة:</Label>
-                        <p className="text-sm">
-                          {categories.find(c => c._id === form.getValues('category'))?.name || 'غير محدد'}
-                        </p>
-                      </div>
-                      {user?.publicMetadata?.role === 'admin' && form.getValues('merchant') && (
-                        <div>
-                          <Label className="text-sm font-semibold">التاجر:</Label>
-                          <p className="text-sm">
-                            {merchants.find(m => m._id === form.getValues('merchant'))?.businessName || 'غير محدد'}
-                          </p>
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Eye className="w-5 h-5 text-primary" />
+                      <h3 className="text-lg font-semibold">مراجعة معلومات المنتج</h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Left: Product Images Preview */}
+                      <div className="md:col-span-1 space-y-4">
+                        <div className="aspect-square rounded-xl border bg-muted/30 overflow-hidden relative group">
+                          {images && images.length > 0 ? (
+                            <img 
+                              src={images[0]} 
+                              alt="Product Preview" 
+                              className="object-cover w-full h-full"
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                              <ImageIcon className="w-12 h-12 mb-2 opacity-20" />
+                              <span className="text-xs">لا توجد صور</span>
+                            </div>
+                          )}
+                          <div className="absolute top-2 right-2">
+                            <Badge className="bg-black/50 backdrop-blur-sm border-none">الرئيسية</Badge>
+                          </div>
                         </div>
-                      )}
-                      <div>
-                        <Label className="text-sm font-semibold">نوع المنتج:</Label>
-                        <p className="text-sm">
-                          {productType === 'simple' ? 'منتج بسيط' : 'منتج بمتغيرات'}
-                        </p>
+                        
+                        <div className="grid grid-cols-4 gap-2">
+                          {images?.slice(1, 5).map((img, i) => (
+                            <div key={i} className="aspect-square rounded-lg border overflow-hidden">
+                              <img src={img} alt={`Preview ${i+2}`} className="object-cover w-full h-full" />
+                            </div>
+                          ))}
+                          {images && images.length > 5 && (
+                            <div className="aspect-square rounded-lg border bg-muted flex items-center justify-center text-xs font-bold">
+                              +{images.length - 5}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      {productType === 'simple' && (
-                        <>
-                          <div>
-                            <Label className="text-sm font-semibold">السعر:</Label>
-                            <p className="text-sm">{form.getValues('price') || 'غير محدد'} ر.س</p>
+
+                      {/* Right: Product Details */}
+                      <div className="md:col-span-2 space-y-6">
+                        <div className="rounded-xl border p-6 bg-card space-y-4 shadow-sm">
+                          <div className="flex justify-between items-start border-b pb-4">
+                            <div className="space-y-1">
+                              <h4 className="text-2xl font-bold">{form.getValues('name') || 'اسم غير محدد'}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {categories.find(c => c._id === form.getValues('category'))?.name || 'فئة غير محددة'}
+                              </p>
+                            </div>
+                            <Badge variant={form.getValues('isActive') ? "success" : "secondary"}>
+                              {form.getValues('isActive') ? 'نشط' : 'غير نشط'}
+                            </Badge>
                           </div>
-                          <div>
-                            <Label className="text-sm font-semibold">المخزون:</Label>
-                            <p className="text-sm">{form.getValues('stock') ?? 'غير محدد'}</p>
+
+                          <div className="grid grid-cols-2 gap-y-4 gap-x-8 pt-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground uppercase tracking-wider">نوع المنتج</Label>
+                              <div className="flex items-center gap-2">
+                                {productType === 'simple' ? <Package className="w-4 h-4" /> : <Layers className="w-4 h-4" />}
+                                <p className="font-semibold">{productType === 'simple' ? 'منتج بسيط' : 'منتج بمتغيرات'}</p>
+                              </div>
+                            </div>
+
+                            {user?.publicMetadata?.role === 'admin' && form.getValues('merchant') && (
+                              <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground uppercase tracking-wider">التاجر</Label>
+                                <div className="flex items-center gap-2 text-primary">
+                                  <Store className="w-4 h-4" />
+                                  <p className="font-semibold">
+                                    {merchants.find(m => m._id === form.getValues('merchant'))?.businessName || 'غير محدد'}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+
+                            {productType === 'simple' && (
+                              <>
+                                <div className="space-y-1">
+                                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">السعر النهائي</Label>
+                                  <p className="text-xl font-bold text-primary">
+                                    {(form.getValues('merchantPrice') || form.getValues('price') || 0) * (1 + (form.getValues('nubianMarkup') || 10) / 100)} ج.س
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground">يشمل هامش ربح نوبيان ({form.getValues('nubianMarkup') || 10}%)</p>
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">المخزون المتوفر</Label>
+                                  <p className={cn("text-lg font-bold", (form.getValues('stock') || 0) < 10 ? "text-destructive" : "text-foreground")}>
+                                    {form.getValues('stock') ?? 0} قطعة
+                                  </p>
+                                </div>
+                              </>
+                            )}
                           </div>
-                        </>
-                      )}
-                      {productType === 'with_variants' && (
-                        <>
-                          <div>
-                            <Label className="text-sm font-semibold">عدد الخصائص:</Label>
-                            <p className="text-sm">{(attributes || []).length}</p>
+
+                          <div className="pt-4 border-t">
+                            <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">الوصف</Label>
+                            <p className="text-sm leading-relaxed text-muted-foreground line-clamp-3 italic">
+                              &quot;{form.getValues('description') || 'لا يوجد وصف متاح'}&quot;
+                            </p>
                           </div>
-                          <div>
-                            <Label className="text-sm font-semibold">عدد المتغيرات:</Label>
-                            <p className="text-sm">{(variants || []).length}</p>
-                          </div>
-                        </>
-                      )}
-                      <div>
-                        <Label className="text-sm font-semibold">عدد الصور:</Label>
-                        <p className="text-sm">{images?.length || 0}</p>
+
+                          {productType === 'with_variants' && (
+                            <div className="pt-4 border-t space-y-4">
+                              <div className="flex gap-4">
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-xs text-muted-foreground">عدد الخصائص</span>
+                                  <Badge variant="outline" className="w-fit">{(attributes || []).length} خصائص</Badge>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-xs text-muted-foreground">عدد المتغيرات</span>
+                                  <Badge variant="outline" className="w-fit">{(variants || []).length} متغيرات</Badge>
+                                </div>
+                              </div>
+                              
+                              {/* Show variant image summary if any variant has images */}
+                              {variants?.some(v => v.images && v.images.length > 0) && (
+                                <div className="space-y-2">
+                                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">صور المتغيرات</Label>
+                                  <div className="flex flex-wrap gap-2">
+                                    {variants.filter(v => v.images && v.images.length > 0).map((v, i) => (
+                                      <div key={i} className="relative group">
+                                        <img 
+                                          src={v.images![0]} 
+                                          className="w-10 h-10 rounded border object-cover" 
+                                          alt={`Variant ${v.sku}`}
+                                        />
+                                        <div className="absolute -top-1 -right-1 bg-primary text-[8px] text-white rounded-full w-3 h-3 flex items-center justify-center">
+                                          {v.images?.length}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/5 border border-primary/10">
+                          <CheckCircle2 className="w-5 h-5 text-primary" />
+                          <p className="text-sm text-primary font-medium">كل شيء يبدو جيداً! يمكنك الآن الضغط على {isEdit ? 'تحديث' : 'إنشاء'} لحفظ المنتج.</p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 )}
 
                 {/* Navigation Buttons */}
-                <div className="flex justify-between gap-4 pt-6 border-t">
-                  <div className="flex gap-2">
+                <div className="flex justify-between items-center gap-4 pt-8 mt-8 border-t">
+                  <div className="flex gap-3">
                     {currentStep > 1 && (
                       <Button
                         type="button"
                         variant="outline"
                         onClick={goToPreviousStep}
+                        className="h-11 px-6 font-medium"
                       >
                         <ChevronRight className="w-4 h-4 ml-2" />
-                        السابق
+                        العودة للسابق
                       </Button>
                     )}
                     <Button
                       type="button"
                       variant="ghost"
                       onClick={() => router.push('/business/products')}
+                      className="h-11 px-6 text-muted-foreground hover:text-foreground"
                     >
-                      إلغاء
+                      إلغاء العملية
                     </Button>
                   </div>
                   
-                  <div className="flex gap-2">
+                  <div className="flex gap-3">
                     {currentStep < maxStep ? (
                       <Button
                         type="submit"
@@ -1354,16 +1546,23 @@ export default function ProductForm({ productId }: { productId?: string }) {
                           e.preventDefault()
                           goToNextStep()
                         }}
+                        className="h-11 px-8 font-bold shadow-lg shadow-primary/20"
                       >
-                        التالي
+                        الاستمرار للخطوة التالية
                         <ChevronLeft className="w-4 h-4 mr-2" />
                       </Button>
                     ) : (
                       <Button
                         type="submit"
                         disabled={loading || isSubmittingRef.current}
+                        className="h-11 px-10 font-bold shadow-lg shadow-primary/30 min-w-[160px]"
                       >
-                        {loading || isSubmittingRef.current ? 'جاري الحفظ...' : isEdit ? 'تحديث المنتج' : 'إنشاء المنتج'}
+                        {loading || isSubmittingRef.current ? (
+                          <>
+                            <span className="animate-spin ml-2">⏳</span>
+                            جاري الحفظ...
+                          </>
+                        ) : isEdit ? 'تحديث المنتج النهائي' : 'إتمام إنشاء المنتج'}
                       </Button>
                     )}
                   </div>
