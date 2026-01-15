@@ -29,115 +29,156 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import ImageUpload from '@/components/imageUpload'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import ImageUpload from "@/components/imageUpload";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Stepper } from '@/components/ui/stepper'
 import { AttributeDefinitionManager } from '@/components/product/AttributeDefinitionManager'
 import { VariantManager } from '@/components/product/VariantManager'
 import { PricingPreview } from '@/components/product/PricingPreview'
 import { ProductAttributeDefDTO as ProductAttribute, ProductVariantDTO as ProductVariant } from '@/domain/product/product.types'
-import { ChevronRight, ChevronLeft, Package, Info, CheckCircle2, Type, Layers, Image as ImageIcon, Eye } from 'lucide-react'
+import { Sparkles } from "lucide-react";
+import {
+  ChevronRight,
+  ChevronLeft,
+  Package,
+  Store,
+  Info,
+  CheckCircle2,
+  Type,
+  Layers,
+  Image as ImageIcon,
+  Eye,
+} from "lucide-react";
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 
-const formSchema = z.object({
-  name: z.string().min(1, 'Product name is required'),
-  description: z.string().min(1, 'Description is required'), // Model requires description
-  category: z.string().min(1, 'Category is required'),
-  images: z.array(z.string()).min(1, 'At least one image is required'),
-  
-  // Product type: 'simple' or 'with_variants' - required but can start empty
-  productType: z.string().refine((val) => val === '' || val === 'simple' || val === 'with_variants', {
-    message: 'Product type must be either simple or with_variants',
-  }),
-  
-  // For simple products - Smart pricing fields
-  merchantPrice: z.number().min(0.01, 'Merchant price must be greater than 0').optional().or(z.undefined()),
-  nubianMarkup: z.number().min(0, 'Nubian markup cannot be negative').max(100, 'Nubian markup cannot exceed 100%').optional().or(z.undefined()),
-  // Legacy fields (for backward compatibility)
-  price: z.number().min(0.01, 'Price must be greater than 0').optional().or(z.undefined()),
-  stock: z.number().int().min(0, 'Stock cannot be negative').optional().or(z.undefined()),
-  
-  // For variant-based products
-  attributes: z.array(z.object({
-    name: z.string().min(1),
-    displayName: z.string().min(1),
-    type: z.enum(['select', 'text', 'number']),
-    required: z.boolean(),
-    options: z.array(z.string()).optional(),
-  })).optional(),
-  
-  variants: z.array(z.object({
-    sku: z.string().min(1),
-    attributes: z.record(z.string()),
-    price: z.number().min(0.01),
-    // discountPrice removed - pricing handled by smart pricing system
-    stock: z.number().int().min(0),
-    images: z.array(z.string()).optional(),
-    isActive: z.boolean(),
-  })).optional(),
-  
-  // Legacy fields (for backward compatibility)
-  sizes: z.array(z.string()).optional(),
-  colors: z.array(z.string()).optional(),
-  
-  isActive: z.boolean().optional(),
-}).superRefine((data, ctx) => {
-  // Only validate productType here - don't validate price/stock/attributes/variants
-  // This allows stage 2 validation to pass when only productType is selected
-  // Price, stock, attributes, and variants are validated by their individual field validators
-  const productType = data.productType as string
-  if (!productType || (productType !== 'simple' && productType !== 'with_variants')) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'Product type is required',
-      path: ['productType'],
-    })
-  }
-  
-  // Note: discountPrice validation removed - pricing is now handled by smart pricing system
-})
+const formSchema = z
+  .object({
+    name: z.string().min(1, "اسم المنتج مطلوب"),
+    description: z.string().min(1, "الوصف مطلوب"),
+    category: z.string().min(1, "الفئة مطلوبة"),
+    images: z.array(z.string()).min(1, "صورة واحدة على الأقل مطلوبة"),
+
+    productType: z
+      .string()
+      .refine((val) => val === "" || val === "simple" || val === "with_variants", {
+        message: "نوع المنتج يجب أن يكون بسيط أو بمتغيرات",
+      }),
+
+    // Smart pricing fields
+    merchantPrice: z.number().min(0.01, "سعر التاجر يجب أن يكون أكبر من 0").optional().or(z.undefined()),
+    nubianMarkup: z
+      .number()
+      .min(0, "هامش نوبيان لا يمكن أن يكون سالباً")
+      .max(100, "هامش نوبيان لا يمكن أن يتجاوز 100%")
+      .optional()
+      .or(z.undefined()),
+
+    // Legacy fields
+    price: z.number().min(0.01, "السعر يجب أن يكون أكبر من 0").optional().or(z.undefined()),
+    stock: z.number().int().min(0, "المخزون لا يمكن أن يكون سالباً").optional().or(z.undefined()),
+
+    attributes: z
+      .array(
+        z.object({
+          name: z.string().min(1),
+          displayName: z.string().min(1),
+          type: z.enum(["select", "text", "number"]),
+          required: z.boolean(),
+          options: z.array(z.string()).optional(),
+        })
+      )
+      .optional(),
+
+      variants: z.array(z.object({
+        sku: z.string().min(1),
+        attributes: z.record(z.string()),
+        // NEW (supports dynamic pricing per variant)
+        merchantPrice: z.number().min(0.01).optional(),
+        nubianMarkup: z.number().min(0).max(100).optional(),
+
+        // keep price for backward compatibility
+        price: z.number().min(0.01).optional(),
+
+        stock: z.number().int().min(0),
+        images: z.array(z.string()).optional(),
+        isActive: z.boolean(),
+      })).optional(),
+
+    // Legacy fields
+    sizes: z.array(z.string()).optional(),
+    colors: z.array(z.string()).optional(),
+
+    merchant: z.string().optional(),
+
+    priorityScore: z.number().min(0).max(100).optional(),
+    featured: z.boolean().optional(),
+
+    isActive: z.boolean().optional(),
+  })
+  .superRefine((data, ctx) => {
+    const productType = data.productType as string;
+    if (!productType || (productType !== "simple" && productType !== "with_variants")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "نوع المنتج مطلوب",
+        path: ["productType"],
+      });
+    }
+  });
 
 interface Category {
-  _id: string
-  name: string
+  _id: string;
+  name: string;
 }
 
-export function MerchantProductForm({ productId }: { productId?: string }) {
-  const router = useRouter()
-  const { getToken } = useAuth()
-  const { user, isLoaded } = useUser()
-  const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading] = useState(false)
-  const [isEdit, setIsEdit] = useState(!!productId)
-  const [merchantStatus, setMerchantStatus] = useState<'checking' | 'approved' | 'not-approved'>('checking')
-  const isSubmittingRef = useRef(false) // Prevent double submission
-  const [currentStep, setCurrentStep] = useState(1)
-  const maxStep = 5 // Total number of steps
+interface Merchant {
+  _id: string;
+  businessName: string;
+  businessEmail: string;
+  status: string;
+}
 
-  // Initialize form FIRST - must be before any hooks that reference it
+export default function ProductForm({ productId }: { productId?: string }) {
+  const router = useRouter();
+  const { getToken } = useAuth();
+  const { user, isLoaded: userLoaded } = useUser();
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [merchants, setMerchants] = useState<Merchant[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [merchantsLoading, setMerchantsLoading] = useState(true);
+  const isSubmittingRef = useRef(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const maxStep = 5;
+  const [isEdit] = useState(!!productId);
+
   const form = useForm<z.infer<typeof formSchema>>({
     // @ts-expect-error - react-hook-form type inference issue with zod union types
     resolver: zodResolver(formSchema),
-    mode: 'onBlur', // Validate on blur for better performance
+    mode: "onBlur",
     defaultValues: {
-      name: '',
-      description: '',
-      productType: '' as any, // Empty string initially, will be validated when user selects
+      name: "",
+      description: "",
+      productType: "" as any,
       merchantPrice: undefined,
-      nubianMarkup: 10, // Default 10%
-      price: undefined, // Legacy field
-      category: '',
-      stock: undefined, // Changed from 0 to undefined so validation can properly detect it's missing
+      nubianMarkup: 10,
+      price: undefined,
+      category: "",
+      stock: undefined,
       attributes: [],
       variants: [],
       sizes: [],
       colors: [],
       images: [],
+      merchant: "",
+      priorityScore: 0,
+      featured: false,
       isActive: true,
     },
-  })
+  });
 
   // Watch form values efficiently - only watch what we need
   // These must come AFTER form initialization
@@ -357,104 +398,131 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
   }
 
   useEffect(() => {
-    const checkMerchantStatus = async () => {
-      if (!isLoaded || !user) {
-        setMerchantStatus('not-approved')
-        return
-      }
+    if (!userLoaded) return;
 
-      // Check if user has merchant role
-      const role = user.publicMetadata?.role as string | undefined
-      if (role !== 'merchant') {
-        setMerchantStatus('not-approved')
-        return
-      }
+    if (!user) {
+      router.replace("/sign-in");
+      return;
+    }
 
-      try {
-        const token = await getToken()
-        if (!token) {
-          setMerchantStatus('not-approved')
-          return
-        }
+    const userRole = user.publicMetadata?.role as string | undefined;
 
-        const response = await axiosInstance.get('/merchants/my-status', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        // Handle standardized response format: { success: true, data: { merchant, hasApplication }, message: "..." }
-        const responseData = response.data?.data || response.data
-
-        if (responseData.hasApplication && responseData.merchant?.status === 'APPROVED') {
-          setMerchantStatus('approved')
-        } else {
-          setMerchantStatus('not-approved')
-        }
-      } catch (error) {
-        logger.error('Failed to check merchant status', { error: error instanceof Error ? error.message : String(error) })
-        setMerchantStatus('not-approved')
-      }
+    if (userRole === "admin" || userRole === "merchant") {
+      // Continue
+    } else {
+      router.replace("/business/dashboard");
+      return;
     }
 
     const fetchCategories = async () => {
+      setCategoriesLoading(true);
       try {
-        const res = await axiosInstance.get('/categories')
-        setCategories(res.data || [])
-      } catch (error) {
-        logger.error('Failed to fetch categories', { error: error instanceof Error ? error.message : String(error) })
-        toast.error('فشل تحميل الفئات')
-      }
-    }
+        const token = await getToken();
+        if (!token) throw new Error("Authentication token not available");
 
-    checkMerchantStatus()
-    fetchCategories()
+        const res = await axiosInstance.get("/categories", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setCategories(res.data || []);
+      } catch (error) {
+        logger.error("Failed to fetch categories", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        toast.error("فشل تحميل التصنيفات");
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    const fetchMerchants = async () => {
+      setMerchantsLoading(true);
+      try {
+        const token = await getToken();
+        if (!token) return;
+
+        const res = await axiosInstance.get("/merchants", {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { status: "APPROVED" },
+        });
+
+        const merchantsData = res.data?.data || res.data?.merchants || res.data || [];
+        setMerchants(Array.isArray(merchantsData) ? merchantsData : []);
+      } catch (error) {
+        logger.error("Failed to fetch merchants", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      } finally {
+        setMerchantsLoading(false);
+      }
+    };
+
+    fetchCategories();
+    fetchMerchants();
 
     if (productId) {
       const fetchProduct = async () => {
         try {
-          const token = await getToken()
+          const token = await getToken();
           if (!token) {
-            toast.error('فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.')
-            router.push('/sign-in')
-            return
+            toast.error("فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.");
+            router.push("/sign-in");
+            return;
           }
 
           const res = await axiosInstance.get(`/products/${productId}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          })
-          const product = res.data
-          const hasVariants = product.variants && product.variants.length > 0
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          let product: any = null;
+          if (res.data?.success && res.data?.data) product = res.data.data;
+          else if (res.data) product = res.data;
+
+          if (!product) {
+            toast.error("المنتج غير موجود");
+            router.push("/business/products");
+            return;
+          }
+
+          const hasVariants = product.variants && product.variants.length > 0;
+
           form.reset({
             name: product.name,
-            description: product.description || '',
-            productType: hasVariants ? 'with_variants' : 'simple',
+            description: product.description || "",
+            productType: hasVariants ? "with_variants" : "simple",
             merchantPrice: product.merchantPrice || product.price || undefined,
             nubianMarkup: product.nubianMarkup || 10,
-            price: product.price || undefined, // Legacy field
-            category: product.category?._id || product.category || '',
+            price: product.price || undefined,
+            category: product.category?._id || product.category || "",
             stock: product.stock,
             attributes: product.attributes || [],
-            variants: product.variants ? product.variants.map((v: any) => ({
-              ...v,
-              attributes: v.attributes instanceof Map ? Object.fromEntries(v.attributes) : v.attributes,
-              isActive: v.isActive !== false, // Ensure boolean, default to true
-            })) : [],
+            variants: product.variants
+              ? product.variants.map((v: any) => ({
+                  ...v,
+                  attributes: v.attributes instanceof Map ? Object.fromEntries(v.attributes) : v.attributes,
+                  isActive: v.isActive !== false,
+                }))
+              : [],
             sizes: product.sizes || [],
             colors: product.colors || [],
             images: product.images || [],
+            merchant: product.merchant?._id || product.merchant || "",
+            priorityScore: product.priorityScore || 0,
+            featured: product.featured || false,
             isActive: product.isActive !== false,
-          })
+          });
         } catch (error) {
-          logger.error('Failed to fetch product', { error: error instanceof Error ? error.message : String(error) })
-          toast.error('فشل تحميل المنتج')
+          logger.error("Failed to fetch product", {
+            error: error instanceof Error ? error.message : String(error),
+          });
+          toast.error("فشل تحميل المنتج");
         }
-      }
-      fetchProduct()
+      };
+
+      fetchProduct();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productId, isLoaded, user])
+  }, [getToken, productId]);
 
   const handleUploadDone = useCallback((urls: string[]) => {
     const validUrls = urls.filter((url: string) => 
@@ -472,267 +540,291 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
   }, [form])
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    // Prevent double submission
     if (isSubmittingRef.current || loading) {
-      return
+      logger.warn("Form submission blocked - already submitting");
+      return;
     }
 
-    isSubmittingRef.current = true
-    setLoading(true)
+    isSubmittingRef.current = true;
+    setLoading(true);
 
-    const currentImages = values.images || form.getValues('images') || []
-    
+    const currentImages = values.images || form.getValues("images") || [];
+
     if (!currentImages || !Array.isArray(currentImages) || currentImages.length < 1) {
-      toast.error('يرجى رفع صورة واحدة على الأقل قبل الحفظ')
-      isSubmittingRef.current = false
-      setLoading(false)
-      return
+      toast.error("يرجى رفع صورة واحدة على الأقل قبل الحفظ");
+      isSubmittingRef.current = false;
+      setLoading(false);
+      return;
     }
 
     try {
-      const token = await getToken()
+      const token = await getToken();
       if (!token) {
-        toast.error('فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.')
-        router.push('/sign-in')
-        return
+        toast.error("فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.");
+        router.push("/sign-in");
+        return;
       }
 
-      const validImages = currentImages.filter((img: string) => 
-        img && typeof img === 'string' && img.trim().length > 0 && (img.startsWith('http://') || img.startsWith('https://'))
-      )
+      const validImages = currentImages.filter(
+        (img: string) =>
+          img &&
+          typeof img === "string" &&
+          img.trim().length > 0 &&
+          (img.startsWith("http://") || img.startsWith("https://"))
+      );
 
       if (validImages.length === 0) {
-        toast.error('يرجى رفع صورة واحدة على الأقل بصيغة صحيحة')
-        isSubmittingRef.current = false
-        setLoading(false)
-        return
+        toast.error("يرجى رفع صورة واحدة على الأقل بصيغة صحيحة");
+        isSubmittingRef.current = false;
+        setLoading(false);
+        return;
       }
 
       if (!values.description || String(values.description).trim().length === 0) {
-        toast.error('يرجى إدخال وصف للمنتج')
-        isSubmittingRef.current = false
-        setLoading(false)
-        return
+        toast.error("يرجى إدخال وصف للمنتج");
+        isSubmittingRef.current = false;
+        setLoading(false);
+        return;
       }
-      
+
       if (!values.category || String(values.category).trim().length === 0) {
-        toast.error('يرجى اختيار فئة للمنتج')
-        isSubmittingRef.current = false
-        setLoading(false)
-        return
+        toast.error("يرجى اختيار فئة للمنتج");
+        isSubmittingRef.current = false;
+        setLoading(false);
+        return;
       }
-      
-      const productTypeVal = values.productType as string
-      if (!productTypeVal || (productTypeVal !== 'simple' && productTypeVal !== 'with_variants')) {
-        toast.error('يرجى اختيار نوع المنتج')
-        isSubmittingRef.current = false
-        setLoading(false)
-        return
+
+      const productTypeVal = values.productType as string;
+      if (!productTypeVal || (productTypeVal !== "simple" && productTypeVal !== "with_variants")) {
+        toast.error("يرجى اختيار نوع المنتج");
+        isSubmittingRef.current = false;
+        setLoading(false);
+        return;
       }
-      
+
       const parseNumber = (value: any): number | undefined => {
-        if (value === undefined || value === null || value === '') {
-          return undefined
+        if (value === undefined || value === null || value === "") return undefined;
+        if (typeof value === "number") return isNaN(value) ? undefined : value;
+        const parsed = parseFloat(String(value));
+        return isNaN(parsed) ? undefined : parsed;
+      };
+
+      if (values.productType === "simple") {
+        const price = parseNumber(values.price);
+        if (price === undefined || price <= 0) {
+          toast.error("يرجى إدخال سعر صحيح (أكبر من 0)");
+          isSubmittingRef.current = false;
+          setLoading(false);
+          return;
         }
-        if (typeof value === 'number') {
-          return isNaN(value) ? undefined : value
-        }
-        const parsed = parseFloat(String(value))
-        return isNaN(parsed) ? undefined : parsed
-      }
-      
-      if (values.productType === 'simple') {
-        const merchantPrice = parseNumber(values.merchantPrice) || parseNumber(values.price)
-        if (merchantPrice === undefined || merchantPrice <= 0) {
-          toast.error('يرجى إدخال سعر صحيح (أكبر من 0)')
-          isSubmittingRef.current = false
-          setLoading(false)
-          return
-        }
-        
-        const stock = parseNumber(values.stock)
+
+        const stock = parseNumber(values.stock);
         if (stock === undefined || stock < 0 || !Number.isInteger(stock)) {
-          toast.error('يرجى إدخال مخزون صحيح (رقم صحيح أكبر من أو يساوي 0)')
-          isSubmittingRef.current = false
-          setLoading(false)
-          return
+          toast.error("يرجى إدخال مخزون صحيح (رقم صحيح أكبر من أو يساوي 0)");
+          isSubmittingRef.current = false;
+          setLoading(false);
+          return;
         }
       } else {
         if (!values.attributes || !Array.isArray(values.attributes) || values.attributes.length === 0) {
-          toast.error('يرجى إضافة خاصية واحدة على الأقل للمنتج')
-          isSubmittingRef.current = false
-          setLoading(false)
-          return
+          toast.error("يرجى إضافة خاصية واحدة على الأقل للمنتج");
+          isSubmittingRef.current = false;
+          setLoading(false);
+          return;
         }
-        
+
         if (!values.variants || !Array.isArray(values.variants) || values.variants.length === 0) {
-          toast.error('يرجى إضافة متغير واحد على الأقل للمنتج')
-          isSubmittingRef.current = false
-          setLoading(false)
-          return
+          toast.error("يرجى إضافة متغير واحد على الأقل للمنتج");
+          isSubmittingRef.current = false;
+          setLoading(false);
+          return;
         }
       }
-      
-      const imagesArray = Array.isArray(validImages) ? validImages : []
-      
+
+      const imagesArray = Array.isArray(validImages) ? validImages : [];
+      if (imagesArray.length < 1) {
+        toast.error("خطأ: لا توجد صور");
+        isSubmittingRef.current = false;
+        setLoading(false);
+        return;
+      }
+
       const dataToSend: any = {
         name: String(values.name).trim(),
         description: String(values.description).trim(),
         category: String(values.category).trim(),
         images: imagesArray,
         isActive: values.isActive !== false,
+      };
+
+      const userRole = user?.publicMetadata?.role as string | undefined;
+
+      if (values.merchant && values.merchant.trim() && values.merchant !== "none" && values.merchant !== "") {
+        dataToSend.merchant = values.merchant.trim();
       }
 
-      if (values.productType === 'simple') {
-        const merchantPriceValue = parseNumber(values.merchantPrice) || parseNumber(values.price)
-        const nubianMarkupValue = parseNumber(values.nubianMarkup) || 10
-        const stockValue = parseNumber(values.stock)
-        
+      if (values.productType === "simple") {
+        const merchantPriceValue = parseNumber(values.merchantPrice) || parseNumber(values.price);
+        const nubianMarkupValue = parseNumber(values.nubianMarkup) || 10;
+        const stockValue = parseNumber(values.stock);
+
         if (merchantPriceValue !== undefined && merchantPriceValue > 0) {
-          dataToSend.merchantPrice = merchantPriceValue
-          dataToSend.price = merchantPriceValue
+          dataToSend.merchantPrice = merchantPriceValue;
+          dataToSend.price = merchantPriceValue;
         } else {
-          toast.error('خطأ في السعر. يرجى التحقق من القيمة المدخلة.')
-          isSubmittingRef.current = false
-          setLoading(false)
-          return
-        }
-        
-        if (nubianMarkupValue !== undefined && nubianMarkupValue >= 0) {
-          dataToSend.nubianMarkup = nubianMarkupValue
+          toast.error("خطأ في السعر. يرجى التحقق من القيمة المدخلة.");
+          isSubmittingRef.current = false;
+          setLoading(false);
+          return;
         }
 
-        // discountPrice removed - handled automatically by dynamic pricing
-        
+        if (nubianMarkupValue !== undefined && nubianMarkupValue >= 0) {
+          dataToSend.nubianMarkup = nubianMarkupValue;
+        }
+
         if (stockValue !== undefined && stockValue >= 0) {
-          dataToSend.stock = Math.floor(stockValue)
+          dataToSend.stock = Math.floor(stockValue);
         } else {
-          toast.error('خطأ في المخزون. يرجى التحقق من القيمة المدخلة.')
-          isSubmittingRef.current = false
-          setLoading(false)
-          return
+          toast.error("خطأ في المخزون. يرجى التحقق من القيمة المدخلة.");
+          isSubmittingRef.current = false;
+          setLoading(false);
+          return;
         }
       } else {
-        dataToSend.attributes = values.attributes || []
-        dataToSend.variants = (values.variants || []).map(v => ({
-          ...v,
-          merchantPrice: v.merchantPrice || v.price || 0,
-          price: v.price || v.merchantPrice || 0,
-          nubianMarkup: v.nubianMarkup ?? 10,
-          isActive: v.isActive !== false,
-        }))
+        dataToSend.attributes = values.attributes || [];
+        dataToSend.variants = (values.variants || []).map((v) => {
+          // TS-safe: لا تستخدم v.merchantPrice مباشرة لأن النوع ما فيه الحقل
+          const anyV = v as any;
+
+          const merchantPrice =
+            (typeof anyV.merchantPrice === "number" && Number.isFinite(anyV.merchantPrice))
+              ? anyV.merchantPrice
+              : (typeof v.price === "number" && Number.isFinite(v.price))
+              ? v.price
+              : 0;
+
+          const nubianMarkup =
+            (typeof anyV.nubianMarkup === "number" && Number.isFinite(anyV.nubianMarkup))
+              ? anyV.nubianMarkup
+              : 10;
+
+          const price =
+            (typeof v.price === "number" && Number.isFinite(v.price))
+              ? v.price
+              : merchantPrice;
+
+          return {
+            ...v,
+            merchantPrice,
+            nubianMarkup,
+            price,
+            isActive: v.isActive !== false,
+          };
+        });
+
+
       }
 
-      const headers = {
-        Authorization: `Bearer ${token}`,
+      if (userRole === "admin") {
+        dataToSend.priorityScore = values.priorityScore || 0;
+        dataToSend.featured = !!values.featured;
       }
+
+      logger.info("Sending product data to backend", {
+        dataToSend: { ...dataToSend, imagesCount: dataToSend.images.length },
+        userRole,
+        userId: user?.id,
+        isEdit,
+      });
+
+      const headers = { Authorization: `Bearer ${token}` };
 
       if (isEdit && productId) {
-        await axiosInstance.put(`/products/${productId}`, dataToSend, { headers })
-        toast.success('تم تحديث المنتج بنجاح')
-        
-        isSubmittingRef.current = false
-        setLoading(false)
-        
-        router.push('/merchant/products')
+        await axiosInstance.put(`/products/${productId}`, dataToSend, { headers });
+        toast.success("تم تحديث المنتج بنجاح");
+        isSubmittingRef.current = false;
+        setLoading(false);
+        setTimeout(() => router.push("/merchant/products"), 500);
       } else {
-        await axiosInstance.post('/products', dataToSend, { headers })
-        toast.success('تم إنشاء المنتج بنجاح')
+        await axiosInstance.post("/products", dataToSend, { headers });
+        toast.success("تم إنشاء المنتج بنجاح");
 
-        isSubmittingRef.current = false
-        setLoading(false)
-        
+        isSubmittingRef.current = false;
+        setLoading(false);
+
         form.reset({
-          name: '',
-          description: '',
-          productType: '' as any,
-          merchantPrice: undefined,
-          nubianMarkup: 10,
+          name: "",
+          description: "",
+          productType: "" as any,
           price: undefined,
-          category: '',
+          category: "",
           stock: undefined,
           attributes: [],
           variants: [],
           sizes: [],
           colors: [],
           images: [],
+          merchant: "",
           isActive: true,
-        })
-        setCurrentStep(1)
-        
-        setTimeout(() => {
-          router.push('/merchant/products')
-        }, 500)
+        });
+
+        setCurrentStep(1);
+        setTimeout(() => router.push("/merchant/products"), 500);
       }
     } catch (error: any) {
-      isSubmittingRef.current = false
-      setLoading(false)
-      
-      logger.error('Error saving product', { 
+      isSubmittingRef.current = false;
+
+      logger.error("Error saving product", {
         error: error instanceof Error ? error.message : String(error),
         status: error.response?.status,
         responseData: error.response?.data,
-      })
-      
+      });
+
       if (error.response?.status === 401) {
-        toast.error('فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.')
-        router.push('/sign-in')
+        toast.error("فشل المصادقة. يرجى تسجيل الدخول مرة أخرى.");
+        router.push("/sign-in");
       } else if (error.response?.status === 403) {
-        toast.error('ليس لديك صلاحية لإضافة منتجات. يرجى التأكد من أن حسابك معتمد.')
+        const errorData = error.response?.data;
+        const errorCode = errorData?.code;
+        const errorMessage = errorData?.message || errorData?.error?.message;
+        const userRole = user?.publicMetadata?.role as string | undefined;
+
+        logger.error("403 Forbidden error", {
+          errorCode,
+          errorMessage,
+          userRole,
+          errorData,
+          userId: user?.id,
+        });
+
+        if (errorMessage) toast.error(errorMessage);
+        else toast.error("ليس لديك صلاحية لإضافة منتجات. يرجى التحقق من صلاحياتك في Clerk.");
       } else if (error.response?.status === 400) {
-        const errorData = error.response?.data
-        const errorDetails = errorData?.error?.details || errorData?.details || errorData?.errors
-        
+        const errorData = error.response?.data;
+        const errorDetails = errorData?.error?.details || errorData?.details || errorData?.errors;
+
         if (errorDetails && Array.isArray(errorDetails)) {
           const errorMessages = errorDetails.map((e: any) => {
-            const field = e.field || e.path || e.param || 'unknown'
-            const msg = e.message || e.msg || 'Invalid value'
-            return `${field}: ${msg}`
-          })
-          toast.error(`خطأ في التحقق: ${errorMessages.join('; ')}`)
-        } else if (errorDetails && typeof errorDetails === 'string') {
-          toast.error(`خطأ في التحقق: ${errorDetails}`)
+            const field = e.field || e.path || e.param || "unknown";
+            const msg = e.message || e.msg || "Invalid value";
+            return `${field}: ${msg}`;
+          });
+          toast.error(`خطأ في التحقق: ${errorMessages.join("; ")}`);
+        } else if (errorDetails && typeof errorDetails === "string") {
+          toast.error(`خطأ في التحقق: ${errorDetails}`);
         } else {
-          const errorMessage = errorData?.error?.message || errorData?.message || 'خطأ في البيانات المرسلة. يرجى التحقق من جميع الحقول.'
-          toast.error(errorMessage)
+          const msg = errorData?.error?.message || errorData?.message || "خطأ في البيانات المرسلة. يرجى التحقق من جميع الحقول.";
+          toast.error(msg);
         }
       } else {
-        toast.error(error.response?.data?.message || 'فشل حفظ المنتج')
+        toast.error(error.response?.data?.message || "فشل حفظ المنتج");
       }
+    } finally {
+      if (isSubmittingRef.current) isSubmittingRef.current = false;
+      setLoading(false);
     }
-  }
+  };
 
-  // Show loading while checking merchant status
-  if (merchantStatus === 'checking') {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <div className="text-lg">جاري التحقق من حالة التاجر...</div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  // Show error if merchant is not approved
-  if (merchantStatus === 'not-approved') {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>غير مصرح لك بإضافة منتجات</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <p className="text-muted-foreground">
-              يجب أن يكون حسابك معتمداً كتاجر قبل إضافة المنتجات. يرجى التحقق من حالة طلبك.
-            </p>
-            <Button onClick={() => router.push('/merchant/apply')}>
-              التحقق من حالة الطلب
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
 
   // Define steps for the stepper
   const steps = [
@@ -786,8 +878,10 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
 
         <Card>
           <CardHeader>
-            <CardTitle>{isEdit ? 'تعديل المنتج' : 'إنشاء منتج جديد'}</CardTitle>
-            <p className="text-muted-foreground text-sm">{isEdit ? 'قم بتعديل معلومات المنتج في جميع الخطوات' : 'املأ جميع الخطوات لإضافة منتج جديد'}</p>
+            <CardTitle>{isEdit ? "تعديل المنتج" : "إنشاء منتج جديد"}</CardTitle>
+            <p className="text-muted-foreground text-sm">
+              {isEdit ? "قم بتعديل معلومات المنتج في جميع الخطوات" : "املأ جميع الخطوات لإضافة منتج جديد"}
+            </p>
           </CardHeader>
           <CardContent>
             {/* Stepper */}
@@ -1006,23 +1100,21 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                                     step="0.01"
                                     placeholder="0.00"
                                     {...field}
-                                    value={field.value ?? ''}
+                                    value={field.value ?? ""}
                                     onChange={(e) => {
-                                      const value = e.target.value
-                                      if (value === '' || value === null || value === undefined) {
-                                        field.onChange(undefined)
+                                      const value = e.target.value;
+                                      if (value === "" || value === null || value === undefined) {
+                                        field.onChange(undefined);
                                       } else {
-                                        const numValue = parseFloat(value)
-                                        field.onChange(isNaN(numValue) ? undefined : numValue)
-                                        form.setValue('price', isNaN(numValue) ? undefined : numValue)
+                                        const numValue = parseFloat(value);
+                                        field.onChange(isNaN(numValue) ? undefined : numValue);
+                                        form.setValue("price", isNaN(numValue) ? undefined : numValue);
                                       }
-                                      form.trigger(['merchantPrice', 'nubianMarkup'])
+                                      form.trigger(["merchantPrice", "nubianMarkup"]);
                                     }}
                                   />
                                 </FormControl>
-                                <FormDescription>
-                                  السعر الأساسي الذي تريد بيعه به
-                                </FormDescription>
+                                <FormDescription>السعر الأساسي الذي يحدده التاجر</FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -1040,34 +1132,30 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                                     step="0.01"
                                     placeholder="10"
                                     {...field}
-                                    value={field.value ?? ''}
+                                    value={field.value ?? ""}
                                     onChange={(e) => {
-                                      const value = e.target.value
-                                      if (value === '' || value === null || value === undefined) {
-                                        field.onChange(undefined)
+                                      const value = e.target.value;
+                                      if (value === "" || value === null || value === undefined) {
+                                        field.onChange(undefined);
                                       } else {
-                                        const numValue = parseFloat(value)
-                                        field.onChange(isNaN(numValue) ? undefined : numValue)
+                                        const numValue = parseFloat(value);
+                                        field.onChange(isNaN(numValue) ? undefined : numValue);
                                       }
-                                      form.trigger(['merchantPrice', 'nubianMarkup'])
+                                      form.trigger(["merchantPrice", "nubianMarkup"]);
                                     }}
                                   />
                                 </FormControl>
-                                <FormDescription>
-                                  نسبة هامش الربح الافتراضية (10% افتراضي)
-                                </FormDescription>
+                                <FormDescription>نسبة هامش الربح الافتراضية (10% افتراضي)</FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
                         </div>
 
-                        {/* Pricing Preview */}
                         <PricingPreview
-                          merchantPrice={form.watch('merchantPrice') || form.watch('price') || 0}
-                          nubianMarkup={form.watch('nubianMarkup') || 10}
+                          merchantPrice={form.watch("merchantPrice") || form.watch("price") || 0}
+                          nubianMarkup={form.watch("nubianMarkup") || 10}
                           dynamicMarkup={0}
-                          isMerchantView={true}
                         />
 
                         <FormField
@@ -1233,13 +1321,13 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                         <div className="rounded-xl border p-6 bg-card space-y-4 shadow-sm">
                           <div className="flex justify-between items-start border-b pb-4">
                             <div className="space-y-1">
-                              <h4 className="text-2xl font-bold">{form.getValues('name') || 'اسم غير محدد'}</h4>
+                              <h4 className="text-2xl font-bold">{form.getValues("name") || "اسم غير محدد"}</h4>
                               <p className="text-sm text-muted-foreground">
-                                {categories.find(c => c._id === form.getValues('category'))?.name || 'فئة غير محددة'}
+                                {categories.find((c) => c._id === form.getValues("category"))?.name || "فئة غير محددة"}
                               </p>
                             </div>
-                            <Badge variant={form.getValues('isActive') ? "success" : "secondary"}>
-                              {form.getValues('isActive') ? 'نشط' : 'غير نشط'}
+                            <Badge variant={form.getValues("isActive") ? "default" : "outline"}>
+                              {form.getValues("isActive") ? "نشط" : "غير نشط"}
                             </Badge>
                           </div>
 
@@ -1247,24 +1335,46 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                             <div className="space-y-1">
                               <Label className="text-xs text-muted-foreground uppercase tracking-wider">نوع المنتج</Label>
                               <div className="flex items-center gap-2">
-                                {productType === 'simple' ? <Package className="w-4 h-4" /> : <Layers className="w-4 h-4" />}
-                                <p className="font-semibold">{productType === 'simple' ? 'منتج بسيط' : 'منتج بمتغيرات'}</p>
+                                {productType === "simple" ? <Package className="w-4 h-4" /> : <Layers className="w-4 h-4" />}
+                                <p className="font-semibold">{productType === "simple" ? "منتج بسيط" : "منتج بمتغيرات"}</p>
                               </div>
                             </div>
 
-                            {productType === 'simple' && (
+                            {user?.publicMetadata?.role === "admin" && form.getValues("merchant") && (
+                              <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground uppercase tracking-wider">التاجر</Label>
+                                <div className="flex items-center gap-2 text-primary">
+                                  <Store className="w-4 h-4" />
+                                  <p className="font-semibold">
+                                    {merchants.find((m) => m._id === form.getValues("merchant"))?.businessName || "غير محدد"}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+
+                            {productType === "simple" && (
                               <>
                                 <div className="space-y-1">
                                   <Label className="text-xs text-muted-foreground uppercase tracking-wider">السعر النهائي</Label>
                                   <p className="text-xl font-bold text-primary">
-                                    {(form.getValues('merchantPrice') || form.getValues('price') || 0) * (1 + (form.getValues('nubianMarkup') || 10) / 100)} ج.س
+                                    {((form.getValues("merchantPrice") || form.getValues("price") || 0) *
+                                      (1 + (form.getValues("nubianMarkup") || 10) / 100)).toFixed(2)}{" "}
+                                    ج.س
                                   </p>
-                                  <p className="text-[10px] text-muted-foreground">يشمل هامش ربح نوبيان ({form.getValues('nubianMarkup') || 10}%)</p>
+                                  <p className="text-[10px] text-muted-foreground">
+                                    يشمل هامش ربح نوبيان ({form.getValues("nubianMarkup") || 10}%)
+                                  </p>
                                 </div>
+
                                 <div className="space-y-1">
                                   <Label className="text-xs text-muted-foreground uppercase tracking-wider">المخزون المتوفر</Label>
-                                  <p className={cn("text-lg font-bold", (form.getValues('stock') || 0) < 10 ? "text-destructive" : "text-foreground")}>
-                                    {form.getValues('stock') ?? 0} قطعة
+                                  <p
+                                    className={cn(
+                                      "text-lg font-bold",
+                                      (form.getValues("stock") || 0) < 10 ? "text-destructive" : "text-foreground"
+                                    )}
+                                  >
+                                    {form.getValues("stock") ?? 0} قطعة
                                   </p>
                                 </div>
                               </>
@@ -1274,40 +1384,46 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                           <div className="pt-4 border-t">
                             <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">الوصف</Label>
                             <p className="text-sm leading-relaxed text-muted-foreground line-clamp-3 italic">
-                              &quot;{form.getValues('description') || 'لا يوجد وصف متاح'}&quot;
+                              &quot;{form.getValues("description") || "لا يوجد وصف متاح"}&quot;
                             </p>
                           </div>
 
-                          {productType === 'with_variants' && (
+                          {productType === "with_variants" && (
                             <div className="pt-4 border-t space-y-4">
                               <div className="flex gap-4">
                                 <div className="flex flex-col gap-1">
                                   <span className="text-xs text-muted-foreground">عدد الخصائص</span>
-                                  <Badge variant="outline" className="w-fit">{(attributes || []).length} خصائص</Badge>
+                                  <Badge variant="outline" className="w-fit">
+                                    {(attributes || []).length} خصائص
+                                  </Badge>
                                 </div>
+
                                 <div className="flex flex-col gap-1">
                                   <span className="text-xs text-muted-foreground">عدد المتغيرات</span>
-                                  <Badge variant="outline" className="w-fit">{(variants || []).length} متغيرات</Badge>
+                                  <Badge variant="outline" className="w-fit">
+                                    {(variants || []).length} متغيرات
+                                  </Badge>
                                 </div>
                               </div>
-                              
-                              {/* Show variant image summary if any variant has images */}
-                              {variants?.some(v => v.images && v.images.length > 0) && (
+
+                              {variants?.some((v: any) => v.images && v.images.length > 0) && (
                                 <div className="space-y-2">
                                   <Label className="text-xs text-muted-foreground uppercase tracking-wider">صور المتغيرات</Label>
                                   <div className="flex flex-wrap gap-2">
-                                    {variants.filter(v => v.images && v.images.length > 0).map((v, i) => (
-                                      <div key={i} className="relative group">
-                                        <img 
-                                          src={v.images![0]} 
-                                          className="w-10 h-10 rounded border object-cover" 
-                                          alt={`Variant ${v.sku}`}
-                                        />
-                                        <div className="absolute -top-1 -right-1 bg-primary text-[8px] text-white rounded-full w-3 h-3 flex items-center justify-center">
-                                          {v.images?.length}
+                                    {(variants as any[])
+                                      .filter((v) => v.images && v.images.length > 0)
+                                      .map((v, i) => (
+                                        <div key={i} className="relative group">
+                                          <img
+                                            src={v.images![0]}
+                                            className="w-10 h-10 rounded border object-cover"
+                                            alt={`Variant ${v.sku}`}
+                                          />
+                                          <div className="absolute -top-1 -right-1 bg-primary text-[8px] text-white rounded-full w-3 h-3 flex items-center justify-center">
+                                            {v.images?.length}
+                                          </div>
                                         </div>
-                                      </div>
-                                    ))}
+                                      ))}
                                   </div>
                                 </div>
                               )}
@@ -1317,23 +1433,20 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                         
                         <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/5 border border-primary/10">
                           <CheckCircle2 className="w-5 h-5 text-primary" />
-                          <p className="text-sm text-primary font-medium">كل شيء يبدو جيداً! يمكنك الآن الضغط على {isEdit ? 'تحديث' : 'إنشاء'} لحفظ المنتج.</p>
+                          <p className="text-sm text-primary font-medium">
+                            كل شيء يبدو جيداً! يمكنك الآن الضغط على {isEdit ? "تحديث" : "إنشاء"} لحفظ المنتج.
+                          </p>
                         </div>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* Navigation Buttons */}
+                {/* Navigation */}
                 <div className="flex justify-between items-center gap-4 pt-8 mt-8 border-t">
                   <div className="flex gap-3">
                     {currentStep > 1 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={goToPreviousStep}
-                        className="h-11 px-6 font-medium"
-                      >
+                      <Button type="button" variant="outline" onClick={goToPreviousStep} className="h-11 px-6 font-medium">
                         <ChevronRight className="w-4 h-4 ml-2" />
                         العودة للسابق
                       </Button>
@@ -1341,20 +1454,20 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                     <Button
                       type="button"
                       variant="ghost"
-                      onClick={() => router.push('/merchant/products')}
+                      onClick={() => router.push("/business/products")}
                       className="h-11 px-6 text-muted-foreground hover:text-foreground"
                     >
                       إلغاء العملية
                     </Button>
                   </div>
-                  
+
                   <div className="flex gap-3">
                     {currentStep < maxStep ? (
                       <Button
                         type="submit"
                         onClick={(e) => {
-                          e.preventDefault()
-                          goToNextStep()
+                          e.preventDefault();
+                          goToNextStep();
                         }}
                         className="h-11 px-8 font-bold shadow-lg shadow-primary/20"
                       >
@@ -1372,7 +1485,11 @@ export function MerchantProductForm({ productId }: { productId?: string }) {
                             <span className="animate-spin ml-2">⏳</span>
                             جاري الحفظ...
                           </>
-                        ) : isEdit ? 'تحديث المنتج النهائي' : 'إتمام إنشاء المنتج'}
+                        ) : isEdit ? (
+                          "تحديث المنتج النهائي"
+                        ) : (
+                          "إتمام إنشاء المنتج"
+                        )}
                       </Button>
                     )}
                   </div>
