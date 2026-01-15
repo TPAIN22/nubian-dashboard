@@ -140,7 +140,7 @@ interface Merchant {
   status: string;
 }
 
-export default function ProductForm({ productId }: { productId?: string }) {
+export default function MerchantProductForm({ productId }: { productId?: string }) {
   const router = useRouter();
   const { getToken } = useAuth();
   const { user, isLoaded: userLoaded } = useUser();
