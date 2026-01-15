@@ -1,7 +1,7 @@
 'use client'
 
 import { use } from 'react'
-import { MerchantProductForm } from '../../new/productForm'
+import MerchantProductForm from '../../new/productForm'
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
