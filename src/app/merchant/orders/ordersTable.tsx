@@ -191,15 +191,27 @@ const createColumns = (handleProductClick: (product: any) => void): ColumnDef<Or
         <div className="max-w-[200px]">
           <div className="space-y-1">
             {products.map((product, idx) => (
-              <div
-                key={idx}
-                className="text-xs truncate cursor-pointer text-blue-600 hover:text-blue-800"
-                onClick={(e) => {
-                  e.stopPropagation(); // Prevent row click
-                  handleProductClick(product);
-                }}
-              >
-                {product.product?.name || product.name || 'Unknown Product'} × {product.quantity}
+              <div key={idx} className="text-xs mb-1">
+                <div
+                  className="truncate cursor-pointer text-blue-600 hover:text-blue-800"
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent row click
+                    handleProductClick(product);
+                  }}
+                >
+                  {product.product?.name || product.name || 'Unknown Product'} × {product.quantity}
+                </div>
+                {/* Show attributes inline */}
+                {product.attributes && typeof product.attributes === 'object' && (
+                  <div className="text-gray-500 truncate text-xs">
+                    {Object.entries(product.attributes).map(([key, value]) => `${key}: ${value}`).join(', ')}
+                  </div>
+                )}
+                {product.size && (
+                  <div className="text-gray-500 text-xs">
+                    مقاس: {product.size}
+                  </div>
+                )}
               </div>
             ))}
             {remaining > 0 && (
@@ -647,6 +659,68 @@ function ProductDetailsModal({ isOpen, onClose, product }: ProductDetailsModalPr
                   <p className="text-sm">{productData.stock}</p>
                 </div>
               )}
+
+              {/* Product Attributes/Variants */}
+              {(product.attributes || product.size || product.variantId || productData.variantId) && (
+                <div className="border-t pt-3">
+                  <p className="text-sm text-gray-600 mb-2">الخصائص والمتغيرات</p>
+                  <div className="space-y-1">
+                    {product.attributes && typeof product.attributes === 'object' && (
+                      Object.entries(product.attributes).map(([key, value]) => (
+                        <div key={key} className="flex justify-between text-sm">
+                          <span className="capitalize">{key}:</span>
+                          <span className="font-medium">{String(value)}</span>
+                        </div>
+                      ))
+                    )}
+                    {product.size && (
+                      <div className="flex justify-between text-sm">
+                        <span>المقاس:</span>
+                        <span className="font-medium">{product.size}</span>
+                      </div>
+                    )}
+                    {product.variantId && (
+                      <div className="flex justify-between text-sm">
+                        <span>معرف المتغير:</span>
+                        <span className="font-medium">{product.variantId}</span>
+                      </div>
+                    )}
+                    {productData.variantId && !product.variantId && (
+                      <div className="flex justify-between text-sm">
+                        <span>معرف المتغير:</span>
+                        <span className="font-medium">{productData.variantId}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Additional Pricing Info */}
+              {(product.merchantPrice || product.nubianMarkup || product.dynamicMarkup) && (
+                <div className="border-t pt-3">
+                  <p className="text-sm text-gray-600 mb-2">تفاصيل التسعير</p>
+                  <div className="space-y-1">
+                    {product.merchantPrice && (
+                      <div className="flex justify-between text-sm">
+                        <span>سعر التاجر:</span>
+                        <span className="font-medium">${product.merchantPrice.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {product.nubianMarkup && (
+                      <div className="flex justify-between text-sm">
+                        <span>هامش Nubian:</span>
+                        <span className="font-medium">${product.nubianMarkup.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {product.dynamicMarkup && (
+                      <div className="flex justify-between text-sm">
+                        <span>هامش ديناميكي:</span>
+                        <span className="font-medium">${product.dynamicMarkup.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -722,6 +796,21 @@ function OrderDetailsDialog({ isOpen, onClose, order, onProductClick }: OrderDet
                     <div className="flex-1">
                       <p className="font-medium text-blue-600 hover:text-blue-800">{product.product?.name || product.name || 'منتج غير محدد'}</p>
                       <p className="text-sm text-gray-600">الكمية: {product.quantity}</p>
+                      {/* Show attributes if available */}
+                      {product.attributes && typeof product.attributes === 'object' && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {Object.entries(product.attributes).map(([key, value]) => (
+                            <span key={key} className="inline-block mr-2">
+                              {key}: {String(value)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {product.size && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          مقاس: {product.size}
+                        </div>
+                      )}
                       {product.product?.images?.[0] && (
                         <img
                           src={product.product.images[0]}
