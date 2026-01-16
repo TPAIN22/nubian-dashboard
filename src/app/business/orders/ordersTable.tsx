@@ -193,6 +193,38 @@ export const columns: ColumnDef<Order>[] = [
   },
 
   {
+    id: "productsPreview",
+    header: "المنتجات",
+    cell: ({ row }) => {
+      const order = row.original;
+      // Get products from different possible sources
+      const products = Array.isArray(order.items) ? order.items :
+                      Array.isArray(order.productsDetails) ? order.productsDetails :
+                      Array.isArray(order.products) ? order.products : [];
+
+      const displayProducts = products.slice(0, 2); // Show first 2 products
+      const remaining = products.length - displayProducts.length;
+
+      return (
+        <div className="max-w-[200px]">
+          <div className="space-y-1">
+            {displayProducts.map((product, idx) => (
+              <div key={idx} className="text-xs truncate">
+                {product.name || product.product?.name || 'منتج غير معروف'} × {product.quantity}
+              </div>
+            ))}
+            {remaining > 0 && (
+              <div className="text-xs text-muted-foreground">
+                +{remaining} أكثر...
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    },
+  },
+
+  {
     id: "total",
     header: ({ column }) => (
       <Button

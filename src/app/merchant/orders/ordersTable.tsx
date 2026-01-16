@@ -179,6 +179,32 @@ export const columns: ColumnDef<Order>[] = [
     ),
   },
   {
+    id: "productsPreview",
+    header: "Products",
+    cell: ({ row }) => {
+      const order = row.original;
+      const products = order.products?.slice(0, 2) || []; // Show first 2 products
+      const remaining = (order.productsCount || 0) - products.length;
+
+      return (
+        <div className="max-w-[200px]">
+          <div className="space-y-1">
+            {products.map((product, idx) => (
+              <div key={idx} className="text-xs truncate">
+                {product.product?.name || product.name || 'Unknown Product'} × {product.quantity}
+              </div>
+            ))}
+            {remaining > 0 && (
+              <div className="text-xs text-muted-foreground">
+                +{remaining} more...
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    },
+  },
+  {
     accessorKey: "merchantRevenue",
     header: ({ column }) => {
       return (
@@ -569,12 +595,20 @@ function OrderDetailsDialog({ isOpen, onClose, order }: OrderDetailsDialogProps)
             <div className="space-y-3">
               {order.products?.map((product, index) => (
                 <div key={index} className="flex justify-between items-center border-b pb-2">
-                  <div>
-                    <p className="font-medium">{product.name || 'منتج غير محدد'}</p>
+                  <div className="flex-1">
+                    <p className="font-medium">{product.product?.name || product.name || 'منتج غير محدد'}</p>
                     <p className="text-sm text-gray-600">الكمية: {product.quantity}</p>
+                    {product.product?.images?.[0] && (
+                      <img
+                        src={product.product.images[0]}
+                        alt={product.product.name || 'Product'}
+                        className="w-12 h-12 object-cover rounded mt-1"
+                      />
+                    )}
                   </div>
                   <div className="text-left">
-                    <p className="font-medium">${product.price?.toFixed(2) || '0.00'}</p>
+                    <p className="font-medium">${(product.price || product.product?.price || 0).toFixed(2)}</p>
+                    <p className="text-sm text-gray-500">الإجمالي: ${((product.price || product.product?.price || 0) * product.quantity).toFixed(2)}</p>
                   </div>
                 </div>
               ))}
