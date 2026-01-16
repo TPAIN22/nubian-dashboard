@@ -32,6 +32,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 import type { Order, OrderStatus, PaymentStatus } from "./types";
 import { getStatusInArabic, getPaymentStatusInArabic, getPaymentMethodArabic, formatDate, formatMoney, getOrderTotal, getItemsCount, getCustomerName, getCustomerEmail, getCustomerPhone, getAddressText, getMerchantNames } from "./types";
+import { useAuth } from "@clerk/nextjs";
+import { axiosInstance } from "@/lib/axiosInstance";
+import { toast } from "sonner";
+import logger from "@/lib/logger";
 
 // ─────────────────────────────────────────────────────────────
 // Columns
@@ -238,6 +242,75 @@ export const columns: ColumnDef<Order>[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────
+// Bulk Actions Component
+// ─────────────────────────────────────────────────────────────
+
+const BulkActions = ({ selectedOrders, onActionComplete }: { selectedOrders: Order[], onActionComplete: () => void }) => {
+  const { getToken } = useAuth();
+
+  const handleBulkStatusUpdate = async (newStatus: string) => {
+    try {
+      const token = await getToken();
+      if (!token) {
+        toast.error('فشل المصادقة');
+        return;
+      }
+
+      // Update all selected orders
+      const promises = selectedOrders.map(order =>
+        axiosInstance.patch(
+          `/orders/${order._id}/status`,
+          { status: newStatus },
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+      );
+
+      await Promise.all(promises);
+      toast.success(`تم تحديث حالة ${selectedOrders.length} طلب بنجاح`);
+      onActionComplete();
+    } catch (error: any) {
+      logger.error('Error updating bulk order status', { error: error instanceof Error ? error.message : String(error) });
+      toast.error('فشل تحديث حالة الطلبات');
+    }
+  };
+
+  const adminStatusOptions = [
+    { value: "PENDING", label: "قيد الانتظار" },
+    { value: "AWAITING_PAYMENT_CONFIRMATION", label: "انتظار تأكيد الدفع" },
+    { value: "CONFIRMED", label: "مؤكد" },
+    { value: "PROCESSING", label: "قيد المعالجة" },
+    { value: "SHIPPED", label: "تم الشحن" },
+    { value: "DELIVERED", label: "تم التسليم" },
+    { value: "CANCELLED", label: "ملغي" },
+    { value: "PAYMENT_FAILED", label: "فشل الدفع" },
+  ];
+
+  return (
+    <div className="flex gap-2">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm">
+            تحديث الحالة
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuLabel>تحديث الحالة الجماعي</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {adminStatusOptions.map((option) => (
+            <DropdownMenuItem
+              key={option.value}
+              onClick={() => handleBulkStatusUpdate(option.value)}
+            >
+              {option.label}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────
 // Table Component
 // ─────────────────────────────────────────────────────────────
 
@@ -268,8 +341,24 @@ export function DataTable({ orders }: { orders: Order[] }) {
     state: { sorting, columnFilters, columnVisibility, rowSelection },
   });
 
+  const selectedOrders = table.getFilteredSelectedRowModel().rows.map(row => row.original);
+
   return (
     <div className="w-full">
+      {/* Bulk Actions */}
+      {selectedOrders.length > 0 && (
+        <div className="flex items-center gap-2 py-4 px-4 bg-muted rounded-lg mb-4">
+          <span className="text-sm font-medium">
+            تم تحديد {selectedOrders.length} طلب
+          </span>
+          <BulkActions selectedOrders={selectedOrders} onActionComplete={() => {
+            table.toggleAllPageRowsSelected(false);
+            // Refresh the page to show updated data
+            window.location.reload();
+          }} />
+        </div>
+      )}
+
       <div className="flex items-center py-4 gap-2">
         <Input
           placeholder="البحث برقم الطلب..."
