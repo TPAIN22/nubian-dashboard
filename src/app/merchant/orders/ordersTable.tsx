@@ -100,7 +100,8 @@ const merchantStatusOptions = [
   { value: "delivered", label: "تم التسليم" },
 ]
 
-export const columns: ColumnDef<Order>[] = [
+// Columns will be defined inside the component to access handlers
+const createColumns = (handleProductClick: (product: any) => void): ColumnDef<Order>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -190,7 +191,14 @@ export const columns: ColumnDef<Order>[] = [
         <div className="max-w-[200px]">
           <div className="space-y-1">
             {products.map((product, idx) => (
-              <div key={idx} className="text-xs truncate">
+              <div
+                key={idx}
+                className="text-xs truncate cursor-pointer text-blue-600 hover:text-blue-800"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent row click
+                  handleProductClick(product);
+                }}
+              >
                 {product.product?.name || product.name || 'Unknown Product'} × {product.quantity}
               </div>
             ))}
@@ -265,6 +273,8 @@ export const columns: ColumnDef<Order>[] = [
     cell: ({ row }) => <ActionsCell order={row.original} />,
   },
 ]
+
+export const columns = createColumns(() => {}) // Default empty handler
 
 interface OrdersTableProps {
   orders: Order[]
@@ -384,15 +394,22 @@ export function OrdersTable({ orders }: OrdersTableProps) {
   const [rowSelection, setRowSelection] = React.useState({})
   const [selectedRow, setSelectedRow] = React.useState<Order | null>(null)
   const [isModalOpen, setIsModalOpen] = React.useState(false)
+  const [selectedProduct, setSelectedProduct] = React.useState<any>(null)
+  const [isProductModalOpen, setIsProductModalOpen] = React.useState(false)
 
   const handleRowClick = (order: Order) => {
     setSelectedRow(order)
     setIsModalOpen(true)
   }
 
+  const handleProductClick = (product: any) => {
+    setSelectedProduct(product)
+    setIsProductModalOpen(true)
+  }
+
   const table = useReactTable({
     data: orders,
-    columns,
+    columns: createColumns(handleProductClick),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
@@ -542,8 +559,103 @@ export function OrdersTable({ orders }: OrdersTableProps) {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         order={selectedRow}
+        onProductClick={handleProductClick}
+      />
+
+      <ProductDetailsModal
+        isOpen={isProductModalOpen}
+        onClose={() => setIsProductModalOpen(false)}
+        product={selectedProduct}
       />
     </div>
+  )
+}
+
+function ProductDetailsModal({ isOpen, onClose, product }: ProductDetailsModalProps) {
+  if (!product) return null
+
+  const productData = product.product || product
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>تفاصيل المنتج</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* Product Images */}
+          {productData.images && productData.images.length > 0 && (
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold mb-3">صور المنتج</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {productData.images.map((image: string, index: number) => (
+                  <img
+                    key={index}
+                    src={image}
+                    alt={`${productData.name} ${index + 1}`}
+                    className="w-full h-32 object-cover rounded-lg"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Product Information */}
+          <div className="border rounded-lg p-4">
+            <h3 className="font-semibold mb-3">معلومات المنتج</h3>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">اسم المنتج</p>
+                  <p className="font-medium">{productData.name || 'غير محدد'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">السعر</p>
+                  <p className="font-medium">${(productData.price || 0).toFixed(2)}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">الكمية المطلوبة</p>
+                  <p className="font-medium">{product.quantity}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">السعر الكلي</p>
+                  <p className="font-medium">${((product.price || productData.price || 0) * product.quantity).toFixed(2)}</p>
+                </div>
+              </div>
+
+              {productData.description && (
+                <div>
+                  <p className="text-sm text-gray-600">الوصف</p>
+                  <p className="text-sm">{productData.description}</p>
+                </div>
+              )}
+
+              {productData.category && (
+                <div>
+                  <p className="text-sm text-gray-600">الفئة</p>
+                  <p className="text-sm">{productData.category}</p>
+                </div>
+              )}
+
+              {productData.stock !== undefined && (
+                <div>
+                  <p className="text-sm text-gray-600">المخزون</p>
+                  <p className="text-sm">{productData.stock}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button onClick={onClose}>إغلاق</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -551,9 +663,16 @@ interface OrderDetailsDialogProps {
   isOpen: boolean
   onClose: () => void
   order: Order | null
+  onProductClick?: (product: any) => void
 }
 
-function OrderDetailsDialog({ isOpen, onClose, order }: OrderDetailsDialogProps) {
+interface ProductDetailsModalProps {
+  isOpen: boolean
+  onClose: () => void
+  product: any
+}
+
+function OrderDetailsDialog({ isOpen, onClose, order, onProductClick }: OrderDetailsDialogProps) {
   if (!order) return null
 
   return (
@@ -564,20 +683,6 @@ function OrderDetailsDialog({ isOpen, onClose, order }: OrderDetailsDialogProps)
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Debug Info */}
-          <div className="border rounded-lg p-4 bg-yellow-50">
-            <h3 className="font-semibold mb-2">Debug Info</h3>
-            <p className="text-sm">Order ID: {order._id}</p>
-            <p className="text-sm">Products Count: {order.productsCount}</p>
-            <p className="text-sm">Products Array Length: {order.products?.length || 0}</p>
-            <details className="mt-2">
-              <summary className="text-sm cursor-pointer">Raw Order Data</summary>
-              <pre className="text-xs mt-2 bg-gray-100 p-2 rounded overflow-auto max-h-40">
-                {JSON.stringify(order, null, 2)}
-              </pre>
-            </details>
-          </div>
-
           {/* Customer Information */}
           <div className="border rounded-lg p-4">
             <h3 className="font-semibold mb-3">معلومات العميل</h3>
@@ -609,9 +714,13 @@ function OrderDetailsDialog({ isOpen, onClose, order }: OrderDetailsDialogProps)
             {(order.products && order.products.length > 0) ? (
               <div className="space-y-3">
                 {order.products.map((product, index) => (
-                  <div key={index} className="flex justify-between items-center border-b pb-2">
+                  <div
+                    key={index}
+                    className="flex justify-between items-center border-b pb-2 cursor-pointer hover:bg-gray-50 p-2 rounded"
+                    onClick={() => onProductClick?.(product)}
+                  >
                     <div className="flex-1">
-                      <p className="font-medium">{product.product?.name || product.name || 'منتج غير محدد'}</p>
+                      <p className="font-medium text-blue-600 hover:text-blue-800">{product.product?.name || product.name || 'منتج غير محدد'}</p>
                       <p className="text-sm text-gray-600">الكمية: {product.quantity}</p>
                       {product.product?.images?.[0] && (
                         <img

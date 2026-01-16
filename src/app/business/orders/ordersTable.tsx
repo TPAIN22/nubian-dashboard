@@ -29,6 +29,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 import type { Order, OrderStatus, PaymentStatus } from "./types";
 import { getStatusInArabic, getPaymentStatusInArabic, getPaymentMethodArabic, formatDate, formatMoney, getOrderTotal, getItemsCount, getCustomerName, getCustomerEmail, getCustomerPhone, getAddressText, getMerchantNames } from "./types";
@@ -41,7 +48,8 @@ import logger from "@/lib/logger";
 // Columns
 // ─────────────────────────────────────────────────────────────
 
-export const columns: ColumnDef<Order>[] = [
+// Columns will be defined inside the component to access handlers
+const createColumns = (handleProductClick: (product: any) => void): ColumnDef<Order>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -209,7 +217,14 @@ export const columns: ColumnDef<Order>[] = [
         <div className="max-w-[200px]">
           <div className="space-y-1">
             {displayProducts.map((product, idx) => (
-              <div key={idx} className="text-xs truncate">
+              <div
+                key={idx}
+                className="text-xs truncate cursor-pointer text-blue-600 hover:text-blue-800"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent row click
+                  handleProductClick(product);
+                }}
+              >
                 {product.name || product.product?.name || 'منتج غير معروف'} × {product.quantity}
               </div>
             ))}
@@ -272,6 +287,8 @@ export const columns: ColumnDef<Order>[] = [
     },
   },
 ];
+
+export const columns = createColumns(() => {}); // Default empty handler
 
 // ─────────────────────────────────────────────────────────────
 // Bulk Actions Component
@@ -353,15 +370,22 @@ export function DataTable({ orders }: { orders: Order[] }) {
   const [rowSelection, setRowSelection] = React.useState({});
   const [selectedRow, setSelectedRow] = React.useState<Order | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [selectedProduct, setSelectedProduct] = React.useState<any>(null);
+  const [isProductModalOpen, setIsProductModalOpen] = React.useState(false);
 
   const handleRowClick = (order: Order) => {
     setSelectedRow(order);
     setIsModalOpen(true);
   };
 
+  const handleProductClick = (product: any) => {
+    setSelectedProduct(product);
+    setIsProductModalOpen(true);
+  };
+
   const table = useReactTable({
     data: orders,
-    columns,
+    columns: createColumns(handleProductClick),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
@@ -479,7 +503,101 @@ export function DataTable({ orders }: { orders: Order[] }) {
       </div>
 
       <OrderDialog isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} selectedRow={selectedRow} />
+
+      <ProductDetailsModal
+        isOpen={isProductModalOpen}
+        onClose={() => setIsProductModalOpen(false)}
+        product={selectedProduct}
+      />
     </div>
+  );
+}
+
+function ProductDetailsModal({ isOpen, onClose, product }: { isOpen: boolean; onClose: () => void; product: any }) {
+  if (!product) return null
+
+  const productData = product.product || product
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>تفاصيل المنتج</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* Product Images */}
+          {productData.images && productData.images.length > 0 && (
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold mb-3">صور المنتج</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {productData.images.map((image: string, index: number) => (
+                  <img
+                    key={index}
+                    src={image}
+                    alt={`${productData.name} ${index + 1}`}
+                    className="w-full h-32 object-cover rounded-lg"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Product Information */}
+          <div className="border rounded-lg p-4">
+            <h3 className="font-semibold mb-3">معلومات المنتج</h3>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">اسم المنتج</p>
+                  <p className="font-medium">{productData.name || 'غير محدد'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">السعر</p>
+                  <p className="font-medium">${(productData.price || 0).toFixed(2)}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">الكمية المطلوبة</p>
+                  <p className="font-medium">{product.quantity}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">السعر الكلي</p>
+                  <p className="font-medium">${((product.price || productData.price || 0) * product.quantity).toFixed(2)}</p>
+                </div>
+              </div>
+
+              {productData.description && (
+                <div>
+                  <p className="text-sm text-gray-600">الوصف</p>
+                  <p className="text-sm">{productData.description}</p>
+                </div>
+              )}
+
+              {productData.category && (
+                <div>
+                  <p className="text-sm text-gray-600">الفئة</p>
+                  <p className="text-sm">{productData.category}</p>
+                </div>
+              )}
+
+              {productData.stock !== undefined && (
+                <div>
+                  <p className="text-sm text-gray-600">المخزون</p>
+                  <p className="text-sm">{productData.stock}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button onClick={onClose}>إغلاق</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
