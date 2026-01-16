@@ -399,7 +399,6 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
             <!-- Header -->
             <div class="header">
               <h1>نوبيان • ملخص الطلب</h1>
-              <p>تم إنشاء هذا الملخص للحفظ كـ PDF</p>
               <div class="order-info">
                 <div>رقم الطلب: ${orderId}</div>
                 <div>التاريخ: ${created}</div>

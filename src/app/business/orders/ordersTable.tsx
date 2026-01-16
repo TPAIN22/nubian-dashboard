@@ -31,7 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 import type { Order, OrderStatus, PaymentStatus } from "./types";
-import { getStatusInArabic, getPaymentStatusInArabic, getPaymentMethodArabic, formatDate, formatMoney, getOrderTotal, getItemsCount, getCustomerName, getCustomerEmail, getCustomerPhone, getAddressText } from "./types";
+import { getStatusInArabic, getPaymentStatusInArabic, getPaymentMethodArabic, formatDate, formatMoney, getOrderTotal, getItemsCount, getCustomerName, getCustomerEmail, getCustomerPhone, getAddressText, getMerchantNames } from "./types";
 
 // ─────────────────────────────────────────────────────────────
 // Columns
@@ -143,6 +143,13 @@ export const columns: ColumnDef<Order>[] = [
     header: "الهاتف",
     accessorFn: (row) => getCustomerPhone(row),
     cell: ({ row }) => <div dir="ltr">{getCustomerPhone(row.original)}</div>,
+  },
+
+  {
+    id: "merchants",
+    header: "التاجر",
+    accessorFn: (row) => getMerchantNames(row),
+    cell: ({ row }) => <div className="max-w-[200px] truncate" title={getMerchantNames(row.original)}>{getMerchantNames(row.original)}</div>,
   },
 
   {

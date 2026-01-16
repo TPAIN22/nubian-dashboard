@@ -41,10 +41,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { useAuth } from '@clerk/nextjs'
 import { axiosInstance } from '@/lib/axiosInstance'
 import { toast } from 'sonner'
 import logger from '@/lib/logger'
+import { Checkbox } from "@/components/ui/checkbox"
 
 export type Order = {
   _id: string
@@ -94,6 +102,21 @@ const merchantStatusOptions = [
 
 export const columns: ColumnDef<Order>[] = [
   {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
+        onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox checked={row.getIsSelected()} onCheckedChange={(v) => row.toggleSelected(!!v)} aria-label="Select row" />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
+  {
     accessorKey: "orderNumber",
     header: ({ column }) => {
       return (
@@ -126,10 +149,26 @@ export const columns: ColumnDef<Order>[] = [
   },
   {
     accessorKey: "customerInfo.name",
-    header: "Customer",
+    header: "Customer Name",
     cell: ({ row }) => {
       const customer = row.original.customerInfo
       return <div>{customer?.name || 'N/A'}</div>
+    },
+  },
+  {
+    accessorKey: "customerInfo.email",
+    header: "Customer Email",
+    cell: ({ row }) => {
+      const customer = row.original.customerInfo
+      return <div>{customer?.email || 'N/A'}</div>
+    },
+  },
+  {
+    accessorKey: "customerInfo.phone",
+    header: "Customer Phone",
+    cell: ({ row }) => {
+      const customer = row.original.customerInfo
+      return <div dir="ltr">{customer?.phone || 'N/A'}</div>
     },
   },
   {
@@ -205,6 +244,61 @@ interface OrdersTableProps {
   orders: Order[]
 }
 
+// Bulk Actions Component
+const BulkActions = ({ selectedOrders, onActionComplete }: { selectedOrders: Order[], onActionComplete: () => void }) => {
+  const { getToken } = useAuth()
+
+  const handleBulkStatusUpdate = async (newStatus: string) => {
+    try {
+      const token = await getToken()
+      if (!token) {
+        toast.error('فشل المصادقة')
+        return
+      }
+
+      // Update all selected orders
+      const promises = selectedOrders.map(order =>
+        axiosInstance.patch(
+          `/orders/merchant/${order._id}/status`,
+          { status: newStatus },
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+      )
+
+      await Promise.all(promises)
+      toast.success(`تم تحديث حالة ${selectedOrders.length} طلب بنجاح`)
+      onActionComplete()
+    } catch (error: any) {
+      logger.error('Error updating bulk order status', { error: error instanceof Error ? error.message : String(error) })
+      toast.error('فشل تحديث حالة الطلبات')
+    }
+  }
+
+  return (
+    <div className="flex gap-2">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm">
+            تحديث الحالة
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuLabel>تحديث الحالة الجماعي</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {merchantStatusOptions.map((option) => (
+            <DropdownMenuItem
+              key={option.value}
+              onClick={() => handleBulkStatusUpdate(option.value)}
+            >
+              {option.label}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  )
+}
+
 // Actions Cell Component
 const ActionsCell = ({ order }: { order: Order }) => {
   const { getToken } = useAuth()
@@ -262,6 +356,13 @@ export function OrdersTable({ orders }: OrdersTableProps) {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
+  const [selectedRow, setSelectedRow] = React.useState<Order | null>(null)
+  const [isModalOpen, setIsModalOpen] = React.useState(false)
+
+  const handleRowClick = (order: Order) => {
+    setSelectedRow(order)
+    setIsModalOpen(true)
+  }
 
   const table = useReactTable({
     data: orders,
@@ -282,8 +383,23 @@ export function OrdersTable({ orders }: OrdersTableProps) {
     },
   })
 
+  const selectedOrders = table.getFilteredSelectedRowModel().rows.map(row => row.original)
+
   return (
     <div className="w-full">
+      {/* Bulk Actions */}
+      {selectedOrders.length > 0 && (
+        <div className="flex items-center gap-2 py-4 px-4 bg-muted rounded-lg mb-4">
+          <span className="text-sm font-medium">
+            تم تحديد {selectedOrders.length} طلب
+          </span>
+          <BulkActions selectedOrders={selectedOrders} onActionComplete={() => {
+            table.toggleAllPageRowsSelected(false)
+            window.location.reload()
+          }} />
+        </div>
+      )}
+
       <div className="flex items-center py-4">
         <Input
           placeholder="Search by order number..."
@@ -346,6 +462,8 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  onClick={() => handleRowClick(row.original)}
+                  className="cursor-pointer hover:bg-muted"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -393,7 +511,108 @@ export function OrdersTable({ orders }: OrdersTableProps) {
           </Button>
         </div>
       </div>
+
+      <OrderDetailsDialog
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        order={selectedRow}
+      />
     </div>
   )
 }
 
+interface OrderDetailsDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  order: Order | null
+}
+
+function OrderDetailsDialog({ isOpen, onClose, order }: OrderDetailsDialogProps) {
+  if (!order) return null
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>تفاصيل الطلب #{order.orderNumber}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* Customer Information */}
+          <div className="border rounded-lg p-4">
+            <h3 className="font-semibold mb-3">معلومات العميل</h3>
+            <div className="space-y-2">
+              <p><span className="font-medium">الاسم:</span> {order.customerInfo?.name || 'غير محدد'}</p>
+              <p><span className="font-medium">البريد الإلكتروني:</span> {order.customerInfo?.email || 'غير محدد'}</p>
+              <p><span className="font-medium">الهاتف:</span> <span dir="ltr">{order.customerInfo?.phone || 'غير محدد'}</span></p>
+            </div>
+          </div>
+
+          {/* Order Information */}
+          <div className="border rounded-lg p-4">
+            <h3 className="font-semibold mb-3">معلومات الطلب</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p><span className="font-medium">رقم الطلب:</span> {order.orderNumber}</p>
+                <p><span className="font-medium">الحالة:</span> <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>{order.status}</span></p>
+              </div>
+              <div>
+                <p><span className="font-medium">تاريخ الطلب:</span> {formatDate(order.orderDate)}</p>
+                <p><span className="font-medium">عدد المنتجات:</span> {order.productsCount}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Products */}
+          <div className="border rounded-lg p-4">
+            <h3 className="font-semibold mb-3">المنتجات</h3>
+            <div className="space-y-3">
+              {order.products?.map((product, index) => (
+                <div key={index} className="flex justify-between items-center border-b pb-2">
+                  <div>
+                    <p className="font-medium">{product.name || 'منتج غير محدد'}</p>
+                    <p className="text-sm text-gray-600">الكمية: {product.quantity}</p>
+                  </div>
+                  <div className="text-left">
+                    <p className="font-medium">${product.price?.toFixed(2) || '0.00'}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 pt-3 border-t">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold">إيراد التاجر:</span>
+                <span className="font-bold text-green-600">
+                  ${order.merchantRevenue?.toFixed(2) || '0.00'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Payment Proof */}
+          {order.transferProof && (
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold mb-3">إثبات التحويل</h3>
+              <a
+                href={order.transferProof}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline flex items-center gap-2"
+              >
+                <span>عرض إثبات التحويل</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </a>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button onClick={onClose}>إغلاق</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

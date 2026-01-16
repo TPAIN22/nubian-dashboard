@@ -63,6 +63,12 @@ export interface Order {
     whatsapp?: string;
   };
 
+  // merchants
+  merchants?: {
+    _id: string;
+    businessName: string;
+  }[];
+
   // new
   items?: OrderItem[];
   subtotal?: number;
@@ -186,6 +192,11 @@ export const getItemsCount = (o: Order) => {
 export const getCustomerName = (o: Order) => o.customerInfo?.name || "غير محدد";
 export const getCustomerEmail = (o: Order) => o.customerInfo?.email || "غير محدد";
 export const getCustomerPhone = (o: Order) => o.customerInfo?.phone || o.phoneNumber || "غير محدد";
+
+export const getMerchantNames = (o: Order) => {
+  if (!o.merchants || o.merchants.length === 0) return "غير محدد";
+  return o.merchants.map(m => m.businessName).join(", ");
+};
 
 export const getAddressText = (o: Order) => {
   // new snapshot
