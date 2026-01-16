@@ -386,6 +386,7 @@ export function OrdersTable({ orders }: OrdersTableProps) {
   const [isModalOpen, setIsModalOpen] = React.useState(false)
 
   const handleRowClick = (order: Order) => {
+    console.log('Row clicked, order:', order)
     setSelectedRow(order)
     setIsModalOpen(true)
   }
@@ -564,6 +565,20 @@ function OrderDetailsDialog({ isOpen, onClose, order }: OrderDetailsDialogProps)
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Debug Info */}
+          <div className="border rounded-lg p-4 bg-yellow-50">
+            <h3 className="font-semibold mb-2">Debug Info</h3>
+            <p className="text-sm">Order ID: {order._id}</p>
+            <p className="text-sm">Products Count: {order.productsCount}</p>
+            <p className="text-sm">Products Array Length: {order.products?.length || 0}</p>
+            <details className="mt-2">
+              <summary className="text-sm cursor-pointer">Raw Order Data</summary>
+              <pre className="text-xs mt-2 bg-gray-100 p-2 rounded overflow-auto max-h-40">
+                {JSON.stringify(order, null, 2)}
+              </pre>
+            </details>
+          </div>
+
           {/* Customer Information */}
           <div className="border rounded-lg p-4">
             <h3 className="font-semibold mb-3">معلومات العميل</h3>
@@ -592,27 +607,35 @@ function OrderDetailsDialog({ isOpen, onClose, order }: OrderDetailsDialogProps)
           {/* Products */}
           <div className="border rounded-lg p-4">
             <h3 className="font-semibold mb-3">المنتجات</h3>
-            <div className="space-y-3">
-              {order.products?.map((product, index) => (
-                <div key={index} className="flex justify-between items-center border-b pb-2">
-                  <div className="flex-1">
-                    <p className="font-medium">{product.product?.name || product.name || 'منتج غير محدد'}</p>
-                    <p className="text-sm text-gray-600">الكمية: {product.quantity}</p>
-                    {product.product?.images?.[0] && (
-                      <img
-                        src={product.product.images[0]}
-                        alt={product.product.name || 'Product'}
-                        className="w-12 h-12 object-cover rounded mt-1"
-                      />
-                    )}
+            {(order.products && order.products.length > 0) ? (
+              <div className="space-y-3">
+                {order.products.map((product, index) => (
+                  <div key={index} className="flex justify-between items-center border-b pb-2">
+                    <div className="flex-1">
+                      <p className="font-medium">{product.product?.name || product.name || 'منتج غير محدد'}</p>
+                      <p className="text-sm text-gray-600">الكمية: {product.quantity}</p>
+                      {product.product?.images?.[0] && (
+                        <img
+                          src={product.product.images[0]}
+                          alt={product.product.name || 'Product'}
+                          className="w-12 h-12 object-cover rounded mt-1"
+                        />
+                      )}
+                    </div>
+                    <div className="text-left">
+                      <p className="font-medium">${(product.price || product.product?.price || 0).toFixed(2)}</p>
+                      <p className="text-sm text-gray-500">الإجمالي: ${((product.price || product.product?.price || 0) * product.quantity).toFixed(2)}</p>
+                    </div>
                   </div>
-                  <div className="text-left">
-                    <p className="font-medium">${(product.price || product.product?.price || 0).toFixed(2)}</p>
-                    <p className="text-sm text-gray-500">الإجمالي: ${((product.price || product.product?.price || 0) * product.quantity).toFixed(2)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-gray-500 text-sm">لا توجد منتجات لهذا الطلب</p>
+                <p className="text-xs text-gray-400">Products array: {JSON.stringify(order.products)}</p>
+                <p className="text-xs text-gray-400">Products count: {order.productsCount}</p>
+              </div>
+            )}
             <div className="mt-4 pt-3 border-t">
               <div className="flex justify-between items-center">
                 <span className="font-semibold">إيراد التاجر:</span>
