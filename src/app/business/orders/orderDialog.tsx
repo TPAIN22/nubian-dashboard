@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import logger from "@/lib/logger";
 import { Input } from "@/components/ui/input";
 import jsPDF from "jspdf";
-import { convertArabic } from "arabic-reshaper";
+import html2canvas from "html2canvas";
 
 import {
   Select,
@@ -277,7 +277,7 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
     }
   };
 
-  // ✅ Save as PDF (direct jsPDF approach - no CSS issues)
+  // ✅ Save as PDF (HTML template approach for proper Arabic support)
   const handleSavePdf = async () => {
     if (!selectedRow) return;
 
@@ -289,193 +289,172 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
       const couponCode = (selectedRow as any)?.couponDetails?.code || "";
       const discountAmount = totals.discount || 0;
 
-      // Create PDF directly with jsPDF (no html2canvas issues)
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      // Create HTML template with proper Arabic text and RTL support
+      const htmlContent = `
+        <div style="font-family: 'Noto Sans Arabic', Arial, sans-serif; direction: rtl; padding: 20px; background: white; color: black; width: 800px; margin: 0 auto; box-sizing: border-box;">
+          <!-- Header -->
+          <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px;">
+            <h1 style="margin: 0; color: #333; font-size: 24px;">نوبيان • ملخص الطلب</h1>
+            <p style="margin: 5px 0; color: #666; font-size: 12px;">تم إنشاء هذا الملخص للحفظ كـ PDF</p>
+            <div style="position: absolute; top: 20px; left: 20px; font-size: 10px; color: #666;">
+              <div>رقم الطلب: ${orderId}</div>
+              <div>التاريخ: ${created}</div>
+            </div>
+          </div>
 
-      // Load Arabic font
-      try {
-        const fontResponse = await fetch('/fonts/NotoSansArabic-Regular.ttf');
-        const fontArrayBuffer = await fontResponse.arrayBuffer();
-        const fontBase64 = btoa(String.fromCharCode(...new Uint8Array(fontArrayBuffer)));
-        pdf.addFileToVFS('NotoSansArabic-Regular.ttf', fontBase64);
-        pdf.addFont('NotoSansArabic-Regular.ttf', 'NotoSansArabic', 'normal');
-      } catch (fontError) {
-        console.warn('Failed to load Arabic font, using default font:', fontError);
-      }
+          <!-- Customer Information -->
+          <div style="margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 8px;">
+            <h2 style="margin: 0 0 10px 0; color: #333; font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">معلومات العميل</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div><strong>الاسم:</strong> ${addressBlock?.fullName || "غير محدد"}</div>
+              <div><strong>البريد:</strong> ${selectedRow.customerInfo?.email || "—"}</div>
+              <div><strong>الهاتف:</strong> ${addressBlock?.phone || "غير محدد"}</div>
+              <div><strong>واتساب:</strong> ${addressBlock?.whatsapp || "غير محدد"}</div>
+            </div>
+            <div style="margin-top: 10px;">
+              <strong>العنوان:</strong> ${addressBlock?.fullAddress || "—"}
+            </div>
+          </div>
 
-      const pageWidth = 210;
-      const pageHeight = 297;
-      const margin = 20;
-      let yPosition = 30;
+          <!-- Order Status -->
+          <div style="margin-bottom: 20px; padding: 15px; background: #f0f8ff; border-radius: 8px;">
+            <h2 style="margin: 0 0 10px 0; color: #333; font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">حالة الطلب</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div><strong>حالة الطلب:</strong> ${getStatusInArabic(String(selectedRow.status || ""))}</div>
+              <div><strong>طريقة الدفع:</strong> ${selectedRow.paymentMethod || "—"}</div>
+              <div><strong>حالة الدفع:</strong> ${getPaymentStatusInArabic(String(selectedRow.paymentStatus || ""))}</div>
+              ${couponCode ? `<div><strong>كوبون الخصم:</strong> ${couponCode}</div>` : '<div></div>'}
+            </div>
+            ${discountAmount > 0 ? `<div style="margin-top: 10px;"><strong>قيمة الخصم:</strong> ${money(discountAmount)} ج.س</div>` : ''}
+          </div>
 
-      // Header
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(20);
-      pdf.text('Nubian • Order Summary', margin, yPosition);
-      yPosition += 10;
+          <!-- Products -->
+          <div style="margin-bottom: 20px;">
+            <h2 style="margin: 0 0 10px 0; color: #333; font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">المنتجات (${normalizedProducts.length})</h2>
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+              <thead>
+                <tr style="background: #f0f0f0;">
+                  <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 5%;">#</th>
+                  <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">المنتج</th>
+                  <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 15%;">الكمية</th>
+                  <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 20%;">السعر</th>
+                  <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 20%;">الإجمالي</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${normalizedProducts.map((product, index) => {
+                  const lineTotal = Number(product.price || 0) * Number(product.quantity || 0);
+                  return `
+                    <tr>
+                      <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${index + 1}</td>
+                      <td style="border: 1px solid #ddd; padding: 8px;">${product.name}</td>
+                      <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${product.quantity}</td>
+                      <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${money(product.price)} ج.س</td>
+                      <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${money(lineTotal)} ج.س</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
 
-      // Try to use Arabic font for Arabic text
-      try {
-        pdf.setFont('NotoSansArabic', 'normal');
-      } catch {
-        pdf.setFont('helvetica', 'normal');
-      }
-      pdf.setFontSize(10);
-      const arabicHeader = convertArabic('تم إنشاء هذا الملخص للحفظ كـ PDF');
-      pdf.text(arabicHeader, margin, yPosition);
-      yPosition += 15;
+          <!-- Totals -->
+          <div style="margin-bottom: 20px; padding: 15px; background: #fff8dc; border-radius: 8px; border: 2px solid #ffa500;">
+            <h2 style="margin: 0 0 15px 0; color: #333; font-size: 16px; text-align: center;">ملخص المبالغ</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <span><strong>المجموع الفرعي:</strong></span>
+              <span>${money(totals.subtotal)} ج.س</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <span><strong>الشحن:</strong></span>
+              <span>${money(totals.shipping)} ج.س</span>
+            </div>
+            ${totals.discount > 0 ? `
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; color: #d32f2f;">
+                <span><strong>الخصم:</strong></span>
+                <span>-${money(totals.discount)} ج.س</span>
+              </div>
+            ` : ''}
+            <hr style="border: none; border-top: 2px solid #333; margin: 10px 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: bold; color: #2e7d32;">
+              <span><strong>الإجمالي النهائي:</strong></span>
+              <span>${money(totals.final)} ج.س</span>
+            </div>
+          </div>
 
-      // Order info (right aligned)
-      pdf.setFontSize(10);
-      const orderIdText = convertArabic(`رقم الطلب: ${orderId}`);
-      const dateText = convertArabic(`التاريخ: ${created}`);
-      pdf.text(orderIdText, pageWidth - margin, 25, { align: 'right' });
-      pdf.text(dateText, pageWidth - margin, 32, { align: 'right' });
+          <!-- Footer -->
+          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 10px;">
+            تم إنشاء هذا التقرير بواسطة نظام نوبيان • Order: ${orderId}
+          </div>
+        </div>
+      `;
 
-      // Customer Information Section
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(12);
-      pdf.text('معلومات العميل', margin, yPosition);
-      yPosition += 10;
+      // Create temporary container
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = htmlContent;
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.top = '-9999px';
+      tempDiv.style.width = '800px';
+      document.body.appendChild(tempDiv);
 
-      try {
-        pdf.setFont('NotoSansArabic', 'normal');
-      } catch {
-        pdf.setFont('helvetica', 'normal');
-      }
-      pdf.setFontSize(10);
+      // Load Google Fonts for Arabic support
+      const link = document.createElement('link');
+      link.href = 'https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap';
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
 
-      // Customer details
-      const customerName = addressBlock?.fullName || "غير محدد";
-      const customerEmail = selectedRow.customerInfo?.email || "—";
-      const customerPhone = addressBlock?.phone || "—";
-      const customerWhatsapp = addressBlock?.whatsapp || "—";
-      const customerAddress = addressBlock?.fullAddress || "—";
+      // Wait for font to load
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      pdf.text(convertArabic(`الاسم: ${customerName}`), margin, yPosition);
-      pdf.text(`البريد: ${customerEmail}`, margin + 80, yPosition);
-      yPosition += 7;
-
-      pdf.text(convertArabic(`الهاتف: ${customerPhone}`), margin, yPosition);
-      pdf.text(convertArabic(`واتساب: ${customerWhatsapp}`), margin + 80, yPosition);
-      yPosition += 7;
-
-      // Wrap long addresses
-      const addressLines = pdf.splitTextToSize(convertArabic(`العنوان: ${customerAddress}`), 100);
-      pdf.text(addressLines, margin, yPosition);
-      yPosition += addressLines.length * 5 + 5;
-
-      // Order Status Section
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(12);
-      pdf.text('حالة الطلب', margin, yPosition);
-      yPosition += 10;
-
-      try {
-        pdf.setFont('NotoSansArabic', 'normal');
-      } catch {
-        pdf.setFont('helvetica', 'normal');
-      }
-      pdf.setFontSize(10);
-
-      const orderStatus = getStatusInArabic(String(selectedRow.status || ""));
-      const paymentMethod = selectedRow.paymentMethod || "—";
-      const paymentStatus = getPaymentStatusInArabic(String(selectedRow.paymentStatus || ""));
-
-      pdf.text(convertArabic(`حالة الطلب: ${orderStatus}`), margin, yPosition);
-      pdf.text(convertArabic(`طريقة الدفع: ${paymentMethod}`), margin + 80, yPosition);
-      yPosition += 7;
-      pdf.text(convertArabic(`حالة الدفع: ${paymentStatus}`), margin, yPosition);
-      yPosition += 10;
-
-      // Coupon info if exists
-      if (couponCode) {
-        pdf.text(convertArabic(`كوبون الخصم: ${couponCode}`), margin, yPosition);
-        if (discountAmount > 0) {
-          pdf.text(convertArabic(`قيمة الخصم: ${money(discountAmount)} ج.س`), margin + 80, yPosition);
-        }
-        yPosition += 10;
-      }
-
-      // Products Section
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(12);
-      pdf.text('المنتجات', margin, yPosition);
-      yPosition += 10;
-
-      // Table headers
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(9);
-      pdf.text('#', margin, yPosition);
-      pdf.text(convertArabic('المنتج'), margin + 15, yPosition);
-      pdf.text(convertArabic('الكمية'), margin + 100, yPosition);
-      pdf.text(convertArabic('السعر'), margin + 130, yPosition);
-      pdf.text(convertArabic('الإجمالي'), margin + 160, yPosition);
-
-      // Header line
-      pdf.line(margin, yPosition + 2, pageWidth - margin, yPosition + 2);
-      yPosition += 8;
-
-      // Products
-      pdf.setFont('helvetica', 'normal');
-      normalizedProducts.forEach((product, index) => {
-        if (yPosition > pageHeight - 30) {
-          pdf.addPage();
-          yPosition = 30;
-        }
-
-        const lineTotal = Number(product.price || 0) * Number(product.quantity || 0);
-        const productName = product.name.substring(0, 25); // Truncate long names
-
-        pdf.text(`${index + 1}`, margin, yPosition);
-        pdf.text(productName, margin + 15, yPosition);
-        pdf.text(`${product.quantity}`, margin + 100, yPosition);
-        pdf.text(`${money(product.price)} ج.س`, margin + 130, yPosition);
-        pdf.text(`${money(lineTotal)} ج.س`, margin + 160, yPosition);
-
-        yPosition += 6;
+      // Generate canvas from HTML
+      const canvas = await html2canvas(tempDiv, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        width: 800,
+        height: tempDiv.offsetHeight,
+        logging: false
       });
 
-      yPosition += 10;
+      // Remove temporary elements
+      document.body.removeChild(tempDiv);
+      document.head.removeChild(link);
 
-      // Totals Section
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(10);
+      // Create PDF from canvas
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
 
-      if (yPosition > pageHeight - 40) {
-        pdf.addPage();
-        yPosition = 30;
-      }
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pdfWidth - 20; // 10mm margin on each side
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-      pdf.text(convertArabic('المجموع الفرعي:'), margin + 100, yPosition);
-      pdf.text(`${money(totals.subtotal)} ج.س`, margin + 160, yPosition);
-      yPosition += 8;
+      let yPosition = 10;
+      let remainingHeight = imgHeight;
 
-      pdf.text(convertArabic('الشحن:'), margin + 100, yPosition);
-      pdf.text(`${money(totals.shipping)} ج.س`, margin + 160, yPosition);
-      yPosition += 8;
+      // Handle multi-page PDF if content is too tall
+      while (remainingHeight > 0) {
+        const pageHeight = Math.min(remainingHeight, pdfHeight - 20);
 
-      if (totals.discount > 0) {
-        pdf.text(convertArabic('الخصم:'), margin + 100, yPosition);
-        pdf.text(`-${money(totals.discount)} ج.س`, margin + 160, yPosition);
-        yPosition += 8;
-      }
+        pdf.addImage(
+          imgData,
+          'PNG',
+          10,
+          yPosition,
+          imgWidth,
+          pageHeight,
+          undefined,
+          'FAST'
+        );
 
-      // Total line
-      pdf.line(margin + 90, yPosition - 2, pageWidth - margin, yPosition - 2);
-      yPosition += 5;
+        remainingHeight -= pdfHeight - 20;
+        yPosition = 10;
 
-      pdf.setFontSize(12);
-      pdf.text(convertArabic('الإجمالي النهائي:'), margin + 100, yPosition);
-      pdf.text(`${money(totals.final)} ج.س`, margin + 160, yPosition);
-
-      // Footer
-      const pageCount = pdf.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        pdf.setPage(i);
-        pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(8);
-        pdf.text(`Order: ${orderId} - Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+        if (remainingHeight > 0) {
+          pdf.addPage();
+        }
       }
 
       // Save the PDF
