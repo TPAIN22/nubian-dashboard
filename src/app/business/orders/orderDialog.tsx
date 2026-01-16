@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import logger from "@/lib/logger";
 import { Input } from "@/components/ui/input";
 import jsPDF from "jspdf";
-import { reshapeArabic } from "arabic-reshaper";
+import { convertArabic } from "arabic-reshaper";
 
 import {
   Select,
@@ -321,14 +321,14 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
         pdf.setFont('helvetica', 'normal');
       }
       pdf.setFontSize(10);
-      const arabicHeader = reshapeArabic('تم إنشاء هذا الملخص للحفظ كـ PDF');
+      const arabicHeader = convertArabic('تم إنشاء هذا الملخص للحفظ كـ PDF');
       pdf.text(arabicHeader, margin, yPosition);
       yPosition += 15;
 
       // Order info (right aligned)
       pdf.setFontSize(10);
-      const orderIdText = reshapeArabic(`رقم الطلب: ${orderId}`);
-      const dateText = reshapeArabic(`التاريخ: ${created}`);
+      const orderIdText = convertArabic(`رقم الطلب: ${orderId}`);
+      const dateText = convertArabic(`التاريخ: ${created}`);
       pdf.text(orderIdText, pageWidth - margin, 25, { align: 'right' });
       pdf.text(dateText, pageWidth - margin, 32, { align: 'right' });
 
@@ -352,16 +352,16 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
       const customerWhatsapp = addressBlock?.whatsapp || "—";
       const customerAddress = addressBlock?.fullAddress || "—";
 
-      pdf.text(reshapeArabic(`الاسم: ${customerName}`), margin, yPosition);
+      pdf.text(convertArabic(`الاسم: ${customerName}`), margin, yPosition);
       pdf.text(`البريد: ${customerEmail}`, margin + 80, yPosition);
       yPosition += 7;
 
-      pdf.text(reshapeArabic(`الهاتف: ${customerPhone}`), margin, yPosition);
-      pdf.text(reshapeArabic(`واتساب: ${customerWhatsapp}`), margin + 80, yPosition);
+      pdf.text(convertArabic(`الهاتف: ${customerPhone}`), margin, yPosition);
+      pdf.text(convertArabic(`واتساب: ${customerWhatsapp}`), margin + 80, yPosition);
       yPosition += 7;
 
       // Wrap long addresses
-      const addressLines = pdf.splitTextToSize(reshapeArabic(`العنوان: ${customerAddress}`), 100);
+      const addressLines = pdf.splitTextToSize(convertArabic(`العنوان: ${customerAddress}`), 100);
       pdf.text(addressLines, margin, yPosition);
       yPosition += addressLines.length * 5 + 5;
 
@@ -382,17 +382,17 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
       const paymentMethod = selectedRow.paymentMethod || "—";
       const paymentStatus = getPaymentStatusInArabic(String(selectedRow.paymentStatus || ""));
 
-      pdf.text(reshapeArabic(`حالة الطلب: ${orderStatus}`), margin, yPosition);
-      pdf.text(reshapeArabic(`طريقة الدفع: ${paymentMethod}`), margin + 80, yPosition);
+      pdf.text(convertArabic(`حالة الطلب: ${orderStatus}`), margin, yPosition);
+      pdf.text(convertArabic(`طريقة الدفع: ${paymentMethod}`), margin + 80, yPosition);
       yPosition += 7;
-      pdf.text(reshapeArabic(`حالة الدفع: ${paymentStatus}`), margin, yPosition);
+      pdf.text(convertArabic(`حالة الدفع: ${paymentStatus}`), margin, yPosition);
       yPosition += 10;
 
       // Coupon info if exists
       if (couponCode) {
-        pdf.text(reshapeArabic(`كوبون الخصم: ${couponCode}`), margin, yPosition);
+        pdf.text(convertArabic(`كوبون الخصم: ${couponCode}`), margin, yPosition);
         if (discountAmount > 0) {
-          pdf.text(reshapeArabic(`قيمة الخصم: ${money(discountAmount)} ج.س`), margin + 80, yPosition);
+          pdf.text(convertArabic(`قيمة الخصم: ${money(discountAmount)} ج.س`), margin + 80, yPosition);
         }
         yPosition += 10;
       }
@@ -407,10 +407,10 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(9);
       pdf.text('#', margin, yPosition);
-      pdf.text(reshapeArabic('المنتج'), margin + 15, yPosition);
-      pdf.text(reshapeArabic('الكمية'), margin + 100, yPosition);
-      pdf.text(reshapeArabic('السعر'), margin + 130, yPosition);
-      pdf.text(reshapeArabic('الإجمالي'), margin + 160, yPosition);
+      pdf.text(convertArabic('المنتج'), margin + 15, yPosition);
+      pdf.text(convertArabic('الكمية'), margin + 100, yPosition);
+      pdf.text(convertArabic('السعر'), margin + 130, yPosition);
+      pdf.text(convertArabic('الإجمالي'), margin + 160, yPosition);
 
       // Header line
       pdf.line(margin, yPosition + 2, pageWidth - margin, yPosition + 2);
@@ -447,16 +447,16 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
         yPosition = 30;
       }
 
-      pdf.text(reshapeArabic('المجموع الفرعي:'), margin + 100, yPosition);
+      pdf.text(convertArabic('المجموع الفرعي:'), margin + 100, yPosition);
       pdf.text(`${money(totals.subtotal)} ج.س`, margin + 160, yPosition);
       yPosition += 8;
 
-      pdf.text(reshapeArabic('الشحن:'), margin + 100, yPosition);
+      pdf.text(convertArabic('الشحن:'), margin + 100, yPosition);
       pdf.text(`${money(totals.shipping)} ج.س`, margin + 160, yPosition);
       yPosition += 8;
 
       if (totals.discount > 0) {
-        pdf.text(reshapeArabic('الخصم:'), margin + 100, yPosition);
+        pdf.text(convertArabic('الخصم:'), margin + 100, yPosition);
         pdf.text(`-${money(totals.discount)} ج.س`, margin + 160, yPosition);
         yPosition += 8;
       }
@@ -466,7 +466,7 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
       yPosition += 5;
 
       pdf.setFontSize(12);
-      pdf.text(reshapeArabic('الإجمالي النهائي:'), margin + 100, yPosition);
+      pdf.text(convertArabic('الإجمالي النهائي:'), margin + 100, yPosition);
       pdf.text(`${money(totals.final)} ج.س`, margin + 160, yPosition);
 
       // Footer
