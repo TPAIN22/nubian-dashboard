@@ -202,14 +202,19 @@ const createColumns = (handleProductClick: (product: any) => void): ColumnDef<Or
                   {product.product?.name || product.name || 'Unknown Product'} × {product.quantity}
                 </div>
                 {/* Show attributes inline */}
-                {product.attributes && typeof product.attributes === 'object' && (
+                {product.attributes && typeof product.attributes === 'object' && Object.keys(product.attributes).length > 0 && (
                   <div className="text-gray-500 truncate text-xs">
                     {Object.entries(product.attributes).map(([key, value]) => `${key}: ${value}`).join(', ')}
                   </div>
                 )}
-                {product.size && (
+                {(!product.attributes || Object.keys(product.attributes || {}).length === 0) && product.size && (
                   <div className="text-gray-500 text-xs">
                     مقاس: {product.size}
+                  </div>
+                )}
+                {product.color && (
+                  <div className="text-gray-500 text-xs">
+                    لون: {product.color}
                   </div>
                 )}
               </div>
@@ -665,7 +670,7 @@ function ProductDetailsModal({ isOpen, onClose, product }: ProductDetailsModalPr
                 <div className="border-t pt-3">
                   <p className="text-sm text-gray-600 mb-2">الخصائص والمتغيرات</p>
                   <div className="space-y-1">
-                    {product.attributes && typeof product.attributes === 'object' && (
+                    {product.attributes && typeof product.attributes === 'object' && Object.keys(product.attributes).length > 0 && (
                       Object.entries(product.attributes).map(([key, value]) => (
                         <div key={key} className="flex justify-between text-sm">
                           <span className="capitalize">{key}:</span>
@@ -673,22 +678,29 @@ function ProductDetailsModal({ isOpen, onClose, product }: ProductDetailsModalPr
                         </div>
                       ))
                     )}
-                    {product.size && (
+                    {(!product.attributes || Object.keys(product.attributes || {}).length === 0) && product.size && (
                       <div className="flex justify-between text-sm">
                         <span>المقاس:</span>
                         <span className="font-medium">{product.size}</span>
                       </div>
                     )}
-                    {product.variantId && (
+                    {(product.variantId || productData.variantId) && (
                       <div className="flex justify-between text-sm">
                         <span>معرف المتغير:</span>
-                        <span className="font-medium">{product.variantId}</span>
+                        <span className="font-medium">{product.variantId || productData.variantId}</span>
                       </div>
                     )}
-                    {productData.variantId && !product.variantId && (
+                    {/* Show any additional attributes that might be stored differently */}
+                    {product.color && (
                       <div className="flex justify-between text-sm">
-                        <span>معرف المتغير:</span>
-                        <span className="font-medium">{productData.variantId}</span>
+                        <span>اللون:</span>
+                        <span className="font-medium">{product.color}</span>
+                      </div>
+                    )}
+                    {product.style && (
+                      <div className="flex justify-between text-sm">
+                        <span>النمط:</span>
+                        <span className="font-medium">{product.style}</span>
                       </div>
                     )}
                   </div>
@@ -797,7 +809,7 @@ function OrderDetailsDialog({ isOpen, onClose, order, onProductClick }: OrderDet
                       <p className="font-medium text-blue-600 hover:text-blue-800">{product.product?.name || product.name || 'منتج غير محدد'}</p>
                       <p className="text-sm text-gray-600">الكمية: {product.quantity}</p>
                       {/* Show attributes if available */}
-                      {product.attributes && typeof product.attributes === 'object' && (
+                      {product.attributes && typeof product.attributes === 'object' && Object.keys(product.attributes).length > 0 && (
                         <div className="text-xs text-gray-500 mt-1">
                           {Object.entries(product.attributes).map(([key, value]) => (
                             <span key={key} className="inline-block mr-2">
@@ -806,9 +818,14 @@ function OrderDetailsDialog({ isOpen, onClose, order, onProductClick }: OrderDet
                           ))}
                         </div>
                       )}
-                      {product.size && (
+                      {(!product.attributes || Object.keys(product.attributes || {}).length === 0) && product.size && (
                         <div className="text-xs text-gray-500 mt-1">
                           مقاس: {product.size}
+                        </div>
+                      )}
+                      {product.color && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          لون: {product.color}
                         </div>
                       )}
                       {product.product?.images?.[0] && (
