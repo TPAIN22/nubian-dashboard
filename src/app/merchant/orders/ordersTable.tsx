@@ -386,7 +386,6 @@ export function OrdersTable({ orders }: OrdersTableProps) {
   const [isModalOpen, setIsModalOpen] = React.useState(false)
 
   const handleRowClick = (order: Order) => {
-    console.log('Row clicked, order:', order)
     setSelectedRow(order)
     setIsModalOpen(true)
   }
