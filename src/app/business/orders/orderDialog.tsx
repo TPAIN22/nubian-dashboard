@@ -289,138 +289,269 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
       const couponCode = (selectedRow as any)?.couponDetails?.code || "";
       const discountAmount = totals.discount || 0;
 
-      // Create HTML template with proper Arabic text and RTL support
+      // Create HTML template with proper Arabic text and RTL support (using only basic CSS colors)
       const htmlContent = `
-        <div style="font-family: 'Noto Sans Arabic', Arial, sans-serif; direction: rtl; padding: 20px; background: white; color: black; width: 800px; margin: 0 auto; box-sizing: border-box;">
-          <!-- Header -->
-          <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px;">
-            <h1 style="margin: 0; color: #333; font-size: 24px;">نوبيان • ملخص الطلب</h1>
-            <p style="margin: 5px 0; color: #666; font-size: 12px;">تم إنشاء هذا الملخص للحفظ كـ PDF</p>
-            <div style="position: absolute; top: 20px; left: 20px; font-size: 10px; color: #666;">
-              <div>رقم الطلب: ${orderId}</div>
-              <div>التاريخ: ${created}</div>
-            </div>
-          </div>
-
-          <!-- Customer Information -->
-          <div style="margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 8px;">
-            <h2 style="margin: 0 0 10px 0; color: #333; font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">معلومات العميل</h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-              <div><strong>الاسم:</strong> ${addressBlock?.fullName || "غير محدد"}</div>
-              <div><strong>البريد:</strong> ${selectedRow.customerInfo?.email || "—"}</div>
-              <div><strong>الهاتف:</strong> ${addressBlock?.phone || "غير محدد"}</div>
-              <div><strong>واتساب:</strong> ${addressBlock?.whatsapp || "غير محدد"}</div>
-            </div>
-            <div style="margin-top: 10px;">
-              <strong>العنوان:</strong> ${addressBlock?.fullAddress || "—"}
-            </div>
-          </div>
-
-          <!-- Order Status -->
-          <div style="margin-bottom: 20px; padding: 15px; background: #f0f8ff; border-radius: 8px;">
-            <h2 style="margin: 0 0 10px 0; color: #333; font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">حالة الطلب</h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-              <div><strong>حالة الطلب:</strong> ${getStatusInArabic(String(selectedRow.status || ""))}</div>
-              <div><strong>طريقة الدفع:</strong> ${selectedRow.paymentMethod || "—"}</div>
-              <div><strong>حالة الدفع:</strong> ${getPaymentStatusInArabic(String(selectedRow.paymentStatus || ""))}</div>
-              ${couponCode ? `<div><strong>كوبون الخصم:</strong> ${couponCode}</div>` : '<div></div>'}
-            </div>
-            ${discountAmount > 0 ? `<div style="margin-top: 10px;"><strong>قيمة الخصم:</strong> ${money(discountAmount)} ج.س</div>` : ''}
-          </div>
-
-          <!-- Products -->
-          <div style="margin-bottom: 20px;">
-            <h2 style="margin: 0 0 10px 0; color: #333; font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">المنتجات (${normalizedProducts.length})</h2>
-            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-              <thead>
-                <tr style="background: #f0f0f0;">
-                  <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 5%;">#</th>
-                  <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">المنتج</th>
-                  <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 15%;">الكمية</th>
-                  <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 20%;">السعر</th>
-                  <th style="border: 1px solid #ddd; padding: 8px; text-align: center; width: 20%;">الإجمالي</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${normalizedProducts.map((product, index) => {
-                  const lineTotal = Number(product.price || 0) * Number(product.quantity || 0);
-                  return `
-                    <tr>
-                      <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${index + 1}</td>
-                      <td style="border: 1px solid #ddd; padding: 8px;">${product.name}</td>
-                      <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${product.quantity}</td>
-                      <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${money(product.price)} ج.س</td>
-                      <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${money(lineTotal)} ج.س</td>
-                    </tr>
-                  `;
-                }).join('')}
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Totals -->
-          <div style="margin-bottom: 20px; padding: 15px; background: #fff8dc; border-radius: 8px; border: 2px solid #ffa500;">
-            <h2 style="margin: 0 0 15px 0; color: #333; font-size: 16px; text-align: center;">ملخص المبالغ</h2>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-              <span><strong>المجموع الفرعي:</strong></span>
-              <span>${money(totals.subtotal)} ج.س</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-              <span><strong>الشحن:</strong></span>
-              <span>${money(totals.shipping)} ج.س</span>
-            </div>
-            ${totals.discount > 0 ? `
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; color: #d32f2f;">
-                <span><strong>الخصم:</strong></span>
-                <span>-${money(totals.discount)} ج.س</span>
+        <!DOCTYPE html>
+        <html dir="rtl" lang="ar">
+        <head>
+          <meta charset="UTF-8">
+          <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap" rel="stylesheet">
+          <style>
+            body {
+              font-family: 'Noto Sans Arabic', Arial, sans-serif;
+              margin: 0;
+              padding: 0;
+              background: white;
+              color: black;
+              direction: rtl;
+            }
+            .container {
+              width: 800px;
+              margin: 0 auto;
+              padding: 20px;
+              box-sizing: border-box;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 20px;
+              border-bottom: 2px solid #333333;
+              padding-bottom: 10px;
+            }
+            .header h1 {
+              margin: 0;
+              color: #333333;
+              font-size: 24px;
+            }
+            .header p {
+              margin: 5px 0;
+              color: #666666;
+              font-size: 12px;
+            }
+            .order-info {
+              position: absolute;
+              top: 20px;
+              left: 20px;
+              font-size: 10px;
+              color: #666666;
+            }
+            .section {
+              margin-bottom: 20px;
+              padding: 15px;
+              border-radius: 8px;
+            }
+            .customer-info {
+              background: #f9f9f9;
+            }
+            .order-status {
+              background: #f0f8ff;
+            }
+            .totals {
+              background: #fff8dc;
+              border: 2px solid #ffa500;
+            }
+            .section h2 {
+              margin: 0 0 10px 0;
+              color: #333333;
+              font-size: 16px;
+              border-bottom: 1px solid #dddddd;
+              padding-bottom: 5px;
+            }
+            .grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 10px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              font-size: 12px;
+              margin-top: 10px;
+            }
+            th, td {
+              border: 1px solid #dddddd;
+              padding: 8px;
+            }
+            th {
+              background: #f0f0f0;
+              font-weight: bold;
+            }
+            .text-center { text-align: center; }
+            .text-right { text-align: right; }
+            .flex {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+            .discount { color: #d32f2f; }
+            .total { font-size: 18px; font-weight: bold; color: #2e7d32; }
+            .footer {
+              text-align: center;
+              margin-top: 30px;
+              padding-top: 20px;
+              border-top: 1px solid #dddddd;
+              color: #666666;
+              font-size: 10px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <!-- Header -->
+            <div class="header">
+              <h1>نوبيان • ملخص الطلب</h1>
+              <p>تم إنشاء هذا الملخص للحفظ كـ PDF</p>
+              <div class="order-info">
+                <div>رقم الطلب: ${orderId}</div>
+                <div>التاريخ: ${created}</div>
               </div>
-            ` : ''}
-            <hr style="border: none; border-top: 2px solid #333; margin: 10px 0;">
-            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: bold; color: #2e7d32;">
-              <span><strong>الإجمالي النهائي:</strong></span>
-              <span>${money(totals.final)} ج.س</span>
+            </div>
+
+            <!-- Customer Information -->
+            <div class="section customer-info">
+              <h2>معلومات العميل</h2>
+              <div class="grid">
+                <div><strong>الاسم:</strong> ${addressBlock?.fullName || "غير محدد"}</div>
+                <div><strong>البريد:</strong> ${selectedRow.customerInfo?.email || "—"}</div>
+                <div><strong>الهاتف:</strong> ${addressBlock?.phone || "غير محدد"}</div>
+                <div><strong>واتساب:</strong> ${addressBlock?.whatsapp || "غير محدد"}</div>
+              </div>
+              <div style="margin-top: 10px;">
+                <strong>العنوان:</strong> ${addressBlock?.fullAddress || "—"}
+              </div>
+            </div>
+
+            <!-- Order Status -->
+            <div class="section order-status">
+              <h2>حالة الطلب</h2>
+              <div class="grid">
+                <div><strong>حالة الطلب:</strong> ${getStatusInArabic(String(selectedRow.status || ""))}</div>
+                <div><strong>طريقة الدفع:</strong> ${selectedRow.paymentMethod || "—"}</div>
+                <div><strong>حالة الدفع:</strong> ${getPaymentStatusInArabic(String(selectedRow.paymentStatus || ""))}</div>
+                ${couponCode ? `<div><strong>كوبون الخصم:</strong> ${couponCode}</div>` : '<div></div>'}
+              </div>
+              ${discountAmount > 0 ? `<div style="margin-top: 10px;"><strong>قيمة الخصم:</strong> ${money(discountAmount)} ج.س</div>` : ''}
+            </div>
+
+            <!-- Products -->
+            <div class="section">
+              <h2>المنتجات (${normalizedProducts.length})</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width: 5%;" class="text-center">#</th>
+                    <th class="text-right">المنتج</th>
+                    <th style="width: 15%;" class="text-center">الكمية</th>
+                    <th style="width: 20%;" class="text-center">السعر</th>
+                    <th style="width: 20%;" class="text-center">الإجمالي</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${normalizedProducts.map((product, index) => {
+                    const lineTotal = Number(product.price || 0) * Number(product.quantity || 0);
+                    return `
+                      <tr>
+                        <td class="text-center">${index + 1}</td>
+                        <td>${product.name}</td>
+                        <td class="text-center">${product.quantity}</td>
+                        <td class="text-center">${money(product.price)} ج.س</td>
+                        <td class="text-center">${money(lineTotal)} ج.س</td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Totals -->
+            <div class="section totals">
+              <h2 style="text-align: center;">ملخص المبالغ</h2>
+              <div class="flex" style="margin-bottom: 10px;">
+                <span><strong>المجموع الفرعي:</strong></span>
+                <span>${money(totals.subtotal)} ج.س</span>
+              </div>
+              <div class="flex" style="margin-bottom: 10px;">
+                <span><strong>الشحن:</strong></span>
+                <span>${money(totals.shipping)} ج.س</span>
+              </div>
+              ${totals.discount > 0 ? `
+                <div class="flex discount" style="margin-bottom: 10px;">
+                  <span><strong>الخصم:</strong></span>
+                  <span>-${money(totals.discount)} ج.س</span>
+                </div>
+              ` : ''}
+              <hr style="border: none; border-top: 2px solid #333333; margin: 10px 0;">
+              <div class="flex total">
+                <span><strong>الإجمالي النهائي:</strong></span>
+                <span>${money(totals.final)} ج.س</span>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+              تم إنشاء هذا التقرير بواسطة نظام نوبيان • Order: ${orderId}
             </div>
           </div>
-
-          <!-- Footer -->
-          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 10px;">
-            تم إنشاء هذا التقرير بواسطة نظام نوبيان • Order: ${orderId}
-          </div>
-        </div>
+        </body>
+        </html>
       `;
 
-      // Create temporary container
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = htmlContent;
-      tempDiv.style.position = 'absolute';
-      tempDiv.style.left = '-9999px';
-      tempDiv.style.top = '-9999px';
-      tempDiv.style.width = '800px';
-      document.body.appendChild(tempDiv);
+      // Create a new iframe to isolate the HTML content completely
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'absolute';
+      iframe.style.left = '-9999px';
+      iframe.style.top = '-9999px';
+      iframe.style.width = '800px';
+      iframe.style.height = '2000px';
+      iframe.style.border = 'none';
+      iframe.style.visibility = 'hidden';
+      document.body.appendChild(iframe);
 
-      // Load Google Fonts for Arabic support
-      const link = document.createElement('link');
-      link.href = 'https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap';
-      link.rel = 'stylesheet';
-      document.head.appendChild(link);
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) {
+        throw new Error('Unable to access iframe document');
+      }
 
-      // Wait for font to load
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Write the HTML content to the iframe
+      iframeDoc.open();
+      iframeDoc.write(htmlContent);
+      iframeDoc.close();
 
-      // Generate canvas from HTML
-      const canvas = await html2canvas(tempDiv, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        width: 800,
-        height: tempDiv.offsetHeight,
-        logging: false
+      // Wait for the iframe content to load and fonts to be ready
+      await new Promise((resolve) => {
+        const checkReady = () => {
+          if (iframeDoc.readyState === 'complete') {
+            // Wait a bit more for fonts to load
+            setTimeout(resolve, 1500);
+          } else {
+            setTimeout(checkReady, 100);
+          }
+        };
+        checkReady();
       });
 
-      // Remove temporary elements
-      document.body.removeChild(tempDiv);
-      document.head.removeChild(link);
+      // Get the content element from the iframe
+      const contentElement = iframeDoc.querySelector('.container') as HTMLElement;
+      if (!contentElement) {
+        throw new Error('Container element not found');
+      }
+
+      // Generate canvas from the iframe content
+      const canvas = await html2canvas(contentElement, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: '#ffffff',
+        logging: false,
+        width: 800,
+        height: contentElement.scrollHeight,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: 800,
+        windowHeight: contentElement.scrollHeight
+      });
+
+      // Remove the iframe
+      document.body.removeChild(iframe);
 
       // Create PDF from canvas
       const imgData = canvas.toDataURL('image/png');
