@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { axiosInstance } from "@/lib/axiosInstance";
 import { SimpleOrdersTable } from "./simpleTable";
 import OrdersTable, { DataTable } from "./ordersTable";
-import { Order } from "./ordersTable";
+import { Order } from "./types";
 export default async function Page() {
   const { getToken } = await auth();
   const token = await getToken();

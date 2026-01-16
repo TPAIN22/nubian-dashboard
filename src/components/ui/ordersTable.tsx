@@ -264,7 +264,6 @@ export function DataTable({ orders }: { orders: Order[] }) {
 
   const handleRowClick = (row: any) => {
     setSelectedRow(row);
-    (selectedRow);
     setIsModalOpen(true);
   };
 

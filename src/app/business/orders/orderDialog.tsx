@@ -9,10 +9,11 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@clerk/nextjs";
-import { toast } from "sonner";
+import { toast } from "sonner";   
 import { Label } from "@/components/ui/label";
 import logger from "@/lib/logger";
 import { Input } from "@/components/ui/input";
+import jsPDF from "jspdf";
 
 import {
   Select,
@@ -22,8 +23,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import type { Order } from "./ordersTable";
-import { getStatusInArabic, getPaymentStatusInArabic, formatDate } from "./ordersTable";
+import type { Order } from "./types";
+import { getStatusInArabic, getPaymentStatusInArabic, formatDate } from "./types";
 
 import {
   updateOrderStatus,
@@ -191,7 +192,7 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
     setLoading(true);
     const token = await getToken();
     if (!token) {
-      toast.error("فشل في الحصول على رمز المصادقة");
+      toast.error("فشل في الحصول على رمز المصادقة");  
       setLoading(false);
       return;
     }
@@ -275,170 +276,191 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
     }
   };
 
-  // ✅ Save as PDF (print) — EXCLUDES transfer proof image
-  const handleSavePdf = () => {
+  // ✅ Save as PDF (direct jsPDF approach - no CSS issues)
+  const handleSavePdf = async () => {
     if (!selectedRow) return;
 
-    const orderId = selectedRow.orderNumber || selectedRow._id;
-    const created = formatDate(selectedRow.createdAt || selectedRow.orderDate);
+    try {
+      toast.loading("جاري إنشاء ملف PDF...");
 
-    const couponCode = (selectedRow as any)?.couponDetails?.code || "";
-    const discountAmount = totals.discount || 0;
+      const orderId = selectedRow.orderNumber || selectedRow._id;
+      const created = formatDate(selectedRow.createdAt || selectedRow.orderDate);
+      const couponCode = (selectedRow as any)?.couponDetails?.code || "";
+      const discountAmount = totals.discount || 0;
 
-    const productsHtml = normalizedProducts
-      .map((p, i) => {
-        const line = Number(p.price || 0) * Number(p.quantity || 0);
-        return `
-          <tr>
-            <td>${i + 1}</td>
-            <td>${escapeHtml(p.name)}</td>
-            <td>${p.quantity}</td>
-            <td>${money(p.price)} ج.س</td>
-            <td>${money(line)} ج.س</td>
-          </tr>
-        `;
-      })
-      .join("");
+      // Create PDF directly with jsPDF (no html2canvas issues)
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const margin = 20;
+      let yPosition = 30;
 
-    const html = `
-<!doctype html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="utf-8" />
-  <title>Order ${escapeHtml(String(orderId))}</title>
-  <style>
-    @page { size: A4; margin: 14mm; }
-    body { font-family: Arial, sans-serif; color: #111; }
-    .head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom: 12px; }
-    .brand { font-size: 18px; font-weight: 800; }
-    .muted { color:#555; font-size: 12px; }
-    .card { border:1px solid #ddd; border-radius: 10px; padding: 12px; margin: 10px 0; }
-    .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .k { color:#555; font-size: 12px; margin-bottom: 4px; }
-    .v { font-weight: 700; }
-    table { width:100%; border-collapse: collapse; margin-top: 8px; }
-    th, td { border:1px solid #ddd; padding: 8px; font-size: 12px; }
-    th { background:#f5f5f5; text-align:right; }
-    .totals { width: 100%; margin-top: 8px; }
-    .totals td { border:none; padding: 4px 0; }
-    .totals .k { width: 55%; }
-    .totals .v { text-align:left; }
-    .badge { display:inline-block; padding: 3px 8px; border-radius: 999px; background:#eee; font-size: 11px; font-weight: 700; }
-    .ok { background:#e6ffed; }
-    .warn { background:#fff4e5; }
-  </style>
-</head>
-<body>
-  <div class="head">
-    <div>
-      <div class="brand">Nubian • Order Summary</div>
-      <div class="muted">تم إنشاء هذا الملخص للطباعة/الحفظ كـ PDF</div>
-    </div>
-    <div class="muted">
-      <div><b>رقم الطلب:</b> ${escapeHtml(String(orderId))}</div>
-      <div><b>التاريخ:</b> ${escapeHtml(String(created))}</div>
-    </div>
-  </div>
+      // Header
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(20);
+      pdf.text('Nubian • Order Summary', margin, yPosition);
+      yPosition += 10;
 
-  <div class="card">
-    <div class="grid">
-      <div>
-        <div class="k">العميل</div>
-        <div class="v">${escapeHtml(addressBlock?.fullName || "غير محدد")}</div>
-        <div class="muted">${escapeHtml(selectedRow.customerInfo?.email || "—")}</div>
-      </div>
-      <div>
-        <div class="k">التواصل</div>
-        <div class="v">هاتف: ${escapeHtml(addressBlock?.phone || "—")}</div>
-        <div class="muted">واتساب: ${escapeHtml(addressBlock?.whatsapp || "—")}</div>
-      </div>
-      <div style="grid-column: 1 / -1">
-        <div class="k">العنوان</div>
-        <div class="v">${escapeHtml(addressBlock?.fullAddress || "—")}</div>
-      </div>
-    </div>
-  </div>
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+      pdf.text('تم إنشاء هذا الملخص للحفظ كـ PDF', margin, yPosition);
+      yPosition += 15;
 
-  <div class="card">
-    <div class="grid">
-      <div>
-        <div class="k">حالة الطلب</div>
-        <div class="v"><span class="badge">${escapeHtml(getStatusInArabic(String(selectedRow.status || "")))}</span></div>
-      </div>
-      <div>
-        <div class="k">الدفع</div>
-        <div class="v"><span class="badge">${escapeHtml(String(selectedRow.paymentMethod || "—"))}</span></div>
-        <div class="muted">${escapeHtml(getPaymentStatusInArabic(String(selectedRow.paymentStatus || "")))}</div>
-      </div>
-      ${
-        couponCode
-          ? `<div style="grid-column: 1 / -1">
-              <div class="k">الكوبون</div>
-              <div class="v">${escapeHtml(String(couponCode))}</div>
-              ${discountAmount ? `<div class="muted">خصم: -${money(discountAmount)} ج.س</div>` : ""}
-            </div>`
-          : ""
+      // Order info (right aligned)
+      pdf.setFontSize(10);
+      pdf.text(`رقم الطلب: ${orderId}`, pageWidth - margin, 25, { align: 'right' });
+      pdf.text(`التاريخ: ${created}`, pageWidth - margin, 32, { align: 'right' });
+
+      // Customer Information Section
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(12);
+      pdf.text('معلومات العميل', margin, yPosition);
+      yPosition += 10;
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+
+      // Customer details
+      const customerName = addressBlock?.fullName || "غير محدد";
+      const customerEmail = selectedRow.customerInfo?.email || "—";
+      const customerPhone = addressBlock?.phone || "—";
+      const customerWhatsapp = addressBlock?.whatsapp || "—";
+      const customerAddress = addressBlock?.fullAddress || "—";
+
+      pdf.text(`الاسم: ${customerName}`, margin, yPosition);
+      pdf.text(`البريد: ${customerEmail}`, margin + 80, yPosition);
+      yPosition += 7;
+
+      pdf.text(`الهاتف: ${customerPhone}`, margin, yPosition);
+      pdf.text(`واتساب: ${customerWhatsapp}`, margin + 80, yPosition);
+      yPosition += 7;
+
+      // Wrap long addresses
+      const addressLines = pdf.splitTextToSize(`العنوان: ${customerAddress}`, 100);
+      pdf.text(addressLines, margin, yPosition);
+      yPosition += addressLines.length * 5 + 5;
+
+      // Order Status Section
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(12);
+      pdf.text('حالة الطلب', margin, yPosition);
+      yPosition += 10;
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+
+      const orderStatus = getStatusInArabic(String(selectedRow.status || ""));
+      const paymentMethod = selectedRow.paymentMethod || "—";
+      const paymentStatus = getPaymentStatusInArabic(String(selectedRow.paymentStatus || ""));
+
+      pdf.text(`حالة الطلب: ${orderStatus}`, margin, yPosition);
+      pdf.text(`طريقة الدفع: ${paymentMethod}`, margin + 80, yPosition);
+      yPosition += 7;
+      pdf.text(`حالة الدفع: ${paymentStatus}`, margin, yPosition);
+      yPosition += 10;
+
+      // Coupon info if exists
+      if (couponCode) {
+        pdf.text(`كوبون الخصم: ${couponCode}`, margin, yPosition);
+        if (discountAmount > 0) {
+          pdf.text(`قيمة الخصم: ${money(discountAmount)} ج.س`, margin + 80, yPosition);
+        }
+        yPosition += 10;
       }
-    </div>
-  </div>
 
-  <div class="card">
-    <div class="k">المنتجات</div>
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>المنتج</th>
-          <th>الكمية</th>
-          <th>سعر الوحدة</th>
-          <th>الإجمالي</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${productsHtml || `<tr><td colspan="5">لا توجد منتجات</td></tr>`}
-      </tbody>
-    </table>
+      // Products Section
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(12);
+      pdf.text('المنتجات', margin, yPosition);
+      yPosition += 10;
 
-    <table class="totals">
-      <tr>
-        <td class="k">المجموع الفرعي</td>
-        <td class="v">${money(totals.subtotal)} ج.س</td>
-      </tr>
-      <tr>
-        <td class="k">الشحن</td>
-        <td class="v">${money(totals.shipping)} ج.س</td>
-      </tr>
-      <tr>
-        <td class="k">الخصم</td>
-        <td class="v">-${money(totals.discount)} ج.س</td>
-      </tr>
-      <tr>
-        <td class="k"><b>الإجمالي النهائي</b></td>
-        <td class="v"><b>${money(totals.final)} ج.س</b></td>
-      </tr>
-    </table>
-  </div>
+      // Table headers
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9);
+      pdf.text('#', margin, yPosition);
+      pdf.text('المنتج', margin + 15, yPosition);
+      pdf.text('الكمية', margin + 100, yPosition);
+      pdf.text('السعر', margin + 130, yPosition);
+      pdf.text('الإجمالي', margin + 160, yPosition);
 
-</body>
-</html>
-`;
+      // Header line
+      pdf.line(margin, yPosition + 2, pageWidth - margin, yPosition + 2);
+      yPosition += 8;
 
-    const w = window.open("", "_blank", "noopener,noreferrer,width=900,height=900");
-    if (!w) {
-      toast.error("المتصفح منع فتح نافذة جديدة. فعّل Popups وحاول مرة أخرى.");
-      return;
+      // Products
+      pdf.setFont('helvetica', 'normal');
+      normalizedProducts.forEach((product, index) => {
+        if (yPosition > pageHeight - 30) {
+          pdf.addPage();
+          yPosition = 30;
+        }
+
+        const lineTotal = Number(product.price || 0) * Number(product.quantity || 0);
+        const productName = product.name.substring(0, 25); // Truncate long names
+
+        pdf.text(`${index + 1}`, margin, yPosition);
+        pdf.text(productName, margin + 15, yPosition);
+        pdf.text(`${product.quantity}`, margin + 100, yPosition);
+        pdf.text(`${money(product.price)} ج.س`, margin + 130, yPosition);
+        pdf.text(`${money(lineTotal)} ج.س`, margin + 160, yPosition);
+
+        yPosition += 6;
+      });
+
+      yPosition += 10;
+
+      // Totals Section
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(10);
+
+      if (yPosition > pageHeight - 40) {
+        pdf.addPage();
+        yPosition = 30;
+      }
+
+      pdf.text('المجموع الفرعي:', margin + 100, yPosition);
+      pdf.text(`${money(totals.subtotal)} ج.س`, margin + 160, yPosition);
+      yPosition += 8;
+
+      pdf.text('الشحن:', margin + 100, yPosition);
+      pdf.text(`${money(totals.shipping)} ج.س`, margin + 160, yPosition);
+      yPosition += 8;
+
+      if (totals.discount > 0) {
+        pdf.text('الخصم:', margin + 100, yPosition);
+        pdf.text(`-${money(totals.discount)} ج.س`, margin + 160, yPosition);
+        yPosition += 8;
+      }
+
+      // Total line
+      pdf.line(margin + 90, yPosition - 2, pageWidth - margin, yPosition - 2);
+      yPosition += 5;
+
+      pdf.setFontSize(12);
+      pdf.text('الإجمالي النهائي:', margin + 100, yPosition);
+      pdf.text(`${money(totals.final)} ج.س`, margin + 160, yPosition);
+
+      // Footer
+      const pageCount = pdf.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        pdf.setPage(i);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
+        pdf.text(`Order: ${orderId} - Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+      }
+
+      // Save the PDF
+      pdf.save(`Order-${orderId}.pdf`);
+
+      toast.dismiss();
+      toast.success("تم تحميل ملف PDF بنجاح!");
+
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast.dismiss();
+      toast.error("فشل في إنشاء ملف PDF. حاول مرة أخرى.");
     }
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-
-    // wait a tick then print
-    setTimeout(() => {
-      w.focus();
-      w.print();
-      // w.close(); // لو دايرها تقفل تلقائيًا فعل السطر ده
-    }, 250);
-  };
+};
 
   return (
     <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

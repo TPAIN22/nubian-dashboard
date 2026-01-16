@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown } from "lucide-react"
+import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -21,6 +21,9 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import {
@@ -31,6 +34,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { useAuth } from '@clerk/nextjs'
+import { axiosInstance } from '@/lib/axiosInstance'
+import { toast } from 'sonner'
+import logger from '@/lib/logger'
 
 export type Order = {
   _id: string
@@ -70,6 +84,13 @@ const formatDate = (dateString: string) => {
     day: 'numeric'
   })
 }
+
+// Status options available for merchants
+const merchantStatusOptions = [
+  { value: "confirmed", label: "تأكيد" },
+  { value: "shipped", label: "تم الشحن" },
+  { value: "delivered", label: "تم التسليم" },
+]
 
 export const columns: ColumnDef<Order>[] = [
   {
@@ -173,10 +194,67 @@ export const columns: ColumnDef<Order>[] = [
       );
     },
   },
+  {
+    id: "actions",
+    header: "Actions",
+    cell: ({ row }) => <ActionsCell order={row.original} />,
+  },
 ]
 
 interface OrdersTableProps {
   orders: Order[]
+}
+
+// Actions Cell Component
+const ActionsCell = ({ order }: { order: Order }) => {
+  const { getToken } = useAuth()
+
+  const handleStatusChange = async (newStatus: string) => {
+    try {
+      const token = await getToken()
+      if (!token) {
+        toast.error('فشل المصادقة')
+        return
+      }
+
+      await axiosInstance.patch(
+        `/orders/merchant/${order._id}/status`,
+        { status: newStatus },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+
+      toast.success('تم تحديث حالة الطلب بنجاح')
+      // Refresh the page to show updated status
+      window.location.reload()
+    } catch (error: any) {
+      logger.error('Error updating order status', { error: error instanceof Error ? error.message : String(error) })
+      toast.error('فشل تحديث حالة الطلب')
+    }
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="h-8 w-8 p-0">
+          <span className="sr-only">Open menu</span>
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>تحديث الحالة</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {merchantStatusOptions.map((option) => (
+          <DropdownMenuItem
+            key={option.value}
+            onClick={() => handleStatusChange(option.value)}
+            disabled={order.status === option.value}
+          >
+            {option.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
 }
 
 export function OrdersTable({ orders }: OrdersTableProps) {
