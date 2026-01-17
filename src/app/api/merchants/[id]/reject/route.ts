@@ -3,6 +3,10 @@ import { NextResponse } from 'next/server';
 import { axiosInstance } from '@/lib/axiosInstance';
 import logger from '@/lib/logger';
 
+interface RejectMerchantRequest {
+  rejectionReason: string;
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -19,7 +23,7 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    const body = await request.json();
+    const body = await request.json() as RejectMerchantRequest;
     const { rejectionReason } = body;
 
     const response = await axiosInstance.patch(
