@@ -3,6 +3,10 @@ import { NextResponse } from 'next/server';
 import { axiosInstance } from '@/lib/axiosInstance';
 import logger from '@/lib/logger';
 
+interface SuspendMerchantRequest {
+  suspensionReason: string;
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -23,11 +27,11 @@ export async function PATCH(
     merchantId = id;
 
     // Parse request body safely
-    let body;
+    let body: SuspendMerchantRequest;
     try {
-      body = await request.json();
+      body = await request.json() as SuspendMerchantRequest;
     } catch (parseError) {
-      logger.error('Error parsing request body', { 
+      logger.error('Error parsing request body', {
         merchantId: id,
         error: parseError instanceof Error ? parseError.message : String(parseError)
       });
