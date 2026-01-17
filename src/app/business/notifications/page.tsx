@@ -8,6 +8,9 @@ import { NotificationHistory } from '@/components/notifications/NotificationHist
 import { NotificationPreferences } from '@/components/notifications/NotificationPreferences'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
+export const runtime = 'edge';
+
+
 function NotificationsPage() {
   const [activeTab, setActiveTab] = useState('broadcast')
 

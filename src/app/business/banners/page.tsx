@@ -11,6 +11,9 @@ import { useAuth } from '@clerk/nextjs';
 
 type Banner = BannerFormValues & { _id: string };
 
+export const runtime = 'edge';
+
+
 export default function BannersPage() {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);

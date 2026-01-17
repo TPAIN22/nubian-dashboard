@@ -4,6 +4,9 @@ import { useUser } from '@clerk/nextjs'
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
+export const runtime = 'edge';
+
+
 export default function DebugRolePage() {
   const { user, isLoaded } = useUser()
   const [apiData, setApiData] = useState<any>(null)

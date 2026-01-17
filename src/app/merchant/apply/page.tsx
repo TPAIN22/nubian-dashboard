@@ -32,6 +32,9 @@ interface Merchant {
   appliedAt: string
 }
 
+export const runtime = 'edge';
+
+
 export default function MerchantApply() {
   const { user, isLoaded } = useUser()
   const { getToken } = useAuth()

@@ -5,6 +5,7 @@ import { axiosInstance } from '@/lib/axiosInstance'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import logger from '@/lib/logger'
+export const runtime = 'edge';
 
 interface Stats {
   totalOrders: number

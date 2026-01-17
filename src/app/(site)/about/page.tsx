@@ -2,6 +2,9 @@
 
 import React from "react";
 
+export const runtime = 'edge';
+
+
 export default function AboutPage() {
   return (
     <main className="relative z-10 pt-28 pb-16">

@@ -81,6 +81,9 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 
+export const runtime = 'edge';
+
+
 export type Product = {
   _id: string
   name: string

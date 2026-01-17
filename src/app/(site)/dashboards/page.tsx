@@ -21,6 +21,8 @@ import {
   Zap,
   Globe,
 } from 'lucide-react'
+export const runtime = 'edge';
+
 
 export default function DashboardsPage() {
   const { user, isLoaded } = useUser()

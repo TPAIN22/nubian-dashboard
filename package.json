@@ -10,7 +10,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\""
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.19.5",
@@ -37,6 +41,7 @@
     "@react-email/components": "^0.0.41",
     "@tabler/icons-react": "^3.33.0",
     "@tanstack/react-table": "^8.21.3",
+    "@opennextjs/cloudflare": "^1.0.0-beta.0",
     "axios": "^1.9.0",
     "browser-image-compression": "^2.0.2",
     "class-variance-authority": "^0.7.1",
@@ -78,6 +83,7 @@
     "prettier": "^3.7.4",
     "tailwindcss": "^4.1.7",
     "tw-animate-css": "^1.3.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.59.2"
   }
 }

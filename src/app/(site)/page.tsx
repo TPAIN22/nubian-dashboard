@@ -5,6 +5,9 @@ import type { Metadata } from "next";
 
 const baseUrl = "https://nubian-sd.store";
 
+export const runtime = 'edge';
+
+
 export const metadata: Metadata = {
   title: "نوبيان | Nubian - أفضل متجر إلكتروني في السودان",
   description:

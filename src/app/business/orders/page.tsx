@@ -13,6 +13,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type OrderStatus = 'all' | 'PENDING' | 'AWAITING_PAYMENT_CONFIRMATION' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'PAYMENT_FAILED';
 
+export const runtime = 'edge';
+
+
 export default function Page() {
   const { getToken } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
