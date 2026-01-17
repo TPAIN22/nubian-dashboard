@@ -6,8 +6,6 @@ import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
-export const runtime = 'edge';
-
 
 interface PageProps {
   params: Promise<{

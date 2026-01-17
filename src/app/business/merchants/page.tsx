@@ -3,7 +3,7 @@ import React from 'react';
 import { MerchantsTable } from './merchantsTable';
 import { auth } from '@clerk/nextjs/server';
 
-export const runtime = 'edge';
+
 
 
 export default async function MerchantsPage() {

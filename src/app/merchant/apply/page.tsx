@@ -32,7 +32,7 @@ interface Merchant {
   appliedAt: string
 }
 
-export const runtime = 'edge';
+
 
 
 export default function MerchantApply() {

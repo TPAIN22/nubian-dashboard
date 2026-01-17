@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Package, Users, ShoppingCart, TrendingUp, DollarSign, AlertCircle } from 'lucide-react';
 import { Suspense } from 'react';
 import Link from 'next/link';
-export const runtime = 'edge';
+
 interface DashboardStats {
   totalProducts: number;
   totalMerchants: number;

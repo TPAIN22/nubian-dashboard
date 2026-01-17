@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
 const nextConfig: NextConfig = {
   // Enable compression for better performance
@@ -178,5 +179,7 @@ const nextConfig: NextConfig = {
     return 'nubian-' + Date.now().toString();
   },
 };
+
+initOpenNextCloudflareForDev();
 
 export default nextConfig;

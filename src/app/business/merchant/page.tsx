@@ -3,7 +3,7 @@ import React, { Suspense } from 'react';
 import { BrandsTable } from './brandsTable';
 import { auth } from '@clerk/nextjs/server';
 
-export const runtime = 'edge';
+
 
 
 export type Merchant = {

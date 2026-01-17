@@ -11,7 +11,7 @@ import { useAuth } from '@clerk/nextjs';
 
 type Banner = BannerFormValues & { _id: string };
 
-export const runtime = 'edge';
+
 
 
 export default function BannersPage() {

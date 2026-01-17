@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Mail, Phone, MapPin, Clock, Facebook, Instagram, Twitter } from "lucide-react";
-export const runtime = 'edge';
+
 export default function ContactPage() {
   return (
     <main className="relative z-10 pt-28 pb-16 min-h-screen bg-background">

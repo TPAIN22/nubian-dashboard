@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import CouponForm from "./couponForm";
-export const runtime = 'edge';
+
 
 
 // Date formatting utility

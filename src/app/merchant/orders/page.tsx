@@ -9,7 +9,7 @@ import logger from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-export const runtime = 'edge';
+
 
 interface Order {
   _id: string

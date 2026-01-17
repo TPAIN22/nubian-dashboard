@@ -1,7 +1,6 @@
 // src/app/categories/edit/[id]/page.tsx
 import React from "react";
 import EditCategoryClient from "./EditCategoryClient";
-export const runtime = 'edge';
 interface EditCategoryPageProps {
   params: Promise<{ id: string }>;
 }

@@ -3,7 +3,7 @@ import { axiosInstance } from "@/lib/axiosInstance";
 import CategoryListClient from "@/components/categoreyClient";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-export const runtime = 'edge';
+
 
 
 // تعريف نوع البيانات

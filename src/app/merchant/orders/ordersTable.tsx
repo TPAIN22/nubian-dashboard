@@ -54,7 +54,7 @@ import { toast } from 'sonner'
 import logger from '@/lib/logger'
 import { Checkbox } from "@/components/ui/checkbox"
 
-export const runtime = 'edge';
+
 
 export type Order = {
   _id: string
