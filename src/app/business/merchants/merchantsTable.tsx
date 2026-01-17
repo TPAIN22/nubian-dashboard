@@ -18,6 +18,25 @@ import { axiosInstance } from '@/lib/axiosInstance';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
+// API Response interfaces
+interface ApiSuccessResponse {
+  success: true;
+  data?: any;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  error?: {
+    message: string;
+    code?: string;
+    details?: any;
+  };
+  message?: string;
+}
+
+type ApiResponse = ApiSuccessResponse | ApiErrorResponse;
+
 export type Merchant = {
   _id: string;
   clerkId: string;
@@ -54,9 +73,10 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
       const response = await fetch(`/api/merchants/${merchant._id}/approve`, {
         method: 'PATCH',
       });
-      const data = await response.json();
+      const data = await response.json() as ApiResponse;
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to approve');
+        const errorMessage = data.message || (data as ApiErrorResponse).error?.message || 'Failed to approve';
+        throw new Error(errorMessage);
       }
       toast.success("تم الموافقة على التاجر بنجاح");
       router.refresh();
@@ -81,9 +101,10 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
         },
         body: JSON.stringify({ rejectionReason }),
       });
-      const data = await response.json();
+      const data = await response.json() as ApiResponse;
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to reject');
+        const errorMessage = data.message || (data as ApiErrorResponse).error?.message || 'Failed to reject';
+        throw new Error(errorMessage);
       }
       toast.success("تم رفض التاجر بنجاح");
       router.refresh();
@@ -109,14 +130,14 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
         },
         body: JSON.stringify({ suspensionReason: suspensionReason.trim() }),
       });
-      
-      const data = await response.json();
-      
+
+      const data = await response.json() as ApiResponse;
+
       if (!response.ok) {
-        const errorMessage = data.message || data.error || `فشل في تعليق التاجر (${response.status})`;
+        const errorMessage = data.message || (data as ApiErrorResponse).error?.message || `فشل في تعليق التاجر (${response.status})`;
         throw new Error(errorMessage);
       }
-      
+
       toast.success("تم تعليق التاجر بنجاح");
       setSuspensionReason("");
       router.refresh();
@@ -134,9 +155,10 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
       const response = await fetch(`/api/merchants/${merchant._id}/unsuspend`, {
         method: 'PATCH',
       });
-      const data = await response.json();
+      const data = await response.json() as ApiResponse;
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to unsuspend');
+        const errorMessage = data.message || (data as ApiErrorResponse).error?.message || 'Failed to unsuspend';
+        throw new Error(errorMessage);
       }
       toast.success("تم إلغاء تعليق التاجر بنجاح");
       router.refresh();
@@ -153,9 +175,10 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
       const response = await fetch(`/api/merchants/${merchant._id}/delete`, {
         method: 'DELETE',
       });
-      const data = await response.json();
+      const data = await response.json() as ApiResponse;
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to delete');
+        const errorMessage = data.message || (data as ApiErrorResponse).error?.message || 'Failed to delete';
+        throw new Error(errorMessage);
       }
       toast.success("تم حذف التاجر بنجاح");
       router.refresh();
