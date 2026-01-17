@@ -1,7 +1,6 @@
 {
   "name": "nubian-dashboard",
-  "pages_build_config": {
-    "build_command": "npm run build",
-    "destination_dir": ".next"
-  }
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-01-17",
+  "compatibility_flags": ["nodejs_compat"]
 }
