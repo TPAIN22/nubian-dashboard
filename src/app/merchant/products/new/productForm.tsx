@@ -188,6 +188,10 @@ export default function MerchantProductForm({ productId }: { productId?: string 
   const images = useWatch({ control: form.control, name: 'images' })
   const name = useWatch({ control: form.control, name: 'name' })
   const description = useWatch({ control: form.control, name: 'description' })
+  const category = useWatch({ control: form.control, name: 'category' })
+  const merchantPrice = useWatch({ control: form.control, name: 'merchantPrice' })
+  const price = useWatch({ control: form.control, name: 'price' })
+  const stock = useWatch({ control: form.control, name: 'stock' })
 
   // Memoize variants for VariantManager to avoid re-renders
   const memoizedVariants = useMemo(() => {
@@ -214,11 +218,11 @@ export default function MerchantProductForm({ productId }: { productId?: string 
     const currentValues = {
       name,
       description,
-      category: form.getValues('category'),
+      category,
       productType,
-      merchantPrice: form.getValues('merchantPrice'),
-      price: form.getValues('price'),
-      stock: form.getValues('stock'),
+      merchantPrice,
+      price,
+      stock,
       attributes,
       variants,
       images
@@ -281,7 +285,10 @@ export default function MerchantProductForm({ productId }: { productId?: string 
     attributes,
     variants,
     images,
-    form
+    category,
+    merchantPrice,
+    price,
+    stock
   ])
 
   // Check if a step is enabled

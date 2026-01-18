@@ -188,6 +188,10 @@ export default function ProductForm({ productId }: { productId?: string }) {
   const images = useWatch({ control: form.control, name: "images" });
   const name = useWatch({ control: form.control, name: "name" });
   const description = useWatch({ control: form.control, name: "description" });
+  const category = useWatch({ control: form.control, name: "category" });
+  const merchantPrice = useWatch({ control: form.control, name: "merchantPrice" });
+  const price = useWatch({ control: form.control, name: "price" });
+  const stock = useWatch({ control: form.control, name: "stock" });
 
   const memoizedVariants = useMemo(() => {
     return (variants || []).map((v: any) => ({
@@ -335,11 +339,11 @@ export default function ProductForm({ productId }: { productId?: string }) {
     const currentValues = {
       name,
       description,
-      category: form.getValues("category"),
+      category,
       productType,
-      merchantPrice: form.getValues("merchantPrice"),
-      price: form.getValues("price"),
-      stock: form.getValues("stock"),
+      merchantPrice,
+      price,
+      stock,
       attributes,
       variants,
       images,
@@ -407,7 +411,7 @@ export default function ProductForm({ productId }: { productId?: string }) {
     }
 
     return states;
-  }, [formErrors, name, description, productType, attributes, variants, images, form]);
+  }, [formErrors, name, description, productType, attributes, variants, images, category, merchantPrice, price, stock]);
 
   const isStepEnabled = useCallback(
     (step: number) => stepStates.enabled[step - 1] ?? false,
