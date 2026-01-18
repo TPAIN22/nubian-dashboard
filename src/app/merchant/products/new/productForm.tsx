@@ -535,11 +535,16 @@ export default function MerchantProductForm({ productId }: { productId?: string 
       (url.startsWith('http://') || url.startsWith('https://'))
     )
 
-    form.setValue('images', validUrls, {
-      shouldValidate: true,
-      shouldDirty: true,
-      shouldTouch: true,
-    })
+    const currentImages = form.getValues('images') || []
+    const urlsChanged = JSON.stringify(validUrls.sort()) !== JSON.stringify(currentImages.sort())
+
+    if (urlsChanged) {
+      form.setValue('images', validUrls, {
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true,
+      })
+    }
   }, []) // Remove form dependency to prevent recreation on every render
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {

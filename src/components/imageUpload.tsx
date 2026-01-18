@@ -69,6 +69,10 @@ export function ImageUpload({ onUploadComplete, initialUrls = [] }: ImageUploadP
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const lastNotifiedUrlsRef = useRef<string>("");
   const lastInitialUrlsRef = useRef<string>("");
+  const onUploadCompleteRef = useRef<ImageUploadProps['onUploadComplete']>();
+
+  // Update the ref whenever onUploadComplete changes
+  onUploadCompleteRef.current = onUploadComplete;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -417,14 +421,14 @@ useEffect(() => {
     if (urlsString !== lastNotifiedUrlsRef.current) {
       setImageUrls(urlsArray);
       lastNotifiedUrlsRef.current = urlsString;
-      onUploadComplete?.(urlsArray);
-      
+      onUploadCompleteRef.current?.(urlsArray);
+
       console.log('ImageUpload: Parent notified of URL changes', {
         count: urlsArray.length,
         urls: urlsArray,
       });
     }
-  }, [uploadedUrls, onUploadComplete]);
+  }, [uploadedUrls]);
 
   const stats = getOverallStats();
 
