@@ -691,6 +691,14 @@ const formSchema = z
         return;
       }
 
+      
+            const dataToSend: any = {
+              name: String(values.name).trim(),
+              description: String(values.description).trim(),
+              category: String(values.category).trim(),
+              images: imagesArray,
+              isActive: values.isActive !== false,
+            };
       // FORCE images to be an array - last resort fix (MERCHANT)
       if (!Array.isArray(dataToSend.images)) {
         console.log("FORCED FIX (MERCHANT): dataToSend.images was not an array:", dataToSend.images);
@@ -699,14 +707,6 @@ const formSchema = z
           : [];
         console.log("FORCED FIX (MERCHANT): dataToSend.images is now:", dataToSend.images);
       }
-
-      const dataToSend: any = {
-        name: String(values.name).trim(),
-        description: String(values.description).trim(),
-        category: String(values.category).trim(),
-        images: imagesArray,
-        isActive: values.isActive !== false,
-      };
 
       console.log("About to send dataToSend (MERCHANT):", dataToSend);
       console.log("dataToSend.images:", dataToSend.images);
