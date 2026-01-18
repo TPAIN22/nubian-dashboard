@@ -127,34 +127,34 @@ const formSchema = z
       });
     }
   });
+  
+  interface Category {
+    _id: string;
+    name: string;
+  }
 
-interface Category {
-  _id: string;
-  name: string;
-}
-
-interface Merchant {
-  _id: string;
-  businessName: string;
-  businessEmail: string;
-  status: string;
-}
-
-export default function MerchantProductForm({ productId }: { productId?: string }) {
-  const router = useRouter();
+  interface Merchant {
+    _id: string;
+    businessName: string;
+    businessEmail: string;
+    status: string;
+  }
+  
+  export default function MerchantProductForm({ productId }: { productId?: string }) {
+    
+    
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [merchants, setMerchants] = useState<Merchant[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [categoriesLoading, setCategoriesLoading] = useState(true);
+    const [merchantsLoading, setMerchantsLoading] = useState(true);
+    const isSubmittingRef = useRef(false);
+    const [currentStep, setCurrentStep] = useState(1);
+    const maxStep = 5;
+    const [isEdit] = useState(!!productId);
+    const router = useRouter();
   const { getToken } = useAuth();
   const { user, isLoaded: userLoaded } = useUser();
-
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [merchants, setMerchants] = useState<Merchant[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const [merchantsLoading, setMerchantsLoading] = useState(true);
-  const isSubmittingRef = useRef(false);
-  const [currentStep, setCurrentStep] = useState(1);
-  const maxStep = 5;
-  const [isEdit] = useState(!!productId);
-
   const form = useForm<z.infer<typeof formSchema>>({
     // @ts-expect-error - react-hook-form type inference issue with zod union types
     resolver: zodResolver(formSchema),
@@ -183,17 +183,6 @@ export default function MerchantProductForm({ productId }: { productId?: string 
   const formRef = useRef(form);
   const initialImageUrlsRef = useRef<string[]>([]);
 
-  // Keep form ref updated and track initial image URLs
-  useEffect(() => {
-    formRef.current = form;
-    // Set initial URLs once when component mounts or when productId changes
-    if (productId && images && images.length > 0 && initialImageUrlsRef.current.length === 0) {
-      initialImageUrlsRef.current = [...images];
-    } else if (!productId && initialImageUrlsRef.current.length === 0) {
-      initialImageUrlsRef.current = [];
-    }
-  }, [form, productId, images]);
-
   // Watch form values efficiently - only watch what we need
   // These must come AFTER form initialization
   const productType = useWatch({ control: form.control, name: 'productType' })
@@ -208,6 +197,17 @@ export default function MerchantProductForm({ productId }: { productId?: string 
   const stock = useWatch({ control: form.control, name: 'stock' })
   const nubianMarkup = useWatch({ control: form.control, name: 'nubianMarkup' })
   const isActive = useWatch({ control: form.control, name: 'isActive' })
+  // Keep form ref updated and track initial image URLs
+  useEffect(() => {
+    formRef.current = form;
+    // Set initial URLs once when component mounts or when productId changes
+    if (productId && images && images.length > 0 && initialImageUrlsRef.current.length === 0) {
+      initialImageUrlsRef.current = [...images];
+    } else if (!productId && initialImageUrlsRef.current.length === 0) {
+      initialImageUrlsRef.current = [];
+    }
+  }, [form, productId, images]);
+
 
   // Memoize variants for VariantManager to avoid re-renders
   const memoizedVariants = useMemo(() => {
