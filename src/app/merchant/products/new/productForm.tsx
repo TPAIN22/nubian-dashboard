@@ -58,7 +58,7 @@ const formSchema = z
     name: z.string().min(1, "اسم المنتج مطلوب"),
     description: z.string().min(1, "الوصف مطلوب"),
     category: z.string().min(1, "الفئة مطلوبة"),
-    images: z.array(z.string()).min(1, "صورة واحدة على الأقل مطلوبة"),
+    images: z.array(z.string()).min(1, "صورة واحدة على الأقل مطلوبة").max(10, "لا يمكن رفع أكثر من 10 صور"),
 
     productType: z
       .string()
@@ -190,6 +190,16 @@ const formSchema = z
   const variants = useWatch({ control: form.control, name: 'variants' })
   const images = useWatch({ control: form.control, name: 'images' })
   const name = useWatch({ control: form.control, name: 'name' })
+
+  // Watch for images changes and ensure they stay as arrays
+  useEffect(() => {
+    if (images && !Array.isArray(images)) {
+      console.log("IMAGES CORRUPTION DETECTED (MERCHANT): images is not an array:", images);
+      const fixedImages = typeof images === "string" ? [images] : [];
+      console.log("Fixing images to:", fixedImages);
+      form.setValue("images", fixedImages, { shouldValidate: false });
+    }
+  }, [images, form]);
   const description = useWatch({ control: form.control, name: 'description' })
   const category = useWatch({ control: form.control, name: 'category' })
   const merchantPrice = useWatch({ control: form.control, name: 'merchantPrice' })
@@ -201,7 +211,7 @@ const formSchema = z
   useEffect(() => {
     formRef.current = form;
     // Set initial URLs once when component mounts or when productId changes
-    if (productId && images && images.length > 0 && initialImageUrlsRef.current.length === 0) {
+    if (productId && Array.isArray(images) && images.length > 0 && initialImageUrlsRef.current.length === 0) {
       initialImageUrlsRef.current = [...images];
     } else if (!productId && initialImageUrlsRef.current.length === 0) {
       initialImageUrlsRef.current = [];
@@ -522,7 +532,7 @@ const formSchema = z
               : [],
             sizes: product.sizes || [],
             colors: product.colors || [],
-            images: product.images || [],
+            images: Array.isArray(product.images) ? product.images : (product.images && typeof product.images === "string" ? [product.images] : []),
             merchant: product.merchant?._id || product.merchant || "",
             priorityScore: product.priorityScore || 0,
             featured: product.featured || false,
@@ -570,9 +580,19 @@ const formSchema = z
     isSubmittingRef.current = true;
     setLoading(true);
 
-    const currentImages = values.images || form.getValues("images") || [];
+    console.log("onSubmit called with values (MERCHANT):", values);
+    console.log("values.images:", values.images);
+    console.log("values.images type:", typeof values.images);
+    console.log("values.images isArray:", Array.isArray(values.images));
 
-    if (!currentImages || !Array.isArray(currentImages) || currentImages.length < 1) {
+    // Ensure images is always an array (double-check)
+    const currentImages = Array.isArray(values.images) ? values.images : [];
+
+    console.log("currentImages after processing:", currentImages);
+    console.log("currentImages type:", typeof currentImages);
+    console.log("currentImages isArray:", Array.isArray(currentImages));
+
+    if (!currentImages || currentImages.length < 1) {
       toast.error("يرجى رفع صورة واحدة على الأقل قبل الحفظ");
       isSubmittingRef.current = false;
       setLoading(false);
@@ -671,6 +691,15 @@ const formSchema = z
         return;
       }
 
+      // FORCE images to be an array - last resort fix (MERCHANT)
+      if (!Array.isArray(dataToSend.images)) {
+        console.log("FORCED FIX (MERCHANT): dataToSend.images was not an array:", dataToSend.images);
+        dataToSend.images = dataToSend.images && typeof dataToSend.images === "string"
+          ? [dataToSend.images]
+          : [];
+        console.log("FORCED FIX (MERCHANT): dataToSend.images is now:", dataToSend.images);
+      }
+
       const dataToSend: any = {
         name: String(values.name).trim(),
         description: String(values.description).trim(),
@@ -678,6 +707,11 @@ const formSchema = z
         images: imagesArray,
         isActive: values.isActive !== false,
       };
+
+      console.log("About to send dataToSend (MERCHANT):", dataToSend);
+      console.log("dataToSend.images:", dataToSend.images);
+      console.log("dataToSend.images type:", typeof dataToSend.images);
+      console.log("dataToSend.images isArray:", Array.isArray(dataToSend.images));
 
       const userRole = user?.publicMetadata?.role as string | undefined;
 
@@ -761,8 +795,34 @@ const formSchema = z
 
       const headers = { Authorization: `Bearer ${token}` };
 
+      console.log("🚀 FINAL CHECK (MERCHANT) - About to make axios call:");
+      console.log("dataToSend.images right before axios:", dataToSend.images);
+      console.log("dataToSend.images type:", typeof dataToSend.images);
+      console.log("dataToSend.images isArray:", Array.isArray(dataToSend.images));
+
+      // One more forced fix right before axios (MERCHANT)
+      if (!Array.isArray(dataToSend.images)) {
+        console.log("🚨 EMERGENCY FIX (MERCHANT): dataToSend.images was still not an array!");
+        dataToSend.images = dataToSend.images && typeof dataToSend.images === "string"
+          ? [dataToSend.images]
+          : [];
+        console.log("🚨 EMERGENCY FIX (MERCHANT): dataToSend.images is now:", dataToSend.images);
+      }
+
+      console.log("Making axios PUT request with dataToSend (MERCHANT):", JSON.stringify(dataToSend, null, 2));
+
       if (isEdit && productId) {
-        await axiosInstance.put(`/products/${productId}`, dataToSend, { headers });
+        // ABSOLUTE FINAL FIX: Override images in the request itself (MERCHANT)
+        const requestData = {
+          ...dataToSend,
+          images: Array.isArray(dataToSend.images) ? dataToSend.images : (
+            dataToSend.images && typeof dataToSend.images === "string" ? [dataToSend.images] : []
+          )
+        };
+
+        console.log("FINAL REQUEST DATA (MERCHANT):", JSON.stringify(requestData, null, 2));
+
+        await axiosInstance.put(`/products/${productId}`, requestData, { headers });
         toast.success("تم تحديث المنتج بنجاح");
         isSubmittingRef.current = false;
         setLoading(false);

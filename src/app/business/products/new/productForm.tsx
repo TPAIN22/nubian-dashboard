@@ -59,7 +59,7 @@ const formSchema = z
     name: z.string().min(1, "اسم المنتج مطلوب"),
     description: z.string().min(1, "الوصف مطلوب"),
     category: z.string().min(1, "الفئة مطلوبة"),
-    images: z.array(z.string()).min(1, "صورة واحدة على الأقل مطلوبة"),
+    images: z.array(z.string()).min(1, "صورة واحدة على الأقل مطلوبة").max(10, "لا يمكن رفع أكثر من 10 صور"),
 
     productType: z
       .string()
@@ -157,6 +157,9 @@ export default function ProductForm({ productId }: { productId?: string }) {
   const maxStep = 5;
   const [isEdit] = useState(!!productId);
 
+  // TRACK IMAGES SEPARATELY to avoid form corruption
+  const [actualImages, setActualImages] = useState<string[]>([]);
+
   const form = useForm<z.infer<typeof formSchema>>({
     // @ts-expect-error - react-hook-form type inference issue with zod union types
     resolver: zodResolver(formSchema),
@@ -174,13 +177,23 @@ export default function ProductForm({ productId }: { productId?: string }) {
       variants: [],
       sizes: [],
       colors: [],
-      images: [],
+      images: [], // Always an array
       merchant: "",
       priorityScore: 0,
       featured: false,
       isActive: true,
     },
   });
+
+  // Watch for images changes and ensure they stay as arrays
+  const watchedImages = useWatch({ control: form.control, name: "images" });
+
+  useEffect(() => {
+    if (watchedImages && !Array.isArray(watchedImages)) {
+      const fixedImages = typeof watchedImages === "string" ? [watchedImages] : [];
+      form.setValue("images", fixedImages, { shouldValidate: false });
+    }
+  }, [watchedImages, form]);
 
   const formRef = useRef(form);
   const initialImageUrlsRef = useRef<string[]>([]);
@@ -205,7 +218,7 @@ export default function ProductForm({ productId }: { productId?: string }) {
   useEffect(() => {
     formRef.current = form;
     // Set initial URLs once when component mounts or when productId changes
-    if (productId && images && images.length > 0 && initialImageUrlsRef.current.length === 0) {
+    if (productId && Array.isArray(images) && images.length > 0 && initialImageUrlsRef.current.length === 0) {
       initialImageUrlsRef.current = [...images];
     } else if (!productId && initialImageUrlsRef.current.length === 0) {
       initialImageUrlsRef.current = [];
@@ -328,12 +341,18 @@ export default function ProductForm({ productId }: { productId?: string }) {
               : [],
             sizes: product.sizes || [],
             colors: product.colors || [],
-            images: product.images || [],
+            images: Array.isArray(product.images) ? product.images : (product.images && typeof product.images === "string" ? [product.images] : []),
             merchant: product.merchant?._id || product.merchant || "",
             priorityScore: product.priorityScore || 0,
             featured: product.featured || false,
             isActive: product.isActive !== false,
           });
+
+          console.log("FORM INIT DEBUG: product.images:", product.images);
+          console.log("FORM INIT DEBUG: setting form images to:", Array.isArray(product.images) ? product.images : (product.images && typeof product.images === "string" ? [product.images] : []));
+
+          // Also set the separate state
+          setActualImages(Array.isArray(product.images) ? product.images : (product.images && typeof product.images === "string" ? [product.images] : []));
         } catch (error) {
           logger.error("Failed to fetch product", {
             error: error instanceof Error ? error.message : String(error),
@@ -530,6 +549,8 @@ export default function ProductForm({ productId }: { productId?: string }) {
 
   const handleUploadDone = useCallback(
     (urls: string[]) => {
+      console.log('handleUploadDone called with URLs:', urls);
+
       const validUrls = urls.filter(
         (url) =>
           url &&
@@ -538,15 +559,26 @@ export default function ProductForm({ productId }: { productId?: string }) {
           (url.startsWith("http://") || url.startsWith("https://"))
       );
 
+      console.log('Filtered valid URLs:', validUrls);
+
+      // UPDATE BOTH FORM AND SEPARATE STATE
+      setActualImages(validUrls);
+
       const currentImages = formRef.current.getValues("images") || [];
       const urlsChanged = JSON.stringify(validUrls.sort()) !== JSON.stringify(currentImages.sort());
 
+      console.log('Current images in form:', currentImages);
+      console.log('URLs changed:', urlsChanged);
+
       if (urlsChanged) {
-        formRef.current.setValue("images", validUrls, {
+        // Ensure we always set an array value
+        const imagesArray = Array.isArray(validUrls) ? validUrls : [];
+        formRef.current.setValue("images", imagesArray, {
           shouldValidate: false, // Don't validate immediately to avoid premature errors
           shouldDirty: true,
           shouldTouch: true,
         });
+        console.log('Set images to:', imagesArray);
       }
     },
     [] // Stable callback using ref
@@ -561,9 +593,15 @@ export default function ProductForm({ productId }: { productId?: string }) {
     isSubmittingRef.current = true;
     setLoading(true);
 
-    const currentImages = values.images || form.getValues("images") || [];
+    console.log("EDIT DEBUG: values.images at submit:", values.images);
+    console.log("EDIT DEBUG: values.images type:", typeof values.images);
+    console.log("EDIT DEBUG: values.images isArray:", Array.isArray(values.images));
+    console.log("EDIT DEBUG: values.images length:", values.images?.length);
 
-    if (!currentImages || !Array.isArray(currentImages) || currentImages.length < 1) {
+    // USE FORM VALUES FOR IMAGES, but ensure it's an array
+    const currentImages = Array.isArray(values.images) ? values.images : [];
+
+    if (!currentImages || currentImages.length < 1) {
       toast.error("يرجى رفع صورة واحدة على الأقل قبل الحفظ");
       isSubmittingRef.current = false;
       setLoading(false);
@@ -654,21 +692,17 @@ export default function ProductForm({ productId }: { productId?: string }) {
         }
       }
 
-      const imagesArray = Array.isArray(validImages) ? validImages : [];
-      if (imagesArray.length < 1) {
-        toast.error("خطأ: لا توجد صور");
-        isSubmittingRef.current = false;
-        setLoading(false);
-        return;
-      }
+      // USE currentImages directly (already validated above)
 
       const dataToSend: any = {
         name: String(values.name).trim(),
         description: String(values.description).trim(),
         category: String(values.category).trim(),
-        images: imagesArray,
+        images: currentImages, // Use the separate state
         isActive: values.isActive !== false,
       };
+
+      console.log("🚀 DEBUG: Data being sent to backend:", JSON.stringify(dataToSend, null, 2));
 
       const userRole = user?.publicMetadata?.role as string | undefined;
 
@@ -743,6 +777,16 @@ export default function ProductForm({ productId }: { productId?: string }) {
         dataToSend.featured = !!values.featured;
       }
 
+      // FORCE images to be an array - last resort fix
+      if (!Array.isArray(dataToSend.images)) {
+        console.log("FORCED FIX: dataToSend.images was not an array:", dataToSend.images);
+        dataToSend.images = dataToSend.images && typeof dataToSend.images === "string"
+          ? [dataToSend.images]
+          : [];
+        console.log("FORCED FIX: dataToSend.images is now:", dataToSend.images);
+      }
+
+
       logger.info("Sending product data to backend", {
         dataToSend: { ...dataToSend, imagesCount: dataToSend.images.length },
         userRole,
@@ -752,8 +796,29 @@ export default function ProductForm({ productId }: { productId?: string }) {
 
       const headers = { Authorization: `Bearer ${token}` };
 
+      console.log("🚀 FINAL CHECK - About to make axios call:");
+      console.log("dataToSend.images right before axios:", dataToSend.images);
+      console.log("dataToSend.images type:", typeof dataToSend.images);
+      console.log("dataToSend.images isArray:", Array.isArray(dataToSend.images));
+
+      // One more forced fix right before axios
+      if (!Array.isArray(dataToSend.images)) {
+        console.log("🚨 EMERGENCY FIX: dataToSend.images was still not an array!");
+        dataToSend.images = dataToSend.images && typeof dataToSend.images === "string"
+          ? [dataToSend.images]
+          : [];
+        console.log("🚨 EMERGENCY FIX: dataToSend.images is now:", dataToSend.images);
+      }
+
+      console.log("Making axios PUT request with dataToSend:", JSON.stringify(dataToSend, null, 2));
+
       if (isEdit && productId) {
-        await axiosInstance.put(`/products/${productId}`, dataToSend, { headers });
+        // Since we're using currentImages directly in dataToSend, it should already be correct
+        console.log("FINAL REQUEST DATA:", JSON.stringify(dataToSend, null, 2));
+
+        const result = await axiosInstance.put(`/products/${productId}`, dataToSend, { headers });
+        console.log("Axios PUT result:", result);
+
         toast.success("تم تحديث المنتج بنجاح");
         isSubmittingRef.current = false;
         setLoading(false);
@@ -769,6 +834,8 @@ export default function ProductForm({ productId }: { productId?: string }) {
           name: "",
           description: "",
           productType: "" as any,
+          merchantPrice: undefined,
+          nubianMarkup: 10,
           price: undefined,
           category: "",
           stock: undefined,
@@ -776,10 +843,15 @@ export default function ProductForm({ productId }: { productId?: string }) {
           variants: [],
           sizes: [],
           colors: [],
-          images: [],
+          images: [], // Always an array
           merchant: "",
+          priorityScore: 0,
+          featured: false,
           isActive: true,
         });
+
+        // Also reset the separate images state
+        setActualImages([]);
 
         setCurrentStep(1);
         setTimeout(() => router.push("/business/products"), 500);
@@ -906,13 +978,19 @@ export default function ProductForm({ productId }: { productId?: string }) {
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
+                  console.log("Form onSubmit triggered, currentStep:", currentStep);
 
                   if (currentStep === 5) {
-                    if (isSubmittingRef.current || loading) return;
+                    console.log("Submitting form for step 5");
+                    if (isSubmittingRef.current || loading) {
+                      console.log("Submission blocked - already submitting");
+                      return;
+                    }
 
                     form.handleSubmit(
                       onSubmit as any,
                       (errors) => {
+                        console.log("Form validation failed with errors:", errors);
                         logger.error("Form validation failed", { errors });
                         const errorMessages = Object.entries(errors).map(([key, error]: any) => {
                           if (error?.message) return `${key}: ${error.message}`;
@@ -922,6 +1000,7 @@ export default function ProductForm({ productId }: { productId?: string }) {
                       }
                     )(e);
                   } else {
+                    console.log("Going to next step:", currentStep + 1);
                     goToNextStep();
                   }
                 }}

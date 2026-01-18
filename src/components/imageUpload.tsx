@@ -421,6 +421,7 @@ useEffect(() => {
     if (urlsString !== lastNotifiedUrlsRef.current) {
       setImageUrls(urlsArray);
       lastNotifiedUrlsRef.current = urlsString;
+      console.log('ImageUpload: Notifying parent with URLs:', urlsArray);
       onUploadCompleteRef.current?.(urlsArray);
 
       console.log('ImageUpload: Parent notified of URL changes', {
