@@ -181,11 +181,18 @@ export default function MerchantProductForm({ productId }: { productId?: string 
   });
 
   const formRef = useRef(form);
+  const initialImageUrlsRef = useRef<string[]>([]);
 
-  // Keep form ref updated
+  // Keep form ref updated and track initial image URLs
   useEffect(() => {
     formRef.current = form;
-  });
+    // Set initial URLs once when component mounts or when productId changes
+    if (productId && images && images.length > 0 && initialImageUrlsRef.current.length === 0) {
+      initialImageUrlsRef.current = [...images];
+    } else if (!productId && initialImageUrlsRef.current.length === 0) {
+      initialImageUrlsRef.current = [];
+    }
+  }, [form, productId, images]);
 
   // Watch form values efficiently - only watch what we need
   // These must come AFTER form initialization
@@ -547,7 +554,7 @@ export default function MerchantProductForm({ productId }: { productId?: string 
 
     if (urlsChanged) {
       formRef.current.setValue('images', validUrls, {
-        shouldValidate: true,
+        shouldValidate: false, // Don't validate immediately to avoid premature errors
         shouldDirty: true,
         shouldTouch: true,
       })
@@ -1262,7 +1269,7 @@ export default function MerchantProductForm({ productId }: { productId?: string 
                       <Label className="mb-4 block text-center font-medium">قم برفع صور المنتج (صورة واحدة على الأقل) *</Label>
                       <ImageUpload
                         onUploadComplete={handleUploadDone}
-                        initialUrls={images}
+                        initialUrls={initialImageUrlsRef.current}
                       />
                       <div className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
                         <Info className="w-4 h-4" />

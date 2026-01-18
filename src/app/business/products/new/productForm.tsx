@@ -183,16 +183,23 @@ export default function ProductForm({ productId }: { productId?: string }) {
   });
 
   const formRef = useRef(form);
+  const initialImageUrlsRef = useRef<string[]>([]);
 
-  // Keep form ref updated
+  const images = useWatch({ control: form.control, name: "images" });
+  // Keep form ref updated and track initial image URLs
   useEffect(() => {
     formRef.current = form;
-  });
+    // Set initial URLs once when component mounts or when productId changes
+    if (productId && images && images.length > 0 && initialImageUrlsRef.current.length === 0) {
+      initialImageUrlsRef.current = [...images];
+    } else if (!productId && initialImageUrlsRef.current.length === 0) {
+      initialImageUrlsRef.current = [];
+    }
+  }, [form, productId, images]);
 
   const productType = useWatch({ control: form.control, name: "productType" });
   const attributes = useWatch({ control: form.control, name: "attributes" });
   const variants = useWatch({ control: form.control, name: "variants" });
-  const images = useWatch({ control: form.control, name: "images" });
   const name = useWatch({ control: form.control, name: "name" });
   const description = useWatch({ control: form.control, name: "description" });
   const category = useWatch({ control: form.control, name: "category" });
@@ -536,7 +543,7 @@ export default function ProductForm({ productId }: { productId?: string }) {
 
       if (urlsChanged) {
         formRef.current.setValue("images", validUrls, {
-          shouldValidate: true,
+          shouldValidate: false, // Don't validate immediately to avoid premature errors
           shouldDirty: true,
           shouldTouch: true,
         });
@@ -1359,7 +1366,7 @@ export default function ProductForm({ productId }: { productId?: string }) {
                         قم برفع صور المنتج (صورة واحدة على الأقل) *
                       </Label>
 
-                      <ImageUpload onUploadComplete={handleUploadDone} initialUrls={images} />
+                      <ImageUpload onUploadComplete={handleUploadDone} initialUrls={initialImageUrlsRef.current} />
 
                       <div className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
                         <Info className="w-4 h-4" />
