@@ -185,6 +185,21 @@ export default function ProductForm({ productId }: { productId?: string }) {
   const formRef = useRef(form);
   const initialImageUrlsRef = useRef<string[]>([]);
 
+  
+    const productType = useWatch({ control: form.control, name: "productType" });
+    const attributes = useWatch({ control: form.control, name: "attributes" });
+    const variants = useWatch({ control: form.control, name: "variants" });
+    const name = useWatch({ control: form.control, name: "name" });
+    const description = useWatch({ control: form.control, name: "description" });
+    const category = useWatch({ control: form.control, name: "category" });
+    const merchantPrice = useWatch({ control: form.control, name: "merchantPrice" });
+    const price = useWatch({ control: form.control, name: "price" });
+    const stock = useWatch({ control: form.control, name: "stock" });
+    const merchant = useWatch({ control: form.control, name: "merchant" });
+    const nubianMarkup = useWatch({ control: form.control, name: "nubianMarkup" });
+    const priorityScore = useWatch({ control: form.control, name: "priorityScore" });
+    const featured = useWatch({ control: form.control, name: "featured" });
+    const isActive = useWatch({ control: form.control, name: "isActive" });
   const images = useWatch({ control: form.control, name: "images" });
   // Keep form ref updated and track initial image URLs
   useEffect(() => {
@@ -196,21 +211,6 @@ export default function ProductForm({ productId }: { productId?: string }) {
       initialImageUrlsRef.current = [];
     }
   }, [form, productId, images]);
-
-  const productType = useWatch({ control: form.control, name: "productType" });
-  const attributes = useWatch({ control: form.control, name: "attributes" });
-  const variants = useWatch({ control: form.control, name: "variants" });
-  const name = useWatch({ control: form.control, name: "name" });
-  const description = useWatch({ control: form.control, name: "description" });
-  const category = useWatch({ control: form.control, name: "category" });
-  const merchantPrice = useWatch({ control: form.control, name: "merchantPrice" });
-  const price = useWatch({ control: form.control, name: "price" });
-  const stock = useWatch({ control: form.control, name: "stock" });
-  const merchant = useWatch({ control: form.control, name: "merchant" });
-  const nubianMarkup = useWatch({ control: form.control, name: "nubianMarkup" });
-  const priorityScore = useWatch({ control: form.control, name: "priorityScore" });
-  const featured = useWatch({ control: form.control, name: "featured" });
-  const isActive = useWatch({ control: form.control, name: "isActive" });
 
   const memoizedVariants = useMemo(() => {
     return (variants || []).map((v: any) => ({
