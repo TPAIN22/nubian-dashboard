@@ -182,6 +182,13 @@ export default function ProductForm({ productId }: { productId?: string }) {
     },
   });
 
+  const formRef = useRef(form);
+
+  // Keep form ref updated
+  useEffect(() => {
+    formRef.current = form;
+  });
+
   const productType = useWatch({ control: form.control, name: "productType" });
   const attributes = useWatch({ control: form.control, name: "attributes" });
   const variants = useWatch({ control: form.control, name: "variants" });
@@ -524,18 +531,18 @@ export default function ProductForm({ productId }: { productId?: string }) {
           (url.startsWith("http://") || url.startsWith("https://"))
       );
 
-      const currentImages = form.getValues("images") || [];
+      const currentImages = formRef.current.getValues("images") || [];
       const urlsChanged = JSON.stringify(validUrls.sort()) !== JSON.stringify(currentImages.sort());
 
       if (urlsChanged) {
-        form.setValue("images", validUrls, {
+        formRef.current.setValue("images", validUrls, {
           shouldValidate: true,
           shouldDirty: true,
           shouldTouch: true,
         });
       }
     },
-    [] // Remove form dependency to prevent recreation on every render
+    [] // Stable callback using ref
   );
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {

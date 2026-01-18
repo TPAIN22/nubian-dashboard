@@ -69,7 +69,7 @@ export function ImageUpload({ onUploadComplete, initialUrls = [] }: ImageUploadP
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const lastNotifiedUrlsRef = useRef<string>("");
   const lastInitialUrlsRef = useRef<string>("");
-  const onUploadCompleteRef = useRef<ImageUploadProps['onUploadComplete']>();
+  const onUploadCompleteRef = useRef<ImageUploadProps['onUploadComplete']>(undefined);
 
   // Update the ref whenever onUploadComplete changes
   onUploadCompleteRef.current = onUploadComplete;
