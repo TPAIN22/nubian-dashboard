@@ -192,6 +192,8 @@ export default function MerchantProductForm({ productId }: { productId?: string 
   const merchantPrice = useWatch({ control: form.control, name: 'merchantPrice' })
   const price = useWatch({ control: form.control, name: 'price' })
   const stock = useWatch({ control: form.control, name: 'stock' })
+  const nubianMarkup = useWatch({ control: form.control, name: 'nubianMarkup' })
+  const isActive = useWatch({ control: form.control, name: 'isActive' })
 
   // Memoize variants for VariantManager to avoid re-renders
   const memoizedVariants = useMemo(() => {
@@ -1246,9 +1248,9 @@ export default function MerchantProductForm({ productId }: { productId?: string 
                     
                     <div className="bg-muted/30 p-6 rounded-xl border-2 border-dashed">
                       <Label className="mb-4 block text-center font-medium">قم برفع صور المنتج (صورة واحدة على الأقل) *</Label>
-                      <ImageUpload 
-                        onUploadComplete={handleUploadDone} 
-                        initialUrls={form.getValues('images')}
+                      <ImageUpload
+                        onUploadComplete={handleUploadDone}
+                        initialUrls={images}
                       />
                       <div className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
                         <Info className="w-4 h-4" />
@@ -1322,13 +1324,13 @@ export default function MerchantProductForm({ productId }: { productId?: string 
                         <div className="rounded-xl border p-6 bg-card space-y-4 shadow-sm">
                           <div className="flex justify-between items-start border-b pb-4">
                             <div className="space-y-1">
-                              <h4 className="text-2xl font-bold">{form.getValues("name") || "اسم غير محدد"}</h4>
+                              <h4 className="text-2xl font-bold">{name || "اسم غير محدد"}</h4>
                               <p className="text-sm text-muted-foreground">
-                                {categories.find((c) => c._id === form.getValues("category"))?.name || "فئة غير محددة"}
+                                {categories.find((c) => c._id === category)?.name || "فئة غير محددة"}
                               </p>
                             </div>
-                            <Badge variant={form.getValues("isActive") ? "default" : "outline"}>
-                              {form.getValues("isActive") ? "نشط" : "غير نشط"}
+                            <Badge variant={isActive ? "default" : "outline"}>
+                              {isActive ? "نشط" : "غير نشط"}
                             </Badge>
                           </div>
 
@@ -1358,12 +1360,12 @@ export default function MerchantProductForm({ productId }: { productId?: string 
                                 <div className="space-y-1">
                                   <Label className="text-xs text-muted-foreground uppercase tracking-wider">السعر النهائي</Label>
                                   <p className="text-xl font-bold text-primary">
-                                    {((form.getValues("merchantPrice") || form.getValues("price") || 0) *
-                                      (1 + (form.getValues("nubianMarkup") || 10) / 100)).toFixed(2)}{" "}
+                                    {((merchantPrice || price || 0) *
+                                      (1 + (nubianMarkup || 10) / 100)).toFixed(2)}{" "}
                                     ج.س
                                   </p>
                                   <p className="text-[10px] text-muted-foreground">
-                                    يشمل هامش ربح نوبيان ({form.getValues("nubianMarkup") || 10}%)
+                                    يشمل هامش ربح نوبيان ({nubianMarkup || 10}%)
                                   </p>
                                 </div>
 
@@ -1372,10 +1374,10 @@ export default function MerchantProductForm({ productId }: { productId?: string 
                                   <p
                                     className={cn(
                                       "text-lg font-bold",
-                                      (form.getValues("stock") || 0) < 10 ? "text-destructive" : "text-foreground"
+                                      (stock || 0) < 10 ? "text-destructive" : "text-foreground"
                                     )}
                                   >
-                                    {form.getValues("stock") ?? 0} قطعة
+                                    {stock ?? 0} قطعة
                                   </p>
                                 </div>
                               </>
@@ -1385,7 +1387,7 @@ export default function MerchantProductForm({ productId }: { productId?: string 
                           <div className="pt-4 border-t">
                             <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-2 block">الوصف</Label>
                             <p className="text-sm leading-relaxed text-muted-foreground line-clamp-3 italic">
-                              &quot;{form.getValues("description") || "لا يوجد وصف متاح"}&quot;
+                              &quot;{description || "لا يوجد وصف متاح"}&quot;
                             </p>
                           </div>
 
