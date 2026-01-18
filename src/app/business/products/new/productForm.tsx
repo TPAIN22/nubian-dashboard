@@ -328,7 +328,6 @@ export default function ProductForm({ productId }: { productId?: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getToken, productId]);
 
-  const formErrors = form.formState.errors;
 
   const stepStates = useMemo(() => {
     const states = {
@@ -355,9 +354,6 @@ export default function ProductForm({ productId }: { productId?: string }) {
       switch (i) {
         case 1:
           isCompleted =
-            !formErrors.name &&
-            !formErrors.description &&
-            !formErrors.category &&
             !!currentValues.name?.trim() &&
             !!currentValues.description?.trim() &&
             !!currentValues.category?.trim();
@@ -365,7 +361,6 @@ export default function ProductForm({ productId }: { productId?: string }) {
 
         case 2:
           isCompleted =
-            !formErrors.productType &&
             !!currentValues.productType &&
             (currentValues.productType === "simple" || currentValues.productType === "with_variants");
           break;
@@ -374,8 +369,6 @@ export default function ProductForm({ productId }: { productId?: string }) {
           if (currentValues.productType === "simple") {
             const mPrice = currentValues.merchantPrice || currentValues.price;
             isCompleted =
-              !formErrors.price &&
-              !formErrors.stock &&
               mPrice !== undefined &&
               mPrice >= 0.01 &&
               currentValues.stock !== undefined &&
@@ -388,7 +381,7 @@ export default function ProductForm({ productId }: { productId?: string }) {
           break;
 
         case 4:
-          isCompleted = !formErrors.images && Array.isArray(currentValues.images) && currentValues.images.length > 0;
+          isCompleted = Array.isArray(currentValues.images) && currentValues.images.length > 0;
           break;
 
         case 5:
@@ -411,7 +404,7 @@ export default function ProductForm({ productId }: { productId?: string }) {
     }
 
     return states;
-  }, [formErrors, name, description, productType, attributes, variants, images, category, merchantPrice, price, stock]);
+  }, [name, description, productType, attributes, variants, images, category, merchantPrice, price, stock]);
 
   const isStepEnabled = useCallback(
     (step: number) => stepStates.enabled[step - 1] ?? false,
@@ -532,7 +525,7 @@ export default function ProductForm({ productId }: { productId?: string }) {
         shouldTouch: true,
       });
     },
-    [form]
+    [] // Remove form dependency to prevent recreation on every render
   );
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {

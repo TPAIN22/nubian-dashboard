@@ -205,8 +205,6 @@ export default function MerchantProductForm({ productId }: { productId?: string 
 
   // Memoize step enabled check to avoid recalculation
   // Only recalculate when form values actually change
-  const formErrors = form.formState.errors
-  const formValues = form.getValues()
   
   const stepStates = useMemo(() => {
     const states = {
@@ -234,19 +232,16 @@ export default function MerchantProductForm({ productId }: { productId?: string 
       let isCompleted = false
       switch (i) {
         case 1:
-          isCompleted = !formErrors.name && !formErrors.description && !formErrors.category &&
-                       !!currentValues.name?.trim() && !!currentValues.description?.trim() && !!currentValues.category?.trim()
+          isCompleted = !!currentValues.name?.trim() && !!currentValues.description?.trim() && !!currentValues.category?.trim()
           break
         case 2:
-          isCompleted = !formErrors.productType && 
-                       !!currentValues.productType && 
+          isCompleted = !!currentValues.productType &&
                        (currentValues.productType === 'simple' || currentValues.productType === 'with_variants')
           break
         case 3:
           if (currentValues.productType === 'simple') {
             const mPrice = currentValues.merchantPrice || currentValues.price
-            isCompleted = !formErrors.merchantPrice && !formErrors.price && !formErrors.stock &&
-                         mPrice !== undefined && mPrice >= 0.01 &&
+            isCompleted = mPrice !== undefined && mPrice >= 0.01 &&
                          currentValues.stock !== undefined && currentValues.stock >= 0
           } else {
             const hasAttrs = !!(currentValues.attributes && Array.isArray(currentValues.attributes) && currentValues.attributes.length > 0)
@@ -255,7 +250,7 @@ export default function MerchantProductForm({ productId }: { productId?: string 
           }
           break
         case 4:
-          isCompleted = !formErrors.images && Array.isArray(currentValues.images) && currentValues.images.length > 0
+          isCompleted = Array.isArray(currentValues.images) && currentValues.images.length > 0
           break
         case 5:
           isCompleted = true
@@ -278,7 +273,6 @@ export default function MerchantProductForm({ productId }: { productId?: string 
     
     return states
   }, [
-    formErrors,
     name,
     description,
     productType,
@@ -532,19 +526,19 @@ export default function MerchantProductForm({ productId }: { productId?: string 
   }, [getToken, productId]);
 
   const handleUploadDone = useCallback((urls: string[]) => {
-    const validUrls = urls.filter((url: string) => 
-      url && 
-      typeof url === 'string' && 
-      url.trim().length > 0 && 
+    const validUrls = urls.filter((url: string) =>
+      url &&
+      typeof url === 'string' &&
+      url.trim().length > 0 &&
       (url.startsWith('http://') || url.startsWith('https://'))
     )
-    
-    form.setValue('images', validUrls, { 
+
+    form.setValue('images', validUrls, {
       shouldValidate: true,
       shouldDirty: true,
       shouldTouch: true,
     })
-  }, [form])
+  }, []) // Remove form dependency to prevent recreation on every render
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (isSubmittingRef.current || loading) {
