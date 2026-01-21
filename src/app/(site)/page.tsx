@@ -9,15 +9,15 @@ export const runtime = 'edge';
 
 
 export const metadata: Metadata = {
-  title: "نوبيان | Nubian - أفضل متجر إلكتروني في السودان",
+  title: "نوبيان أفضل منصة إلكتروني في السودان",
   description:
-    "نوبيان (Nubian) - متجر إلكتروني رائد في السودان. تسوق آلاف المنتجات الأصلية من الأزياء، الإلكترونيات، ديكور المنزل والمزيد. شحن سريع وآمن إلى جميع أنحاء السودان. اكتشف منصة نوبيان للتسوق الرقمي الآن.",
+    "نوبيان (Nubian) - منصة إلكتروني رائد في السودان. تسوق آلاف المنتجات الأصلية من الأزياء، الإلكترونيات، ديكور المنزل والمزيد. شحن سريع وآمن إلى جميع أنحاء السودان. اكتشف منصة نوبيان للتسوق الرقمي الآن.",
   keywords: [
     "نوبيان",
     "Nubian",
     "نوبيان سودان",
     "Nubian Sudan",
-    "متجر نوبيان",
+    "منصة نوبيان",
     "nubian store",
     "تسوق إلكتروني السودان",
     "online shopping Sudan",
@@ -26,8 +26,8 @@ export const metadata: Metadata = {
     canonical: baseUrl,
   },
   openGraph: {
-    title: "نوبيان | Nubian - أفضل متجر إلكتروني في السودان",
-    description: "نوبيان (Nubian) - متجر إلكتروني رائد في السودان. تسوق آلاف المنتجات الأصلية مع شحن سريع وآمن.",
+    title: "نوبيان أفضل منصة إلكتروني في السودان",
+    description: "نوبيان (Nubian) - منصة إلكتروني رائد في السودان. تسوق آلاف المنتجات الأصلية مع شحن سريع وآمن.",
     url: baseUrl,
     type: "website",
     siteName: "نوبيان | Nubian",
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
         url: `${baseUrl}/nubi.png`,
         width: 1200,
         height: 630,
-        alt: "نوبيان | Nubian - متجر إلكتروني",
+        alt: "نوبيان | Nubian - منصة إلكتروني",
       },
     ],
   },
@@ -61,21 +61,22 @@ export default function Page() {
 
       {/* SEO-Optimized Hidden Content for Search Engines */}
       <div className="pt-2 overflow-x-hidden">
-        <h1>نوبيان - Nubian: أفضل متجر إلكتروني في السودان</h1>
-        <h2>متجر نوبيان للتسوق الإلكتروني | Nubian Online Store Sudan</h2>
+        <h1>نوبيان أفضل منصة إلكتروني في السودان</h1>
+        <h2> نوبيان للتسوق الإلكتروني | Nubian E-commerce platform in Sudan</h2>
         <p>
-          نوبيان Nubian هو متجر إلكتروني رائد في السودان يوفر آلاف المنتجات الأصلية من أفضل التجار. تسوق من نوبيان
+          نوبيان Nubian هو منصة إلكترونية رائدة في السودان توفر آلاف المنتجات الأصلية من أفضل التجار. تسوق من نوبيان
           واحصل على الأزياء، الإلكترونيات، ديكور المنزل والمزيد مع شحن سريع وآمن إلى جميع أنحاء السودان. اكتشف منصة نوبيان
           للتسوق الرقمي الآن.
         </p>
         <p>
-          Nubian is a leading online store in Sudan offering thousands of authentic products from trusted sellers. Shop
+          Nubian is a leading E-commerce platform in Sudan offering thousands of authentic products from trusted sellers. Shop
           at Nubian for fashion, electronics, home decor and more with fast and secure shipping across Sudan. Discover
           the Nubian digital shopping platform now.
         </p>
         <ul>
+          <li>نوبيان | Nubian</li>
           <li>نوبيان سودان | Nubian Sudan</li>
-          <li>متجر نوبيان | Nubian Store</li>
+          <li>منصة نوبيان | Nubian Store</li>
           <li>تسوق إلكتروني السودان | Online Shopping Sudan</li>
           <li>نوبيان للتسوق | Nubian Shopping</li>
           <li>منتجات سودانية | Sudanese Products</li>
