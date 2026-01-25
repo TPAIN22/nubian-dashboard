@@ -10,6 +10,7 @@ import {
   IconHelp,
   IconInnerShadowTop,
   IconListDetails,
+  IconMapPin,
   IconSettings,
   IconUsers,
   IconTooltip
@@ -78,6 +79,11 @@ const data = {
       title: "كوبونات",
       url: "/business/coupons",
       icon: IconFileDescription,
+    },
+    {
+      title: "المناطق",
+      url: "/business/locations",
+      icon: IconMapPin,
     },
   ],
   navClouds: [
