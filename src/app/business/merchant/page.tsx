@@ -62,14 +62,14 @@ function BrandsLoading() {
   );
 }
 
+import { PageHeader } from "@/components/dashboard/PageHeader";
+
 export default async function BrandsPage() {
   const merchants = await getMerchants();
   
   return (
-    <div className='flex flex-col gap-4 h-full sm:mx-12 mx-2'>
-      <div className='flex justify-between items-center'>
-        <h1 className='text-2xl font-bold text-center'>العلامات التجارية</h1>
-      </div>
+    <div className="container max-w-7xl mx-auto px-6 py-8 space-y-8 animate-in fade-in duration-500">
+      <PageHeader title="العلامات التجارية" description="إدارة قائمة التجار المعتمدة." />
       <Suspense fallback={<BrandsLoading />}>
         <BrandsTable merchants={merchants as Merchant[]} />
       </Suspense>

@@ -16,6 +16,13 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   ArrowUpDown,
   ChevronDown,
   MoreHorizontal,
@@ -28,6 +35,7 @@ import {
   PowerOff,
   RotateCcw,
   AlertTriangle,
+  Search,
 } from "lucide-react"
 import { Star } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -84,44 +92,15 @@ import { Label } from "@/components/ui/label"
 
 
 
-export type Product = {
-  _id: string
-  name: string
-  price: number
-  discountPrice?: number // Legacy field
-  merchantPrice?: number // Base merchant price
-  nubianMarkup?: number // Nubian markup percentage
-  dynamicMarkup?: number // Dynamic markup percentage
-  finalPrice?: number // Smart pricing final price
-  stock: number
-  isActive: boolean
-  description: string
-  images: string[]
-  sizes: string[]
-  category?:
-    | {
-        _id: string
-        name: string
-      }
-    | string
-  merchant?: {
-    _id: string
-    businessName: string
-    businessEmail: string
-    status?: string
-  }
-  deletedAt?: string | null
-  createdAt: string
-  updatedAt: string
-  // Ranking fields (admin-controlled)
-  priorityScore?: number
-  featured?: boolean
-}
+import type { Product, ProductFilters } from '../types/product'
 
 interface ProductsTableProps {
   productsData: Product[]
   getToken?: () => Promise<string | null>
   onProductUpdate?: () => void | Promise<void>
+  // Server-side filters
+  currentFilters: ProductFilters
+  onFilterChange: (key: keyof ProductFilters, value: any) => void
 }
 
 function RankingEditDialog({
@@ -203,9 +182,32 @@ export function ProductsTable({
   productsData,
   getToken,
   onProductUpdate,
+  currentFilters,
+  onFilterChange,
 }: ProductsTableProps) {
   const router = useRouter()
+  // ... existing hooks ...
   const { getToken: clerkGetToken } = useAuth()
+  
+  // Local state for debounced search
+  const [searchTerm, setSearchTerm] = React.useState(currentFilters.search || '')
+  
+  // Sync local state if parent updates filter (e.g. clear all)
+  React.useEffect(() => {
+    setSearchTerm(currentFilters.search || '')
+  }, [currentFilters.search])
+
+  // Handle manual search trigger
+  const handleSearch = () => {
+    onFilterChange('search', searchTerm)
+  }
+
+  // Handle Enter key for search
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch()
+    }
+  }
 
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -1040,15 +1042,58 @@ export function ProductsTable({
   const selectedRowsCount = table.getFilteredSelectedRowModel().rows.length
 
   return (
-    <div className="w-full space-y-4">
-      <div className="flex items-center justify-between py-4">
-        <div className="flex items-center gap-2 flex-1">
-          <Input
-            placeholder="ابحث باسم المنتج..."
-            value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-            onChange={(event) => table.getColumn("name")?.setFilterValue(event.target.value)}
-            className="max-w-sm"
-          />
+    <div className="w-full space-y-4 p-6 rounded-xl glass-card">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-4 gap-4">
+        <div className="flex flex-wrap items-center gap-2 flex-1 w-full sm:w-auto">
+          {/* Server-side Search */}
+          <div className="relative w-full sm:max-w-xs flex items-center gap-2">
+             <div className="relative flex-1">
+                <Input
+                  placeholder="بحث بالاسم أو الوصف..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="glass-input pl-8"
+                />
+             </div>
+             <Button 
+               size="icon" 
+               variant="outline" 
+               className="glass-button w-10 h-10 shrink-0"
+               onClick={handleSearch}
+             >
+               <Search className="h-4 w-4" />
+             </Button>
+          </div>
+
+          {/* Server-side Status Filter */}
+          <div className='min-w-[120px]'>
+             <Select
+              value={currentFilters.isActive || 'all'}
+              onValueChange={(value) => onFilterChange('isActive', value === 'all' ? '' : value)}
+            >
+              <SelectTrigger className='glass-input h-10'>
+                <SelectValue placeholder='الحالة' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='all'>الكل</SelectItem>
+                <SelectItem value='true'>نشط</SelectItem>
+                <SelectItem value='false'>غير نشط</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Server-side Include Deleted Toggle */}
+          <div className='flex items-center gap-2 border px-3 py-2 rounded-md glass-input h-10'>
+            <Switch
+              id='includeDeleted-table'
+              checked={currentFilters.includeDeleted === 'true'} // assuming backend expects string 'true' or boolean
+              onCheckedChange={(checked) => onFilterChange('includeDeleted', checked ? 'true' : 'false')}
+            />
+            <Label htmlFor='includeDeleted-table' className='cursor-pointer text-sm whitespace-nowrap'>
+              المحذوفة
+            </Label>
+          </div>
 
           {selectedRowsCount > 0 && (
             <div className="flex items-center gap-2">

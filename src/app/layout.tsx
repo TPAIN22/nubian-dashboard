@@ -9,6 +9,7 @@ import { dark } from '@clerk/themes'
 import { Toaster } from '@/components/ui/sonner'
 import StructuredData from "@/components/StructuredData"
 import ErrorBoundary from "@/components/ErrorBoundary"
+import QueryProvider from "@/components/QueryProvider"
 import { validateEnv } from "@/lib/envValidator"
 
 // Validate environment variables at runtime (not during build)
@@ -27,14 +28,13 @@ if (typeof window === 'undefined') {
 }
 
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-})
+import { Outfit } from 'next/font/google'
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
+const outfit = Outfit({
+  subsets: ['latin', 'latin-ext'],
+  // Weights: 100-900 are available in variable fonts, but specifying helps if needed
+  variable: '--font-outfit',
+  display: 'swap',
 })
 
 const baseUrl = "https://nubian-sd.store";
@@ -155,22 +155,24 @@ export default function RootLayout({
       signInFallbackRedirectUrl="/"
       signUpFallbackRedirectUrl="/"
     >
-<html lang="ar" dir="rtl" suppressHydrationWarning className="overflow-x-clip">
-<head>
+      <html lang="ar" dir="rtl" suppressHydrationWarning className="overflow-x-clip">
+        <head>
         </head>
-        <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-          <ErrorBoundary>
-          <StructuredData />
-           <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >       
-            {children}
-            <Toaster/>
-          </ThemeProvider>
-          </ErrorBoundary>
+        <body className={`${outfit.variable} antialiased`}>
+          <QueryProvider>
+            <ErrorBoundary>
+              <StructuredData />
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+              >
+                {children}
+                <Toaster />
+              </ThemeProvider>
+            </ErrorBoundary>
+          </QueryProvider>
         </body>
       </html>
     </ClerkProvider>

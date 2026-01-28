@@ -8,8 +8,10 @@ export default function AdminLayout({
   // Note: ClerkProvider, ThemeProvider, Toaster, etc. are provided by root layout
   // This nested layout only adds the sidebar wrapper for admin routes
   return (
-    <Side>
-      {children}
-    </Side>
+    <div className="dashboard-theme min-h-screen bg-background text-foreground font-sans">
+      <Side>
+        {children}
+      </Side>
+    </div>
   )
 }

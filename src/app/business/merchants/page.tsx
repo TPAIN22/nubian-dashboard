@@ -6,6 +6,8 @@ import { auth } from '@clerk/nextjs/server';
 
 
 
+import { PageHeader } from "@/components/dashboard/PageHeader";
+
 export default async function MerchantsPage() {
   const { getToken } = await auth();
   const token = await getToken();
@@ -20,11 +22,9 @@ export default async function MerchantsPage() {
   }).catch(() => []);
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold sm:mx-12 mx-2">التجار</h1>
-      <div className="flex flex-col gap-4 h-full sm:mx-12 mx-2">
-        <MerchantsTable merchants={merchants} />
-      </div>
+    <div className="container max-w-7xl mx-auto px-6 py-8 space-y-8 animate-in fade-in duration-500">
+      <PageHeader title="طلبات التجار" description="مراجعة طلبات انضمام التجار الجدد." />
+      <MerchantsTable merchants={merchants} />
     </div>
   );
 }

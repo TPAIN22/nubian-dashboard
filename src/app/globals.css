@@ -6,50 +6,50 @@
 /* ============================================
    NUBIAN DESIGN SYSTEM - COLOR VARIABLES
    ============================================ */
-   body {
-    background: 
-      radial-gradient(ellipse at top right, rgba(var(--primary-rgb), 0.03) 0%, transparent 50%),
-      radial-gradient(ellipse at bottom left, rgba(var(--accent-rgb), 0.03) 0%, transparent 50%),
-      #fafafa;
-    background-attachment: fixed;
-  }
+body {
+  background:
+    radial-gradient(ellipse at top right, rgba(var(--primary-rgb), 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom left, rgba(var(--accent-rgb), 0.03) 0%, transparent 50%),
+    #fafafa;
+  background-attachment: fixed;
+}
 
 :root {
   /* Border Radius */
   --radius: 0.75rem;
-  
+
   /* Primary Colors - Nubian Gold */
   --nubian-primary: #a37e2c;
   --nubian-primary-dark: #382A0D;
   --nubian-primary-foreground: #FFFFFF;
   --primary-rgb: 163, 126, 44;
-  
+
   /* Secondary & Accent Colors */
   --nubian-secondary: #005b35;
   --nubian-secondary-foreground: #FFFFFF;
   --nubian-accent: #30a1a7;
   --nubian-accent-foreground: #FFFFFF;
   --accent-rgb: 48, 161, 167;
-  
+
   /* Background Colors */
   --nubian-background: #FFFFFF;
   --nubian-secondary-background: #1f1c14;
   --nubian-surface: #F9FAFB;
   --nubian-card-background: #FFFFFF;
-  
+
   /* Text Colors */
   --nubian-text-primary: #005b35;
   --nubian-text-secondary: #191610;
   --nubian-text-accent: #8d7c58;
   --nubian-text-dark: #1F2937;
   --nubian-text-gray: #333333;
-  
+
   /* Button Colors */
   --nubian-btn-primary: #8d7c58;
   --nubian-btn-primary-foreground: #FFFFFF;
   --nubian-btn-secondary: #2f291d;
   --nubian-btn-secondary-foreground: #FFFFFF;
-  
+
   /* Status Colors */
   --nubian-success: #22C55E;
   --nubian-success-foreground: #FFFFFF;
@@ -57,11 +57,11 @@
   --nubian-error-foreground: #FFFFFF;
   --nubian-warning: #F97316;
   --nubian-warning-foreground: #FFFFFF;
-  
+
   /* Borders & Effects */
   --nubian-border: #e4ded3;
   --nubian-overlay: rgba(0, 0, 0, 0.3);
-  
+
   /* Semantic Color Mappings */
   --background: var(--nubian-background);
   --foreground: var(--nubian-text-primary);
@@ -141,12 +141,53 @@
   --sidebar-ring: var(--nubian-primary);
 }
 
+.dashboard-theme {
+  --background: #FAFAFA;
+  --foreground: #09090b;
+  --card: #FFFFFF;
+  --card-foreground: #09090b;
+  --popover: #FFFFFF;
+  --popover-foreground: #09090b;
+  --primary: #18181b;
+  /* Zinc 950 - Near Black for high contrast minimal look */
+  --primary-foreground: #FAFAFA;
+  --secondary: #f4f4f5;
+  /* Zinc 100 */
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  /* Zinc 500 */
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
+  --border: #e4e4e7;
+  /* Zinc 200 */
+  --input: #e4e4e7;
+  --ring: #18181b;
+  --radius: 0.75rem;
+
+  /* Nubian Brand Accents for Dash */
+  --nubian-primary: #a37e2c;
+  /* Keep available for specific highlights */
+
+  /* Sidebar Specifics */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #09090b;
+  --sidebar-primary: #18181b;
+  --sidebar-primary-foreground: #FAFAFA;
+  --sidebar-accent: #f4f4f5;
+  --sidebar-accent-foreground: #09090b;
+  --sidebar-border: #e4e4e7;
+  --sidebar-ring: #e4e4e7;
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  
+
   /* Color Mappings for Tailwind */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -184,7 +225,7 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  
+
   /* Nubian Brand Colors - Direct Access */
   --color-nubian-primary: var(--nubian-primary);
   --color-nubian-primary-dark: var(--nubian-primary-dark);
@@ -202,6 +243,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -213,9 +255,9 @@
       linear-gradient(to bottom, rgb(241 245 249 / 0.5) 1px, transparent 1px);
     background-size: 20px 20px;
   }
-  
+
   .main-bg {
-    background: 
+    background:
       radial-gradient(ellipse at top right, rgba(var(--primary-rgb), 0.03) 0%, transparent 50%),
       radial-gradient(ellipse at bottom left, rgba(var(--accent-rgb), 0.03) 0%, transparent 50%),
       #fafafa;
