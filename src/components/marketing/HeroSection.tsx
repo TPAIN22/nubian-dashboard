@@ -26,7 +26,7 @@ export function HeroSection() {
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/sign-up">
+            <Link href="/shop">
               <Button size="lg" className="rounded-full h-14 px-8 text-lg bg-zinc-900 hover:bg-zinc-800 text-white min-w-[180px]">
                 ابدأ التسوق الآن
                 <IconArrowLeft className="mr-2 h-5 w-5" />

@@ -24,6 +24,11 @@ export function MarketingNavbar() {
       active: pathname === "/",
     },
     {
+      href: "/shop",
+      label: "المتجر",
+      active: pathname === "/shop",
+    },
+    {
       href: "/pricing",
       label: "الباقات",
       active: pathname === "/pricing",

@@ -7,11 +7,9 @@
    NUBIAN DESIGN SYSTEM - COLOR VARIABLES
    ============================================ */
 body {
-  background:
-    radial-gradient(ellipse at top right, rgba(var(--primary-rgb), 0.03) 0%, transparent 50%),
-    radial-gradient(ellipse at bottom left, rgba(var(--accent-rgb), 0.03) 0%, transparent 50%),
-    #fafafa;
+  background: #ffffff;
   background-attachment: fixed;
+  color: var(--foreground);
 }
 
 :root {

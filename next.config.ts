@@ -28,6 +28,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'ik.imagekit.io',
+        port: '',
+        pathname: '/**',
+      },
     ],
     formats: ['image/avif', 'image/webp'],
     domains: [], // Add your image domains if needed
@@ -161,6 +167,12 @@ const nextConfig: NextConfig = {
 
   // Enable React strict mode
   reactStrictMode: true,
+
+  experimental: {
+    staleTimes: {
+      dynamic: 30,
+    },
+  },
 
   // Rewrite /business routes to /business (to match actual folder structure)
   async rewrites() {
