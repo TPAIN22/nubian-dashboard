@@ -45,28 +45,27 @@ export default function Page() {
     <>
       <HeroSection />
       <FeaturesGrid />
-      
+
       {/* Social Proof / How it Works placeholders can be added here */}
       <section className="py-20 border-t border-b border-zinc-100 bg-white">
         <div className="container mx-auto px-6 text-center">
           <p className="text-sm font-semibold text-muted-foreground mb-8">شركاؤنا في النجاح</p>
           <div className="flex flex-wrap justify-center gap-12 opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
-             {/* Simple text placeholders for logos as per "Premium Minimal" mono style */}
-             <span className="text-xl font-bold font-mono">PAYPAL</span>
-             <span className="text-xl font-bold font-mono">STRIPE</span>
-             <span className="text-xl font-bold font-mono">FAWRY</span>
-             <span className="text-xl font-bold font-mono">SYBER</span>
-             <span className="text-xl font-bold font-mono">BANK OF KHARTOUM</span>
+            {/* Simple text placeholders for logos as per "Premium Minimal" mono style */}
+            <span className="text-xl font-bold font-mono">PAYPAL</span>
+            <span className="text-xl font-bold font-mono">STRIPE</span>
+            <span className="text-xl font-bold font-mono">FAWRY</span>
+            <span className="text-xl font-bold font-mono">SYBER</span>
+            <span className="text-xl font-bold font-mono">BANK OF KHARTOUM</span>
           </div>
         </div>
       </section>
 
       <CTASection />
-      
-      {/* SEO Content */}
-      <div className="sr-only">
-        <h1>نوبيان أفضل منصة إلكتروني في السودان</h1>
-        <p>نوبيان Nubian هو منصة إلكترونية رائدة في السودان توفر آلاف المنتجات الأصلية.</p>
+
+      {/* SEO Content - Hidden from display but readable by search engines */}
+      <div className="sr-only" aria-hidden="true">
+        <p>نوبيان أفضل منصة إلكتروني في السودان. نوبيان Nubian هو منصة إلكترونية رائدة في السودان توفر آلاف المنتجات الأصلية.</p>
       </div>
     </>
   );
