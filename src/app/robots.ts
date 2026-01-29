@@ -1,5 +1,9 @@
 import { MetadataRoute } from 'next';
 
+/**
+ * Robots.txt configuration for SEO
+ * Explicitly allows shop pages for crawling
+ */
 export default function robots(): MetadataRoute.Robots {
   const baseUrl = 'https://nubian-sd.store';
 
@@ -9,6 +13,8 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: '*',
         allow: [
           '/',
+          '/shop',
+          '/shop/*',
           '/about',
           '/contact',
           '/privacy-policy',
@@ -30,6 +36,8 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: 'Googlebot',
         allow: [
           '/',
+          '/shop',
+          '/shop/*',
           '/about',
           '/contact',
           '/privacy-policy',
@@ -49,13 +57,15 @@ export default function robots(): MetadataRoute.Robots {
       },
       {
         userAgent: 'Googlebot-Image',
-        allow: ['/'],
+        allow: ['/', '/shop', '/shop/*'],
         disallow: ['/api/', '/business/', '/merchant/'],
       },
       {
         userAgent: 'Bingbot',
         allow: [
           '/',
+          '/shop',
+          '/shop/*',
           '/about',
           '/contact',
           '/privacy-policy',
@@ -78,4 +88,3 @@ export default function robots(): MetadataRoute.Robots {
     host: baseUrl,
   };
 }
-

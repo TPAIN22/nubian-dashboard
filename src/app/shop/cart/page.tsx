@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { IconTrash, IconMinus, IconPlus, IconArrowLeft } from "@tabler/icons-react";
 import { Separator } from "@/components/ui/separator";
 import { resolvePrice } from "@/lib/pricing";
+import { useUser } from "@clerk/nextjs";
 
 export default function CartPage() {
    const { items, removeItem, updateQuantity, getSubtotal } = useCart();
    const subtotal = getSubtotal();
+   const { user, isLoaded } = useUser();
 
    if (items.length === 0) {
       return (
@@ -140,12 +142,27 @@ export default function CartPage() {
                   <span>{subtotal.toLocaleString()} ج.س</span>
                </div>
 
-               <Link href="/shop/checkout" className="block">
-                  <Button className="w-full cursor-pointer text-white rounded-xl py-6 text-base bg-zinc-900 hover:bg-zinc-800 shadow-lg shadow-zinc-900/10">
-                     متابعة الدفع
-                     <IconArrowLeft className="mr-2 w-5 h-5" />
-                  </Button>
-               </Link>
+
+               {isLoaded && !user ? (
+                  <div className="space-y-3">
+                     <Link href="/sign-in?redirect_url=/shop/checkout" className="block">
+                        <Button className="w-full cursor-pointer text-white rounded-xl py-6 text-base bg-zinc-900 hover:bg-zinc-800 shadow-lg shadow-zinc-900/10">
+                           تسجيل الدخول لإتمام الطلب
+                           <IconArrowLeft className="mr-2 w-5 h-5" />
+                        </Button>
+                     </Link>
+                     <p className="text-center text-xs text-zinc-500">
+                        يجب تسجيل الدخول للمتابعة
+                     </p>
+                  </div>
+               ) : (
+                  <Link href="/shop/checkout" className="block">
+                     <Button className="w-full cursor-pointer text-white rounded-xl py-6 text-base bg-zinc-900 hover:bg-zinc-800 shadow-lg shadow-zinc-900/10">
+                        متابعة الدفع
+                        <IconArrowLeft className="mr-2 w-5 h-5" />
+                     </Button>
+                  </Link>
+               )}
 
                <div className="mt-4 text-xs text-center text-zinc-400">
                   تطبق الشروط والأحكام وسياسة الخصوصية

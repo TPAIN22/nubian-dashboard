@@ -62,7 +62,9 @@ export default clerkMiddleware(async (auth, req) => {
     url.pathname.startsWith("/admin") ||
     url.pathname.startsWith("/business") ||
     url.pathname.startsWith("/dashboard") ||
-    url.pathname.startsWith("/management");
+    url.pathname.startsWith("/management") ||
+    url.pathname.startsWith("/shop/checkout") ||
+    url.pathname.startsWith("/shop/orders");
 
   // If not a protected route, allow through
   if (!isBusinessRoute) {
