@@ -15,12 +15,12 @@ export default function ShopIndexPage() {
   if (isLoading) {
     return (
       <div className="space-y-8">
-         <div className="h-40 w-full bg-zinc-100 rounded-2xl animate-pulse" />
-         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {[...Array(8)].map((_, i) => (
-               <div key={i} className="aspect-square bg-zinc-100 rounded-2xl animate-pulse" />
-            ))}
-         </div>
+        <div className="h-40 w-full bg-zinc-100 rounded-2xl animate-pulse" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="aspect-[3/4] md:aspect-[4/5] bg-zinc-100 rounded-2xl animate-pulse" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -28,11 +28,11 @@ export default function ShopIndexPage() {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-center space-y-4">
-         <h2 className="text-2xl font-bold text-zinc-900">حدث خطأ أثناء تحميل المنتجات</h2>
-         <p className="text-zinc-500">يرجى المحاولة مرة أخرى لاحقاً</p>
-         <Button onClick={() => window.location.reload()} variant="outline">
-            تحديث الصفحة
-         </Button>
+        <h2 className="text-2xl font-bold text-zinc-900">حدث خطأ أثناء تحميل المنتجات</h2>
+        <p className="text-zinc-500">يرجى المحاولة مرة أخرى لاحقاً</p>
+        <Button onClick={() => window.location.reload()} variant="outline">
+          تحديث الصفحة
+        </Button>
       </div>
     );
   }
@@ -47,11 +47,11 @@ export default function ShopIndexPage() {
       {/* Products Grid */}
       <section>
         {items.length === 0 ? (
-           <div className="text-center py-20">
-              <p className="text-zinc-500 text-lg">لا توجد منتجات حالياً.</p>
-           </div>
+          <div className="text-center py-20">
+            <p className="text-zinc-500 text-lg">لا توجد منتجات حالياً.</p>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
             {items.map((product: any) => (
               <ProductCard key={product._id} product={product} />
             ))}
