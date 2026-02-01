@@ -47,7 +47,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: [
           '/api/',
           '/business/',
-          '/merchant/',
+          '/merchant/apply',
           '/sign-in',
           '/sign-up',
           '/debug-role',
@@ -75,7 +75,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: [
           '/api/',
           '/business/',
-          '/merchant/',
+          '/merchant/apply',
           '/sign-in',
           '/sign-up',
           '/debug-role',

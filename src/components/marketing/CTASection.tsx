@@ -300,7 +300,7 @@ export function CTASection() {
           variants={itemVariants}
           className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
         >
-          <Link href="/sign-up">
+          <Link href="/sign-in">
             <MagneticButton>
               <Button
                 size="lg"

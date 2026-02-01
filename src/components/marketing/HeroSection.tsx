@@ -269,7 +269,7 @@ export function HeroSection() {
                 </Button>
               </MagneticButton>
             </Link>
-            <Link href="/merchant">
+            <Link href="/merchant/apply">
               <MagneticButton>
                 <Button variant="outline" size="lg" className="rounded-full h-14 px-8 text-lg border-zinc-200 hover:bg-zinc-50 text-zinc-900 min-w-[180px]">
                   سجل كتاجر

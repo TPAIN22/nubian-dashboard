@@ -75,11 +75,11 @@ export function MarketingNavbar() {
             <Link href="/sign-in">
               <Button variant="ghost" className="rounded-full">تسجيل الدخول</Button>
             </Link>
-            <Link href="/sign-up">
+            <Link href="/sign-in">
               <Button className="rounded-full px-6">ابدأ الآن</Button>
             </Link>
           </div>
-          
+
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden">
@@ -115,7 +115,7 @@ export function MarketingNavbar() {
                   <Link href="/sign-in" onClick={() => setIsOpen(false)}>
                     <Button variant="outline" className="w-full rounded-full justify-start">تسجيل الدخول</Button>
                   </Link>
-                  <Link href="/sign-up" onClick={() => setIsOpen(false)}>
+                  <Link href="/sign-in" onClick={() => setIsOpen(false)}>
                     <Button className="w-full rounded-full justify-start">ابدأ الآن</Button>
                   </Link>
                 </div>
