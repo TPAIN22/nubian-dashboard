@@ -6,16 +6,34 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Sparkles, Trash2, Plus, Image as ImageIcon } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Sparkles, Trash2, Plus, Image as ImageIcon, Info, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import ImageUpload from '@/components/imageUpload'
+import { getResolvedVariantPrice, FormVariant } from '@/lib/products/normalizeProductPayload'
 
 interface VariantManagerProps {
   attributes: ProductAttribute[]
   variants: ProductVariant[]
   onChange: (variants: ProductVariant[]) => void
+  // New props for default pricing
+  defaultVariantMerchantPrice?: number | ""
+  onDefaultPriceChange?: (price: number | "") => void
+  samePriceForAllVariants?: boolean
+  onSamePriceToggle?: (enabled: boolean) => void
+  defaultNubianMarkup?: number
 }
 
-export function VariantManager({ attributes, variants, onChange }: VariantManagerProps) {
+export function VariantManager({ 
+  attributes, 
+  variants, 
+  onChange,
+  defaultVariantMerchantPrice,
+  onDefaultPriceChange,
+  samePriceForAllVariants = false,
+  onSamePriceToggle,
+  defaultNubianMarkup = 10,
+}: VariantManagerProps) {
   // Generate all possible variant combinations from attributes
   const generateVariants = () => {
     if (attributes.length === 0) {
@@ -75,8 +93,10 @@ export function VariantManager({ attributes, variants, onChange }: VariantManage
       return {
         sku,
         attributes: combo,
-        merchantPrice: 0,
-        price: 0,
+        // Leave merchantPrice undefined/empty to use default
+        merchantPrice: undefined as any,
+        price: undefined as any,
+        nubianMarkup: defaultNubianMarkup,
         stock: 0,
         isActive: true
       }
@@ -89,8 +109,10 @@ export function VariantManager({ attributes, variants, onChange }: VariantManage
     const newVariant: ProductVariant = {
       sku: '',
       attributes: {},
-      merchantPrice: 0,
-      price: 0,
+      // Leave merchantPrice undefined/empty to use default
+      merchantPrice: undefined as any,
+      price: undefined as any,
+      nubianMarkup: defaultNubianMarkup,
       stock: 0,
       isActive: true
     }
@@ -122,8 +144,130 @@ export function VariantManager({ attributes, variants, onChange }: VariantManage
     updateVariant(index, { attributes: attrs })
   }
 
+  // Get price status for a variant
+  const getPriceStatus = (variant: ProductVariant) => {
+    const formVariant: FormVariant = {
+      sku: variant.sku,
+      attributes: variant.attributes instanceof Map 
+        ? Object.fromEntries(variant.attributes) 
+        : variant.attributes || {},
+      merchantPrice: variant.merchantPrice,
+      nubianMarkup: variant.nubianMarkup,
+      stock: variant.stock,
+      isActive: variant.isActive,
+      images: variant.images,
+    }
+    return getResolvedVariantPrice(formVariant, defaultVariantMerchantPrice)
+  }
+
+  // Count variants without explicit price
+  const variantsWithoutPrice = useMemo(() => {
+    return variants.filter(v => {
+      const price = v.merchantPrice
+      return price === undefined || price === null || price === 0 || price === '' as any
+    }).length
+  }, [variants])
+
+  const hasDefaultPrice = typeof defaultVariantMerchantPrice === 'number' && defaultVariantMerchantPrice > 0
+
   return (
     <div className="space-y-4">
+      {/* Default Price Section */}
+      {onDefaultPriceChange && (
+        <div className="p-4 rounded-lg border bg-muted/30 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label className="text-base font-semibold">إعدادات التسعير للمتغيرات</Label>
+              <p className="text-sm text-muted-foreground">
+                يمكنك تعيين سعر افتراضي يُطبق على المتغيرات التي ليس لها سعر محدد
+              </p>
+            </div>
+          </div>
+          
+          {onSamePriceToggle && (
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
+              <div className="space-y-0.5">
+                <Label className="font-medium">نفس السعر لجميع المتغيرات</Label>
+                <p className="text-xs text-muted-foreground">
+                  {samePriceForAllVariants 
+                    ? "سيتم استخدام السعر الافتراضي لجميع المتغيرات" 
+                    : "يمكنك تحديد سعر مختلف لكل متغير"}
+                </p>
+              </div>
+              <Switch
+                checked={samePriceForAllVariants}
+                onCheckedChange={onSamePriceToggle}
+              />
+            </div>
+          )}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm font-medium">
+                السعر الافتراضي للمتغيرات {samePriceForAllVariants && <span className="text-destructive">*</span>}
+              </Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={defaultVariantMerchantPrice === "" ? "" : defaultVariantMerchantPrice || ""}
+                onChange={(e) => {
+                  const value = e.target.value
+                  if (value === "") {
+                    onDefaultPriceChange("")
+                  } else {
+                    const numValue = parseFloat(value)
+                    onDefaultPriceChange(isNaN(numValue) ? "" : numValue)
+                  }
+                }}
+                className="mt-1"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                يُطبق على المتغيرات التي ليس لها سعر مخصص
+              </p>
+            </div>
+          </div>
+          
+          {/* Status summary */}
+          {variants.length > 0 && (
+            <div className="flex flex-wrap gap-2 pt-2">
+              {variantsWithoutPrice > 0 && (
+                <Badge variant={hasDefaultPrice ? "secondary" : "destructive"} className="gap-1">
+                  {hasDefaultPrice ? (
+                    <>
+                      <CheckCircle2 className="w-3 h-3" />
+                      {variantsWithoutPrice} متغيرات ستستخدم السعر الافتراضي
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle className="w-3 h-3" />
+                      {variantsWithoutPrice} متغيرات بدون سعر
+                    </>
+                  )}
+                </Badge>
+              )}
+              {variants.length - variantsWithoutPrice > 0 && (
+                <Badge variant="outline" className="gap-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  {variants.length - variantsWithoutPrice} متغيرات بسعر مخصص
+                </Badge>
+              )}
+            </div>
+          )}
+          
+          {/* Warning if no default price and variants without price */}
+          {variantsWithoutPrice > 0 && !hasDefaultPrice && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                يوجد {variantsWithoutPrice} متغيرات بدون سعر. يرجى تعيين سعر افتراضي أو إدخال سعر لكل متغير.
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+      )}
+      
       <div className="flex justify-between items-center flex-wrap gap-2">
         <Label className="text-base font-semibold">متغيرات المنتج (Variants)</Label>
         <div className="flex gap-2">
@@ -151,15 +295,20 @@ export function VariantManager({ attributes, variants, onChange }: VariantManage
           ? Object.fromEntries(variant.attributes) 
           : variant.attributes || {}
         
+        const priceStatus = getPriceStatus(variant)
+        const showPriceInput = !samePriceForAllVariants
+        // Generate a unique key for the variant
+        const variantKey = variant.sku || variant._id || `variant-${index}`
+        
         return (
-          <div key={index} className="border rounded-lg p-4 space-y-3 bg-card">
+          <div key={variantKey} className="border rounded-lg p-4 space-y-3 bg-card">
             <div className="flex justify-between items-start">
               <div className="flex-1">
                 <div className="flex flex-wrap gap-2 mb-2">
-                  {Object.entries(variantAttrs).map(([key, value]) => {
+                  {Object.entries(variantAttrs).map(([key, value], attrIndex) => {
                     const attr = attributes.find(a => a.name === key)
                     return (
-                      <Badge key={key} variant="secondary">
+                      <Badge key={key || `attr-${attrIndex}`} variant="secondary">
                         {attr?.displayName || key}: {String(value)}
                       </Badge>
                     )
@@ -187,27 +336,61 @@ export function VariantManager({ attributes, variants, onChange }: VariantManage
                   className="mt-1"
                 />
               </div>
-              <div>
-                <Label className="text-sm">سعر التاجر *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={variant.merchantPrice || 0}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value) || 0
-                    updateVariant(index, { merchantPrice: val, price: val })
-                  }}
-                  className="mt-1"
-                />
-              </div>
+              
+              {showPriceInput && (
+                <div>
+                  <Label className="text-sm">
+                    سعر التاجر
+                    <span className="text-muted-foreground text-xs mr-1">(اختياري)</span>
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder={hasDefaultPrice ? `افتراضي: ${defaultVariantMerchantPrice}` : "0.00"}
+                    value={variant.merchantPrice || ""}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      if (value === "") {
+                        updateVariant(index, { merchantPrice: undefined as any, price: undefined as any })
+                      } else {
+                        const val = parseFloat(value) || 0
+                        updateVariant(index, { merchantPrice: val, price: val })
+                      }
+                    }}
+                    className="mt-1"
+                  />
+                  {/* Price status indicator */}
+                  <div className="mt-1">
+                    {priceStatus.source === "custom" && (
+                      <span className="text-xs text-green-600 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        سعر مخصص
+                      </span>
+                    )}
+                    {priceStatus.source === "default" && (
+                      <span className="text-xs text-blue-600 flex items-center gap-1">
+                        <Info className="w-3 h-3" />
+                        يستخدم السعر الافتراضي ({priceStatus.price})
+                      </span>
+                    )}
+                    {priceStatus.source === "missing" && (
+                      <span className="text-xs text-destructive flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        السعر مطلوب (حدد سعر افتراضي أو سعر مخصص)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+              
               <div>
                 <Label className="text-sm">هامش نوبيان (%)</Label>
                 <Input
                   type="number"
                   step="0.1"
                   placeholder="10"
-                  value={variant.nubianMarkup ?? 10}
+                  value={variant.nubianMarkup ?? defaultNubianMarkup}
                   onChange={(e) => {
                     const val = parseFloat(e.target.value) || 0
                     updateVariant(index, { nubianMarkup: val })
@@ -249,10 +432,11 @@ export function VariantManager({ attributes, variants, onChange }: VariantManage
               <div className="space-y-2 pt-2 border-t">
                 <Label className="text-sm">قيم الخصائص لهذا المتغير:</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {attributes.map(attr => {
+                  {attributes.map((attr, attrIdx) => {
+                    const attrKey = attr.name || `attr-field-${attrIdx}`
                     if (attr.type === 'select' && attr.options) {
                       return (
-                        <div key={attr.name}>
+                        <div key={attrKey}>
                           <Label className="text-xs">{attr.displayName}</Label>
                           <select
                             value={variantAttrs[attr.name] || ''}
@@ -260,15 +444,15 @@ export function VariantManager({ attributes, variants, onChange }: VariantManage
                             className="w-full mt-1 px-3 py-2 border rounded-md text-sm"
                           >
                             <option value="">-- اختر --</option>
-                            {attr.options.map(opt => (
-                              <option key={opt} value={opt}>{opt}</option>
+                            {attr.options.map((opt, optIdx) => (
+                              <option key={opt || `opt-${optIdx}`} value={opt}>{opt}</option>
                             ))}
                           </select>
                         </div>
                       )
                     } else if (attr.type === 'text') {
                       return (
-                        <div key={attr.name}>
+                        <div key={attrKey}>
                           <Label className="text-xs">{attr.displayName}</Label>
                           <Input
                             value={variantAttrs[attr.name] || ''}
@@ -280,7 +464,7 @@ export function VariantManager({ attributes, variants, onChange }: VariantManage
                       )
                     } else if (attr.type === 'number') {
                       return (
-                        <div key={attr.name}>
+                        <div key={attrKey}>
                           <Label className="text-xs">{attr.displayName}</Label>
                           <Input
                             type="number"

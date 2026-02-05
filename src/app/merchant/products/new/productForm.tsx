@@ -35,7 +35,13 @@ import { Stepper } from '@/components/ui/stepper'
 import { AttributeDefinitionManager } from '@/components/product/AttributeDefinitionManager'
 import { VariantManager } from '@/components/product/VariantManager'
 import { PricingPreview } from '@/components/product/PricingPreview'
+import { VariantPricingPreview } from '@/components/product/VariantPricingPreview'
 import { ProductAttributeDefDTO as ProductAttribute, ProductVariantDTO as ProductVariant } from '@/domain/product/product.types'
+import { 
+  normalizeProductPayload, 
+  validateVariantPricing,
+  FormVariant 
+} from '@/lib/products/normalizeProductPayload'
 import { Sparkles } from "lucide-react";
 import {
   ChevronRight,
@@ -92,19 +98,24 @@ const formSchema = z
       .optional(),
 
       variants: z.array(z.object({
+        _id: z.string().optional(),
         sku: z.string().min(1),
         attributes: z.record(z.string()),
-        // NEW (supports dynamic pricing per variant)
-        merchantPrice: z.number().min(0.01).optional(),
+        // Variant price is OPTIONAL in UI - will use defaultVariantMerchantPrice as fallback
+        merchantPrice: z.number().min(0).optional().or(z.literal("")),
         nubianMarkup: z.number().min(0).max(100).optional(),
 
         // keep price for backward compatibility
-        price: z.number().min(0.01).optional(),
+        price: z.number().min(0).optional().or(z.literal("")),
 
         stock: z.number().int().min(0),
         images: z.array(z.string()).optional(),
         isActive: z.boolean(),
       })).optional(),
+      
+      // Form-only fields for variant pricing (not sent to DB directly)
+      defaultVariantMerchantPrice: z.number().min(0).optional().or(z.literal("")),
+      samePriceForAllVariants: z.boolean().optional(),
 
     // Legacy fields
     sizes: z.array(z.string()).optional(),
@@ -177,6 +188,9 @@ const formSchema = z
       priorityScore: 0,
       featured: false,
       isActive: true,
+      // New fields for variant pricing
+      defaultVariantMerchantPrice: "" as any,
+      samePriceForAllVariants: false,
     },
   });
 
@@ -219,15 +233,35 @@ const formSchema = z
   }, [form, productId, images]);
 
 
+  // Watch for new variant pricing fields
+  const defaultVariantMerchantPrice = useWatch({ control: form.control, name: 'defaultVariantMerchantPrice' as any })
+  const samePriceForAllVariants = useWatch({ control: form.control, name: 'samePriceForAllVariants' as any })
+
   // Memoize variants for VariantManager to avoid re-renders
   const memoizedVariants = useMemo(() => {
     return (variants || []).map(v => ({
       ...v,
-      merchantPrice: (v as any).merchantPrice ?? v.price,
-      price: v.price ?? (v as any).merchantPrice,
+      // Keep merchantPrice as-is (can be undefined for optional pricing)
+      merchantPrice: (v as any).merchantPrice,
+      price: v.price,
       isActive: v.isActive !== false,
     }))
   }, [variants])
+  
+  // Convert variants to FormVariant for pricing calculations
+  const formVariants: FormVariant[] = useMemo(() => {
+    return (variants || []).map((v: any) => ({
+      _id: v?._id,
+      sku: v?.sku || "",
+      attributes: v?.attributes || {},
+      merchantPrice: v?.merchantPrice,
+      nubianMarkup: v?.nubianMarkup,
+      price: v?.price,
+      stock: v?.stock ?? 0,
+      images: v?.images,
+      isActive: v?.isActive !== false,
+    }));
+  }, [variants]);
 
   // Memoize step enabled check to avoid recalculation
   // Only recalculate when form values actually change
@@ -513,6 +547,19 @@ const formSchema = z
 
           const hasVariants = product.variants && product.variants.length > 0;
 
+          // For variant products, check if there's a common price we can use as default
+          let defaultVariantPrice: number | "" = "";
+          if (hasVariants && product.variants && product.variants.length > 0) {
+            // Check if all variants have the same price
+            const prices = product.variants.map((v: any) => v.merchantPrice || v.price).filter((p: any) => p > 0);
+            if (prices.length > 0) {
+              const uniquePrices = [...new Set(prices)];
+              if (uniquePrices.length === 1) {
+                defaultVariantPrice = uniquePrices[0];
+              }
+            }
+          }
+          
           form.reset({
             name: product.name,
             description: product.description || "",
@@ -526,6 +573,9 @@ const formSchema = z
             variants: product.variants
               ? product.variants.map((v: any) => ({
                   ...v,
+                  // Keep merchantPrice as-is to show existing prices
+                  merchantPrice: v.merchantPrice || v.price || undefined,
+                  price: v.price || v.merchantPrice || undefined,
                   attributes: v.attributes instanceof Map ? Object.fromEntries(v.attributes) : v.attributes,
                   isActive: v.isActive !== false,
                 }))
@@ -537,7 +587,10 @@ const formSchema = z
             priorityScore: product.priorityScore || 0,
             featured: product.featured || false,
             isActive: product.isActive !== false,
-          });
+            // New fields
+            defaultVariantMerchantPrice: defaultVariantPrice,
+            samePriceForAllVariants: false,
+          } as any);
         } catch (error) {
           logger.error("Failed to fetch product", {
             error: error instanceof Error ? error.message : String(error),
@@ -681,6 +734,18 @@ const formSchema = z
           setLoading(false);
           return;
         }
+        
+        // Validate variant pricing
+        const variantPricingValidation = validateVariantPricing(
+          values.variants as FormVariant[],
+          (values as any).defaultVariantMerchantPrice
+        );
+        if (!variantPricingValidation.valid) {
+          toast.error(variantPricingValidation.errors.join("\n"));
+          isSubmittingRef.current = false;
+          setLoading(false);
+          return;
+        }
       }
 
       const imagesArray = Array.isArray(validImages) ? validImages : [];
@@ -747,38 +812,30 @@ const formSchema = z
           return;
         }
       } else {
-        dataToSend.attributes = values.attributes || [];
-        dataToSend.variants = (values.variants || []).map((v) => {
-          // TS-safe: لا تستخدم v.merchantPrice مباشرة لأن النوع ما فيه الحقل
-          const anyV = v as any;
-
-          const merchantPrice =
-            (typeof anyV.merchantPrice === "number" && Number.isFinite(anyV.merchantPrice))
-              ? anyV.merchantPrice
-              : (typeof v.price === "number" && Number.isFinite(v.price))
-              ? v.price
-              : 0;
-
-          const nubianMarkup =
-            (typeof anyV.nubianMarkup === "number" && Number.isFinite(anyV.nubianMarkup))
-              ? anyV.nubianMarkup
-              : 10;
-
-          const price =
-            (typeof v.price === "number" && Number.isFinite(v.price))
-              ? v.price
-              : merchantPrice;
-
-          return {
-            ...v,
-            merchantPrice,
-            nubianMarkup,
-            price,
-            isActive: v.isActive !== false,
-          };
-        });
-
-
+        // Use normalization function for variant products
+        const normalizedPayload = normalizeProductPayload(
+          {
+            name: values.name,
+            description: values.description,
+            category: values.category,
+            images: imagesArray,
+            isActive: values.isActive,
+            attributes: values.attributes,
+            variants: values.variants as FormVariant[],
+            defaultVariantMerchantPrice: (values as any).defaultVariantMerchantPrice,
+            samePriceForAllVariants: (values as any).samePriceForAllVariants,
+            nubianMarkup: values.nubianMarkup,
+          },
+          "with_variants"
+        );
+        
+        dataToSend.attributes = normalizedPayload.attributes || [];
+        dataToSend.variants = normalizedPayload.variants || [];
+        
+        // Clear product-level pricing for variant products (per schema requirement)
+        delete dataToSend.merchantPrice;
+        delete dataToSend.price;
+        delete dataToSend.stock;
       }
 
       if (userRole === "admin") {
@@ -838,6 +895,8 @@ const formSchema = z
           name: "",
           description: "",
           productType: "" as any,
+          merchantPrice: undefined,
+          nubianMarkup: 10,
           price: undefined,
           category: "",
           stock: undefined,
@@ -847,7 +906,12 @@ const formSchema = z
           colors: [],
           images: [],
           merchant: "",
+          priorityScore: 0,
+          featured: false,
           isActive: true,
+          // Reset new fields
+          defaultVariantMerchantPrice: "" as any,
+          samePriceForAllVariants: false,
         });
 
         setCurrentStep(1);
@@ -1119,6 +1183,14 @@ const formSchema = z
                           productType === 'with_variants' ? "border-primary bg-primary/5 shadow-md" : "border-muted bg-card"
                         )}
                         onClick={() => {
+                          // When switching to variants, pre-fill default price from current merchantPrice
+                          const currentMerchantPrice = form.getValues("merchantPrice");
+                          if (currentMerchantPrice && currentMerchantPrice > 0) {
+                            const currentDefault = form.getValues("defaultVariantMerchantPrice" as any);
+                            if (!currentDefault || currentDefault === "") {
+                              form.setValue("defaultVariantMerchantPrice" as any, currentMerchantPrice);
+                            }
+                          }
                           form.setValue('productType', 'with_variants');
                           form.trigger('productType');
                         }}
@@ -1308,7 +1380,21 @@ const formSchema = z
                                 onChange={(vars) => {
                                   form.setValue('variants', vars, { shouldValidate: false })
                                 }}
+                                defaultVariantMerchantPrice={defaultVariantMerchantPrice}
+                                onDefaultPriceChange={(price) => form.setValue("defaultVariantMerchantPrice" as any, price, { shouldValidate: false })}
+                                samePriceForAllVariants={samePriceForAllVariants}
+                                onSamePriceToggle={(enabled) => form.setValue("samePriceForAllVariants" as any, enabled, { shouldValidate: false })}
+                                defaultNubianMarkup={nubianMarkup || 10}
                               />
+                              
+                              {/* Variant Pricing Preview */}
+                              {variants && variants.length > 0 && (
+                                <VariantPricingPreview
+                                  variants={formVariants}
+                                  defaultVariantMerchantPrice={defaultVariantMerchantPrice}
+                                  defaultNubianMarkup={nubianMarkup || 10}
+                                />
+                              )}
                             </CardContent>
                           </Card>
                         )}
@@ -1366,6 +1452,7 @@ const formSchema = z
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       {/* Left: Product Images Preview */}
                       <div className="md:col-span-1 space-y-4">
+                        {/* Primary Image Display */}
                         <div className="aspect-square rounded-xl border bg-muted/30 overflow-hidden relative group">
                           {images && images.length > 0 ? (
                             <img 
@@ -1384,18 +1471,49 @@ const formSchema = z
                           </div>
                         </div>
                         
-                        <div className="grid grid-cols-4 gap-2">
-                          {images?.slice(1, 5).map((img, i) => (
-                            <div key={i} className="aspect-square rounded-lg border overflow-hidden">
-                              <img src={img} alt={`Preview ${i+2}`} className="object-cover w-full h-full" />
+                        {/* Image Selection Grid - Click to set as primary */}
+                        {images && images.length > 1 && (
+                          <div className="space-y-2">
+                            <Label className="text-xs text-muted-foreground">انقر على صورة لجعلها الرئيسية:</Label>
+                            <div className="grid grid-cols-4 gap-2">
+                              {images.map((img, i) => (
+                                <button
+                                  type="button"
+                                  key={`img-select-${i}`} 
+                                  className={cn(
+                                    "aspect-square rounded-lg border-2 overflow-hidden cursor-pointer transition-all hover:scale-105 hover:shadow-md relative",
+                                    i === 0 
+                                      ? "border-primary ring-2 ring-primary/20" 
+                                      : "border-muted hover:border-primary/50"
+                                  )}
+                                  onClick={() => {
+                                    if (i !== 0) {
+                                      // Move clicked image to first position
+                                      const newImages = [...images];
+                                      const [selectedImg] = newImages.splice(i, 1);
+                                      newImages.unshift(selectedImg);
+                                      form.setValue("images", newImages, { shouldValidate: false });
+                                    }
+                                  }}
+                                >
+                                  <img 
+                                    src={img} 
+                                    alt={`Image ${i + 1}`} 
+                                    className="object-cover w-full h-full" 
+                                  />
+                                  {i === 0 && (
+                                    <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                      <CheckCircle2 className="w-6 h-6 text-primary drop-shadow-md" />
+                                    </div>
+                                  )}
+                                </button>
+                              ))}
                             </div>
-                          ))}
-                          {images && images.length > 5 && (
-                            <div className="aspect-square rounded-lg border bg-muted flex items-center justify-center text-xs font-bold">
-                              +{images.length - 5}
-                            </div>
-                          )}
-                        </div>
+                            <p className="text-[10px] text-muted-foreground text-center">
+                              الصورة الرئيسية ستظهر أولاً للعملاء
+                            </p>
+                          </div>
+                        )}
                       </div>
 
                       {/* Right: Product Details */}

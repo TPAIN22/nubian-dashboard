@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,6 +15,11 @@ import {
 import { ProductAttribute } from '@/types/product.types'
 import { Trash2, Plus } from 'lucide-react'
 
+// Extended type with internal ID for stable keys
+interface AttributeWithId extends ProductAttribute {
+  _internalId?: string
+}
+
 interface AttributeDefinitionManagerProps {
   attributes: ProductAttribute[]
   onChange: (attributes: ProductAttribute[]) => void
@@ -22,19 +27,30 @@ interface AttributeDefinitionManagerProps {
 
 export function AttributeDefinitionManager({ attributes, onChange }: AttributeDefinitionManagerProps) {
   // Store temporary input values for adding options
-  const [tempOptions, setTempOptions] = useState<Record<number, string>>({})
-  const [bulkOptions, setBulkOptions] = useState<Record<number, string>>({})
+  const [tempOptions, setTempOptions] = useState<Record<string, string>>({})
+  const [bulkOptions, setBulkOptions] = useState<Record<string, string>>({})
+  // Counter for generating unique IDs
+  const idCounterRef = useRef(0)
+  
+  // Ensure each attribute has a stable internal ID
+  const attributesWithIds: AttributeWithId[] = attributes.map((attr) => {
+    const attrWithId = attr as AttributeWithId
+    if (!attrWithId._internalId) {
+      attrWithId._internalId = `attr-${Date.now()}-${idCounterRef.current++}`
+    }
+    return attrWithId
+  })
+  
   const addAttribute = () => {
-    onChange([
-      ...attributes,
-      {
-        name: '',
-        displayName: '',
-        type: 'select',
-        required: false,
-        options: []
-      }
-    ])
+    const newAttr: AttributeWithId = {
+      name: '',
+      displayName: '',
+      type: 'select',
+      required: false,
+      options: [],
+      _internalId: `attr-${Date.now()}-${idCounterRef.current++}`
+    }
+    onChange([...attributes, newAttr])
   }
 
   const updateAttribute = (index: number, updates: Partial<ProductAttribute>) => {
@@ -44,11 +60,17 @@ export function AttributeDefinitionManager({ attributes, onChange }: AttributeDe
   }
 
   const removeAttribute = (index: number) => {
+    const attrToRemove = attributesWithIds[index]
     onChange(attributes.filter((_, i) => i !== index))
-    // Clear all temporary state since indices will shift after removal
-    // This is simpler and safer than trying to reindex
-    setTempOptions({})
-    setBulkOptions({})
+    // Clear temp state for the removed attribute
+    if (attrToRemove?._internalId) {
+      const newTempOptions = { ...tempOptions }
+      const newBulkOptions = { ...bulkOptions }
+      delete newTempOptions[attrToRemove._internalId]
+      delete newBulkOptions[attrToRemove._internalId]
+      setTempOptions(newTempOptions)
+      setBulkOptions(newBulkOptions)
+    }
   }
 
   return (
@@ -67,8 +89,8 @@ export function AttributeDefinitionManager({ attributes, onChange }: AttributeDe
         </p>
       )}
       
-      {attributes.map((attr, index) => (
-        <div key={index} className="border rounded-lg p-4 space-y-3 bg-card">
+      {attributesWithIds.map((attr, index) => (
+        <div key={attr._internalId} className="border rounded-lg p-4 space-y-3 bg-card">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-sm">الاسم الداخلي (Internal Name) *</Label>
@@ -133,7 +155,7 @@ export function AttributeDefinitionManager({ attributes, onChange }: AttributeDe
                   <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-muted/50">
                     {attr.options.map((option, optIndex) => (
                       <div
-                        key={optIndex}
+                        key={option || `option-${optIndex}`}
                         className="inline-flex items-center gap-1 px-2 py-1 bg-background border rounded-md text-sm"
                       >
                         <span>{option}</span>
@@ -156,9 +178,9 @@ export function AttributeDefinitionManager({ attributes, onChange }: AttributeDe
                   <Input
                     type="text"
                     placeholder="أدخل خياراً جديداً واضغط Enter أو اضغط إضافة"
-                    value={tempOptions[index] || ''}
+                    value={tempOptions[attr._internalId!] || ''}
                     onChange={(e) => {
-                      setTempOptions({ ...tempOptions, [index]: e.target.value })
+                      setTempOptions({ ...tempOptions, [attr._internalId!]: e.target.value })
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && e.currentTarget.value.trim()) {
@@ -171,7 +193,7 @@ export function AttributeDefinitionManager({ attributes, onChange }: AttributeDe
                           })
                         }
                         // Clear input
-                        setTempOptions({ ...tempOptions, [index]: '' })
+                        setTempOptions({ ...tempOptions, [attr._internalId!]: '' })
                       }
                     }}
                     className="flex-1"
@@ -181,7 +203,7 @@ export function AttributeDefinitionManager({ attributes, onChange }: AttributeDe
                     size="sm"
                     variant="outline"
                     onClick={() => {
-                      const tempOption = tempOptions[index]
+                      const tempOption = tempOptions[attr._internalId!]
                       if (tempOption && tempOption.trim()) {
                         const newOption = tempOption.trim()
                         const existingOptions = attr.options || []
@@ -191,7 +213,7 @@ export function AttributeDefinitionManager({ attributes, onChange }: AttributeDe
                           })
                         }
                         // Clear input
-                        setTempOptions({ ...tempOptions, [index]: '' })
+                        setTempOptions({ ...tempOptions, [attr._internalId!]: '' })
                       }
                     }}
                   >
@@ -206,9 +228,9 @@ export function AttributeDefinitionManager({ attributes, onChange }: AttributeDe
                   </summary>
                   <Textarea
                     placeholder="اكتب كل خيار في سطر منفصل&#10;مثال:&#10;S&#10;M&#10;L&#10;XL"
-                    value={bulkOptions[index] || ''}
+                    value={bulkOptions[attr._internalId!] || ''}
                     onChange={(e) => {
-                      setBulkOptions({ ...bulkOptions, [index]: e.target.value })
+                      setBulkOptions({ ...bulkOptions, [attr._internalId!]: e.target.value })
                     }}
                     onBlur={(e) => {
                       const bulkText = e.target.value
@@ -224,7 +246,7 @@ export function AttributeDefinitionManager({ attributes, onChange }: AttributeDe
                           options: allOptions
                         })
                         // Clear bulk input
-                        setBulkOptions({ ...bulkOptions, [index]: '' })
+                        setBulkOptions({ ...bulkOptions, [attr._internalId!]: '' })
                       }
                     }}
                     rows={3}

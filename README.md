@@ -159,6 +159,123 @@ ISC
   - Merchant application approved in the system
 - **Application**: `/merchant/apply`
 
+## Bulk Product Import
+
+The dashboard includes a bulk product import feature that allows admins and merchants to import multiple products at once via CSV or Excel files.
+
+### Access
+- **URL**: `/business/products/import`
+- **Permissions**:
+  - **Admin**: Can import for any merchant
+  - **Merchant**: Can only import for their own store
+
+### File Formats
+
+#### CSV Format
+Download the template: `/api/admin/products/import/template.csv`
+
+#### XLSX (Excel) Format
+Download the template: `/api/admin/products/import/template.xlsx`
+
+### Column Definitions
+
+| Column | Required | Description |
+|--------|----------|-------------|
+| `sku` | Yes | Unique product identifier per merchant (max 64 chars, no spaces) |
+| `name` | Yes | Product name |
+| `description` | No | Product description |
+| `price` | Yes | Product price (non-negative number) |
+| `currency` | No | Currency code (default: USD) |
+| `category` | No | Category name (must match existing category) |
+| `stock` | No | Stock quantity (non-negative integer, default: 0) |
+| `image_urls` | No | Pipe-separated image URLs (URL mode) |
+| `image_files` | No | Pipe-separated filenames from ZIP (ZIP mode) |
+| `variants_json` | No | JSON array of variants (optional) |
+
+### Image Modes
+
+#### URL Mode
+Provide direct image URLs in the `image_urls` column, separated by pipes (`|`):
+```
+https://example.com/img1.jpg|https://example.com/img2.jpg
+```
+
+Alternative: Use separate columns `image_1`, `image_2`, etc.
+
+#### ZIP Mode
+1. Upload a ZIP file containing product images
+2. Reference images by filename in the `image_files` column:
+```
+product1-front.jpg|product1-back.jpg
+```
+3. Images are automatically uploaded to ImageKit during import
+
+**Note**: If both modes are used in the same file, ZIP mode takes priority.
+
+### Example Rows
+
+#### URL Mode Example
+```csv
+sku,name,description,price,currency,category,stock,image_urls,image_files,variants_json
+PROD-001,Example Product,A sample product,99.99,USD,Electronics,100,https://example.com/img1.jpg|https://example.com/img2.jpg,,
+```
+
+#### ZIP Mode Example
+```csv
+sku,name,description,price,currency,category,stock,image_urls,image_files,variants_json
+PROD-002,Product with ZIP,Uses ZIP images,149.99,USD,Clothing,50,,product2-front.jpg|product2-back.jpg,
+```
+
+#### With Variants Example
+```csv
+sku,name,description,price,currency,category,stock,image_urls,image_files,variants_json
+PROD-003,Product with Variants,Has size variants,199.99,USD,Clothing,0,https://example.com/prod3.jpg,,"[{""sku"":""PROD-003-S"",""attributes"":{""size"":""S""},""merchantPrice"":199.99,""stock"":10},{""sku"":""PROD-003-M"",""attributes"":{""size"":""M""},""merchantPrice"":199.99,""stock"":15}]"
+```
+
+### ImageKit Environment Variables (Required for ZIP Mode)
+
+Add these to your `.env.local` or production environment:
+
+```env
+# ImageKit Configuration
+NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY=your_public_key
+IMAGEKIT_PRIVATE_KEY=your_private_key_here
+NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_imagekit_id
+```
+
+**Security Note**: Never use `NEXT_PUBLIC_` prefix for `IMAGEKIT_PRIVATE_KEY` in production.
+
+### Import Process
+
+1. **Upload**: Select CSV/XLSX file and optional ZIP with images
+2. **Preview**: Review parsed data, validation errors, and warnings
+3. **Import**: Confirm and execute the import
+4. **Report**: View results and download failure report if needed
+
+### Limits and Constraints
+
+| Constraint | Limit |
+|------------|-------|
+| ZIP file size | 50 MB |
+| Individual image size | 5 MB |
+| SKU length | 64 characters |
+| Session expiry | 15 minutes |
+| Preview rows | 20 rows |
+| Allowed image types | PNG, JPG, JPEG, WEBP |
+
+### Upsert Behavior
+
+Products are matched by `(merchantId, sku)` compound key:
+- If SKU exists: Product is updated
+- If SKU is new: Product is inserted
+
+### Error Handling
+
+- Validation errors are shown in the preview step
+- Failed rows are reported with detailed error messages
+- Download failure reports as CSV or JSON
+- Partial imports are allowed (valid rows are processed)
+
 ## Support
 
 For issues and questions, please contact the development team.
