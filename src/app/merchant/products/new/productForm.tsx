@@ -37,12 +37,11 @@ import { VariantManager } from '@/components/product/VariantManager'
 import { PricingPreview } from '@/components/product/PricingPreview'
 import { VariantPricingPreview } from '@/components/product/VariantPricingPreview'
 import { ProductAttributeDefDTO as ProductAttribute, ProductVariantDTO as ProductVariant } from '@/domain/product/product.types'
-import { 
-  normalizeProductPayload, 
+import {
+  normalizeProductPayload,
   validateVariantPricing,
-  FormVariant 
+  FormVariant
 } from '@/lib/products/normalizeProductPayload'
-import { Sparkles } from "lucide-react";
 import {
   ChevronRight,
   ChevronLeft,
@@ -97,25 +96,25 @@ const formSchema = z
       )
       .optional(),
 
-      variants: z.array(z.object({
-        _id: z.string().optional(),
-        sku: z.string().min(1),
-        attributes: z.record(z.string()),
-        // Variant price is OPTIONAL in UI - will use defaultVariantMerchantPrice as fallback
-        merchantPrice: z.number().min(0).optional().or(z.literal("")),
-        nubianMarkup: z.number().min(0).max(100).optional(),
+    variants: z.array(z.object({
+      _id: z.string().optional(),
+      sku: z.string().min(1),
+      attributes: z.record(z.string()),
+      // Variant price is OPTIONAL in UI - will use defaultVariantMerchantPrice as fallback
+      merchantPrice: z.number().min(0).optional().or(z.literal("")),
+      nubianMarkup: z.number().min(0).max(100).optional(),
 
-        // keep price for backward compatibility
-        price: z.number().min(0).optional().or(z.literal("")),
+      // keep price for backward compatibility
+      price: z.number().min(0).optional().or(z.literal("")),
 
-        stock: z.number().int().min(0),
-        images: z.array(z.string()).optional(),
-        isActive: z.boolean(),
-      })).optional(),
-      
-      // Form-only fields for variant pricing (not sent to DB directly)
-      defaultVariantMerchantPrice: z.number().min(0).optional().or(z.literal("")),
-      samePriceForAllVariants: z.boolean().optional(),
+      stock: z.number().int().min(0),
+      images: z.array(z.string()).optional(),
+      isActive: z.boolean(),
+    })).optional(),
+
+    // Form-only fields for variant pricing (not sent to DB directly)
+    defaultVariantMerchantPrice: z.number().min(0).optional().or(z.literal("")),
+    samePriceForAllVariants: z.boolean().optional(),
 
     // Legacy fields
     sizes: z.array(z.string()).optional(),
@@ -138,32 +137,32 @@ const formSchema = z
       });
     }
   });
-  
-  interface Category {
-    _id: string;
-    name: string;
-  }
 
-  interface Merchant {
-    _id: string;
-    businessName: string;
-    businessEmail: string;
-    status: string;
-  }
-  
-  export default function MerchantProductForm({ productId }: { productId?: string }) {
-    
-    
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [merchants, setMerchants] = useState<Merchant[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [categoriesLoading, setCategoriesLoading] = useState(true);
-    const [merchantsLoading, setMerchantsLoading] = useState(true);
-    const isSubmittingRef = useRef(false);
-    const [currentStep, setCurrentStep] = useState(1);
-    const maxStep = 5;
-    const [isEdit] = useState(!!productId);
-    const router = useRouter();
+interface Category {
+  _id: string;
+  name: string;
+}
+
+interface Merchant {
+  _id: string;
+  businessName: string;
+  businessEmail: string;
+  status: string;
+}
+
+export default function MerchantProductForm({ productId }: { productId?: string }) {
+
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [merchants, setMerchants] = useState<Merchant[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [merchantsLoading, setMerchantsLoading] = useState(true);
+  const isSubmittingRef = useRef(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const maxStep = 5;
+  const [isEdit] = useState(!!productId);
+  const router = useRouter();
   const { getToken } = useAuth();
   const { user, isLoaded: userLoaded } = useUser();
   const form = useForm<z.infer<typeof formSchema>>({
@@ -239,15 +238,22 @@ const formSchema = z
 
   // Memoize variants for VariantManager to avoid re-renders
   const memoizedVariants = useMemo(() => {
-    return (variants || []).map(v => ({
-      ...v,
-      // Keep merchantPrice as-is (can be undefined for optional pricing)
-      merchantPrice: (v as any).merchantPrice,
-      price: v.price,
-      isActive: v.isActive !== false,
-    }))
+    return (variants || []).map(v => {
+      const rawMerchantPrice = (v as any).merchantPrice;
+      const merchantPriceNum = typeof rawMerchantPrice === 'number' ? rawMerchantPrice : 0;
+      const rawPrice = v.price;
+      const priceNum = typeof rawPrice === 'number' ? rawPrice : merchantPriceNum;
+
+      return {
+        ...v,
+        // Ensure merchantPrice and price are always valid numbers for ProductVariantDTO
+        merchantPrice: merchantPriceNum,
+        price: priceNum,
+        isActive: v.isActive !== false,
+      };
+    })
   }, [variants])
-  
+
   // Convert variants to FormVariant for pricing calculations
   const formVariants: FormVariant[] = useMemo(() => {
     return (variants || []).map((v: any) => ({
@@ -265,13 +271,13 @@ const formSchema = z
 
   // Memoize step enabled check to avoid recalculation
   // Only recalculate when form values actually change
-  
+
   const stepStates = useMemo(() => {
     const states = {
       enabled: [true, false, false, false, false], // Step 1 always enabled
       completed: [false, false, false, false, false],
     }
-    
+
     // Use watched values for better performance and stability
     const currentValues = {
       name,
@@ -296,13 +302,13 @@ const formSchema = z
           break
         case 2:
           isCompleted = !!currentValues.productType &&
-                       (currentValues.productType === 'simple' || currentValues.productType === 'with_variants')
+            (currentValues.productType === 'simple' || currentValues.productType === 'with_variants')
           break
         case 3:
           if (currentValues.productType === 'simple') {
             const mPrice = currentValues.merchantPrice || currentValues.price
             isCompleted = mPrice !== undefined && mPrice >= 0.01 &&
-                         currentValues.stock !== undefined && currentValues.stock >= 0
+              currentValues.stock !== undefined && currentValues.stock >= 0
           } else {
             const hasAttrs = !!(currentValues.attributes && Array.isArray(currentValues.attributes) && currentValues.attributes.length > 0)
             const hasVars = !!(currentValues.variants && Array.isArray(currentValues.variants) && currentValues.variants.length > 0)
@@ -316,9 +322,9 @@ const formSchema = z
           isCompleted = true
           break
       }
-      
+
       states.completed[i - 1] = isCompleted
-      
+
       if (i > 1) {
         let allPreviousCompleted = true
         for (let j = 0; j < i - 1; j++) {
@@ -330,7 +336,7 @@ const formSchema = z
         states.enabled[i - 1] = allPreviousCompleted
       }
     }
-    
+
     return states
   }, [
     name,
@@ -363,34 +369,34 @@ const formSchema = z
     switch (step) {
       case 1: // Basic Info: name, description, category
         return !errors.name && !errors.description && !errors.category &&
-               !!values.name?.trim() && !!values.description?.trim() && !!values.category?.trim()
-      
+          !!values.name?.trim() && !!values.description?.trim() && !!values.category?.trim()
+
       case 2: // Product Type
         // Step 2 is only completed if productType is explicitly selected
         const productTypeVal = values.productType as string
-        return !errors.productType && 
-               !!productTypeVal && 
-               (productTypeVal === 'simple' || productTypeVal === 'with_variants')
-      
+        return !errors.productType &&
+          !!productTypeVal &&
+          (productTypeVal === 'simple' || productTypeVal === 'with_variants')
+
       case 3: // Product Details
         if (values.productType === 'simple') {
           const merchantPrice = values.merchantPrice || values.price
           return !errors.merchantPrice && !errors.price && !errors.stock &&
-                 merchantPrice !== undefined && merchantPrice >= 0.01 &&
-                 values.stock !== undefined && values.stock >= 0
+            merchantPrice !== undefined && merchantPrice >= 0.01 &&
+            values.stock !== undefined && values.stock >= 0
         } else {
           const hasAttributes = !!(values.attributes && Array.isArray(values.attributes) && values.attributes.length > 0)
           const hasVariants = !!(values.variants && Array.isArray(values.variants) && values.variants.length > 0)
           return hasAttributes && hasVariants
         }
-      
+
       case 4: // Images
         const imgArray = values.images || []
         return !errors.images && Array.isArray(imgArray) && imgArray.length > 0
-      
+
       case 5: // Review (always enabled if we got here)
         return true
-      
+
       default:
         return false
     }
@@ -401,7 +407,7 @@ const formSchema = z
     if (currentStep < maxStep) {
       // Trigger validation only for current step fields
       let fieldsToValidate: (keyof z.infer<typeof formSchema>)[] = []
-      
+
       switch (currentStep) {
         case 1:
           fieldsToValidate = ['name', 'description', 'category']
@@ -420,14 +426,14 @@ const formSchema = z
           fieldsToValidate = ['images']
           break
       }
-      
+
       // Trigger validation and wait for it to complete
       const isValid = await form.trigger(fieldsToValidate)
-      
+
       // Validate the step inline using current form state (not memoized stepStates)
       // This ensures we use the fresh validation results, not stale memoized values
       const isStepValid = validateStepInline(currentStep)
-      
+
       // Use the validation result from form.trigger() as primary check
       // Also check step validation to ensure all conditions are met
       if (isValid && isStepValid) {
@@ -555,11 +561,11 @@ const formSchema = z
             if (prices.length > 0) {
               const uniquePrices = [...new Set(prices)];
               if (uniquePrices.length === 1) {
-                defaultVariantPrice = uniquePrices[0];
+                defaultVariantPrice = uniquePrices[0] as number;
               }
             }
           }
-          
+
           form.reset({
             name: product.name,
             description: product.description || "",
@@ -572,13 +578,13 @@ const formSchema = z
             attributes: product.attributes || [],
             variants: product.variants
               ? product.variants.map((v: any) => ({
-                  ...v,
-                  // Keep merchantPrice as-is to show existing prices
-                  merchantPrice: v.merchantPrice || v.price || undefined,
-                  price: v.price || v.merchantPrice || undefined,
-                  attributes: v.attributes instanceof Map ? Object.fromEntries(v.attributes) : v.attributes,
-                  isActive: v.isActive !== false,
-                }))
+                ...v,
+                // Keep merchantPrice as-is to show existing prices
+                merchantPrice: v.merchantPrice || v.price || undefined,
+                price: v.price || v.merchantPrice || undefined,
+                attributes: v.attributes instanceof Map ? Object.fromEntries(v.attributes) : v.attributes,
+                isActive: v.isActive !== false,
+              }))
               : [],
             sizes: product.sizes || [],
             colors: product.colors || [],
@@ -734,7 +740,7 @@ const formSchema = z
           setLoading(false);
           return;
         }
-        
+
         // Validate variant pricing
         const variantPricingValidation = validateVariantPricing(
           values.variants as FormVariant[],
@@ -756,14 +762,14 @@ const formSchema = z
         return;
       }
 
-      
-            const dataToSend: any = {
-              name: String(values.name).trim(),
-              description: String(values.description).trim(),
-              category: String(values.category).trim(),
-              images: imagesArray,
-              isActive: values.isActive !== false,
-            };
+
+      const dataToSend: any = {
+        name: String(values.name).trim(),
+        description: String(values.description).trim(),
+        category: String(values.category).trim(),
+        images: imagesArray,
+        isActive: values.isActive !== false,
+      };
       // FORCE images to be an array - last resort fix (MERCHANT)
       if (!Array.isArray(dataToSend.images)) {
         console.log("FORCED FIX (MERCHANT): dataToSend.images was not an array:", dataToSend.images);
@@ -828,10 +834,10 @@ const formSchema = z
           },
           "with_variants"
         );
-        
+
         dataToSend.attributes = normalizedPayload.attributes || [];
         dataToSend.variants = normalizedPayload.variants || [];
-        
+
         // Clear product-level pricing for variant products (per schema requirement)
         delete dataToSend.merchantPrice;
         delete dataToSend.price;
@@ -1036,7 +1042,7 @@ const formSchema = z
             </div>
 
             <Form {...form}>
-              <form 
+              <form
                 onSubmit={(e) => {
                   e.preventDefault()
                   if (currentStep === 5) {
@@ -1056,7 +1062,7 @@ const formSchema = z
                   } else {
                     goToNextStep()
                   }
-                }} 
+                }}
                 className="space-y-6"
               >
                 {/* Step 1: Basic Information */}
@@ -1066,7 +1072,7 @@ const formSchema = z
                       <Type className="w-5 h-5 text-primary" />
                       <h3 className="text-lg font-semibold">المعلومات الأساسية للمنتج</h3>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 gap-6">
                       <FormField
                         control={form.control as any}
@@ -1075,10 +1081,10 @@ const formSchema = z
                           <FormItem>
                             <FormLabel className="font-semibold">اسم المنتج *</FormLabel>
                             <FormControl>
-                              <Input 
-                                placeholder="مثال: فستان سهرة مخمل، هاتف سامسونج S24" 
+                              <Input
+                                placeholder="مثال: فستان سهرة مخمل، هاتف سامسونج S24"
                                 className="h-11 rounded-lg"
-                                {...field} 
+                                {...field}
                               />
                             </FormControl>
                             <FormDescription>سيظهر هذا الاسم للمتسوقين في المتجر</FormDescription>
@@ -1112,8 +1118,8 @@ const formSchema = z
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="font-semibold">الفئة *</FormLabel>
-                            <Select 
-                              onValueChange={field.onChange} 
+                            <Select
+                              onValueChange={field.onChange}
                               value={field.value}
                             >
                               <FormControl>
@@ -1144,9 +1150,9 @@ const formSchema = z
                       <Layers className="w-5 h-5 text-primary" />
                       <h3 className="text-lg font-semibold">اختر نوع المنتج</h3>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div 
+                      <div
                         className={cn(
                           "relative cursor-pointer rounded-xl border-2 p-6 transition-all hover:border-primary/50",
                           productType === 'simple' ? "border-primary bg-primary/5 shadow-md" : "border-muted bg-card"
@@ -1177,7 +1183,7 @@ const formSchema = z
                         </div>
                       </div>
 
-                      <div 
+                      <div
                         className={cn(
                           "relative cursor-pointer rounded-xl border-2 p-6 transition-all hover:border-primary/50",
                           productType === 'with_variants' ? "border-primary bg-primary/5 shadow-md" : "border-muted bg-card"
@@ -1238,7 +1244,7 @@ const formSchema = z
                     <h3 className="text-lg font-semibold mb-4">
                       {productType === 'simple' ? 'السعر والمخزون' : 'الخصائص والمتغيرات'}
                     </h3>
-                    
+
                     {productType === 'simple' ? (
                       <>
                         <div className="grid grid-cols-2 gap-4">
@@ -1386,7 +1392,7 @@ const formSchema = z
                                 onSamePriceToggle={(enabled) => form.setValue("samePriceForAllVariants" as any, enabled, { shouldValidate: false })}
                                 defaultNubianMarkup={nubianMarkup || 10}
                               />
-                              
+
                               {/* Variant Pricing Preview */}
                               {variants && variants.length > 0 && (
                                 <VariantPricingPreview
@@ -1410,7 +1416,7 @@ const formSchema = z
                       <ImageIcon className="w-5 h-5 text-primary" />
                       <h3 className="text-lg font-semibold">صور المنتج</h3>
                     </div>
-                    
+
                     <div className="bg-muted/30 p-6 rounded-xl border-2 border-dashed">
                       <Label className="mb-4 block text-center font-medium">قم برفع صور المنتج (صورة واحدة على الأقل) *</Label>
                       <ImageUpload
@@ -1421,7 +1427,7 @@ const formSchema = z
                         <Info className="w-4 h-4" />
                         <span>يُنصح برفع صور واضحة وذات خلفية بيضاء لأفضل النتائج.</span>
                       </div>
-                      
+
                       {images && images.length > 0 && (
                         <div className="mt-6">
                           <Separator className="mb-4" />
@@ -1431,7 +1437,7 @@ const formSchema = z
                           </div>
                         </div>
                       )}
-                      
+
                       {form.formState.errors.images && (
                         <p className="text-sm font-medium text-destructive mt-4 text-center">
                           {form.formState.errors.images.message}
@@ -1455,9 +1461,9 @@ const formSchema = z
                         {/* Primary Image Display */}
                         <div className="aspect-square rounded-xl border bg-muted/30 overflow-hidden relative group">
                           {images && images.length > 0 ? (
-                            <img 
-                              src={images[0]} 
-                              alt="Product Preview" 
+                            <img
+                              src={images[0]}
+                              alt="Product Preview"
                               className="object-cover w-full h-full"
                             />
                           ) : (
@@ -1470,7 +1476,7 @@ const formSchema = z
                             <Badge className="bg-black/50 backdrop-blur-sm border-none">الرئيسية</Badge>
                           </div>
                         </div>
-                        
+
                         {/* Image Selection Grid - Click to set as primary */}
                         {images && images.length > 1 && (
                           <div className="space-y-2">
@@ -1479,11 +1485,11 @@ const formSchema = z
                               {images.map((img, i) => (
                                 <button
                                   type="button"
-                                  key={`img-select-${i}`} 
+                                  key={`img-select-${i}`}
                                   className={cn(
                                     "aspect-square rounded-lg border-2 overflow-hidden cursor-pointer transition-all hover:scale-105 hover:shadow-md relative",
-                                    i === 0 
-                                      ? "border-primary ring-2 ring-primary/20" 
+                                    i === 0
+                                      ? "border-primary ring-2 ring-primary/20"
                                       : "border-muted hover:border-primary/50"
                                   )}
                                   onClick={() => {
@@ -1496,10 +1502,10 @@ const formSchema = z
                                     }
                                   }}
                                 >
-                                  <img 
-                                    src={img} 
-                                    alt={`Image ${i + 1}`} 
-                                    className="object-cover w-full h-full" 
+                                  <img
+                                    src={img}
+                                    alt={`Image ${i + 1}`}
+                                    className="object-cover w-full h-full"
                                   />
                                   {i === 0 && (
                                     <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
@@ -1630,7 +1636,7 @@ const formSchema = z
                             </div>
                           )}
                         </div>
-                        
+
                         <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/5 border border-primary/10">
                           <CheckCircle2 className="w-5 h-5 text-primary" />
                           <p className="text-sm text-primary font-medium">
