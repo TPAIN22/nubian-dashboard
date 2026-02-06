@@ -363,7 +363,7 @@ export default function ProductForm({ productId }: { productId?: string }) {
             if (prices.length > 0) {
               const uniquePrices = [...new Set(prices)];
               if (uniquePrices.length === 1) {
-                defaultVariantPrice = uniquePrices[0];
+                defaultVariantPrice = uniquePrices[0] as number;
               }
             }
           }
