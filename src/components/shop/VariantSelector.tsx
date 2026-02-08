@@ -17,19 +17,20 @@ export function VariantSelector({ attributes, onSelectionChange }: VariantSelect
   // Usually better to wait or select first option.
   // For now, let's start empty to force user selection, or select 1st if required.
   useEffect(() => {
-     // Optional: Auto-select first options
-     const defaults: SelectedAttributes = {};
-     let hasDefaults = false;
-     attributes.forEach(attr => {
-        if (attr.options && attr.options.length > 0) {
-           defaults[attr.name] = attr.options[0];
-           hasDefaults = true;
-        }
-     });
-     if (hasDefaults) {
-        setSelected(defaults);
-        onSelectionChange(defaults);
-     }
+    // Optional: Auto-select first options
+    const defaults: SelectedAttributes = {};
+    let hasDefaults = false;
+    attributes.forEach(attr => {
+      if (attr.options && attr.options.length > 0) {
+        defaults[attr.name] = attr.options[0];
+        hasDefaults = true;
+      }
+    });
+    if (hasDefaults) {
+      setSelected(defaults);
+      onSelectionChange(defaults);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attributes]); // Run only when attributes definition changes (mount)
 
   const handleSelect = (attrName: string, value: string) => {
@@ -49,21 +50,21 @@ export function VariantSelector({ attributes, onSelectionChange }: VariantSelect
           </h4>
           <div className="flex flex-wrap gap-2">
             {attr.options?.map((option) => {
-               const isActive = selected[attr.name] === option;
-               return (
-                 <button
-                   key={option}
-                   onClick={() => handleSelect(attr.name, option)}
-                   className={cn(
-                     "px-4 py-2 rounded-lg text-sm font-medium border transition-all",
-                     isActive
-                       ? "border-zinc-900 bg-zinc-900 text-white shadow-md"
-                       : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
-                   )}
-                 >
-                   {option}
-                 </button>
-               );
+              const isActive = selected[attr.name] === option;
+              return (
+                <button
+                  key={option}
+                  onClick={() => handleSelect(attr.name, option)}
+                  className={cn(
+                    "px-4 py-2 rounded-lg text-sm font-medium border transition-all",
+                    isActive
+                      ? "border-zinc-900 bg-zinc-900 text-white shadow-md"
+                      : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50"
+                  )}
+                >
+                  {option}
+                </button>
+              );
             })}
           </div>
         </div>

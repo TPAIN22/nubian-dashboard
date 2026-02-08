@@ -189,7 +189,6 @@ export async function commitImport(options: CommitOptions): Promise<CommitResult
   const Product = getProductModel();
   
   const failures: FailedRow[] = [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const bulkOps: any[] = [];
   const uploadCache = new Map<string, ImageKitUploadResult>();
   

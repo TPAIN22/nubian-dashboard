@@ -249,7 +249,7 @@ export default function CurrenciesClient() {
                             </div>
                         ) : (
                             <p className="text-center text-muted-foreground py-4">
-                                لا توجد بيانات. اضغط على "تحديث" لجلب الأسعار.
+                                لا توجد بيانات. اضغط على &quot;تحديث&quot; لجلب الأسعار.
                             </p>
                         )}
                     </CardContent>

@@ -246,7 +246,6 @@ export default function CheckoutPage() {
 
                            {transferProofUrl && (
                               <div className="relative w-full h-48 rounded-xl overflow-hidden border border-zinc-200 bg-white">
-                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                  <img src={transferProofUrl} alt="Transfer Proof" className="w-full h-full object-contain" />
                                  <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 shadow-sm">
                                     <IconCheck className="w-3 h-3" />
@@ -272,7 +271,6 @@ export default function CheckoutPage() {
                            <div key={item.product._id + item.size} className="flex gap-4 items-start">
                               <div className="relative w-16 h-16 bg-zinc-100 rounded-lg overflow-hidden flex-shrink-0">
                                  {item.product.images?.[0] && (
-                                    // eslint-disable-next-line @next/next/no-img-element
                                     <img src={item.product.images[0]} alt={item.product.name} className="w-full h-full object-cover" />
                                  )}
                                  <span className="absolute bottom-0 right-0 bg-zinc-900 text-white text-[10px] px-1.5 py-0.5 rounded-tl-md font-bold">

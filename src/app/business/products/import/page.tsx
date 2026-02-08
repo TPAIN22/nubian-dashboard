@@ -98,44 +98,45 @@ export default function ProductImportPage() {
   const { getToken } = useAuth();
   const [currentStep, setCurrentStep] = useState<Step>('upload');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // User role
   const userRole = (user?.publicMetadata?.role as string) || undefined;
   const isAdmin = userRole === 'admin';
   const userMerchantId = (user?.publicMetadata?.merchantId as string) || undefined;
-  
+
   // File state
   const [dataFile, setDataFile] = useState<File | null>(null);
   const [zipFile, setZipFile] = useState<File | null>(null);
-  
+
   // Merchant selection (admin only)
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [selectedMerchantId, setSelectedMerchantId] = useState<string>('');
-  
+
   // Parse result
   const [parseResult, setParseResult] = useState<ParseResponse | null>(null);
-  
+
   // Commit result
   const [commitResult, setCommitResult] = useState<CommitResult | null>(null);
-  
+
   // Fetch merchants for admin
   useEffect(() => {
     // Debug: log user role info
-    console.log('[Import] User loaded:', { 
+    console.log('[Import] User loaded:', {
       userId: user?.id,
-      userRole, 
-      isAdmin, 
+      userRole,
+      isAdmin,
       userMerchantId,
-      publicMetadata: user?.publicMetadata 
+      publicMetadata: user?.publicMetadata
     });
-    
+
     if (isAdmin) {
       fetchMerchants();
     } else if (userMerchantId) {
       setSelectedMerchantId(userMerchantId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, userMerchantId, user]);
-  
+
   const fetchMerchants = async () => {
     console.log('[Import] Fetching merchants...');
     try {
@@ -145,9 +146,9 @@ export default function ProductImportPage() {
           Authorization: `Bearer ${token}`,
         },
       });
-      
+
       console.log('[Import] Merchants response status:', response.status);
-      
+
       if (response.ok) {
         const data = await response.json();
         console.log('[Import] Merchants data:', data);
@@ -165,7 +166,7 @@ export default function ProductImportPage() {
       toast.error('فشل في تحميل قائمة التجار');
     }
   };
-  
+
   // Data file dropzone
   const onDropData = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -179,7 +180,7 @@ export default function ProductImportPage() {
       toast.success(`تم تحميل: ${file.name}`);
     }
   }, []);
-  
+
   const { getRootProps: getDataRootProps, getInputProps: getDataInputProps, isDragActive: isDataDragActive } = useDropzone({
     onDrop: onDropData,
     accept: {
@@ -189,7 +190,7 @@ export default function ProductImportPage() {
     },
     maxFiles: 1
   });
-  
+
   // ZIP file dropzone
   const onDropZip = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -206,7 +207,7 @@ export default function ProductImportPage() {
       toast.success(`تم تحميل: ${file.name}`);
     }
   }, []);
-  
+
   const { getRootProps: getZipRootProps, getInputProps: getZipInputProps, isDragActive: isZipDragActive } = useDropzone({
     onDrop: onDropZip,
     accept: {
@@ -215,50 +216,50 @@ export default function ProductImportPage() {
     },
     maxFiles: 1
   });
-  
+
   // Parse files
   const handleParse = async () => {
     if (!dataFile) {
       toast.error('يرجى تحميل ملف البيانات');
       return;
     }
-    
+
     if (!selectedMerchantId) {
       toast.error('يرجى اختيار التاجر');
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       const formData = new FormData();
       formData.append('dataFile', dataFile);
       formData.append('merchantId', selectedMerchantId);
-      
+
       if (zipFile) {
         formData.append('zipFile', zipFile);
       }
-      
+
       const response = await fetch('/api/admin/products/import/parse', {
         method: 'POST',
         body: formData,
       });
-      
+
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.error || 'فشل في تحليل الملف');
       }
-      
+
       setParseResult(result);
       setCurrentStep('preview');
-      
+
       if (result.warnings.length > 0) {
         result.warnings.forEach((w: string) => toast.warning(w));
       }
-      
+
       toast.success(`تم تحليل ${result.totalRows} صف`);
-      
+
     } catch (error) {
       const message = error instanceof Error ? error.message : 'حدث خطأ';
       toast.error(message);
@@ -266,22 +267,22 @@ export default function ProductImportPage() {
       setIsLoading(false);
     }
   };
-  
+
   // Commit import
   const handleCommit = async () => {
     if (!parseResult?.sessionId) {
       toast.error('لا توجد جلسة استيراد');
       return;
     }
-    
+
     if (parseResult.validRows === 0) {
       toast.error('لا توجد صفوف صالحة للاستيراد');
       return;
     }
-    
+
     setIsLoading(true);
     setCurrentStep('import');
-    
+
     try {
       const response = await fetch('/api/admin/products/import/commit', {
         method: 'POST',
@@ -290,22 +291,22 @@ export default function ProductImportPage() {
         },
         body: JSON.stringify({ sessionId: parseResult.sessionId }),
       });
-      
+
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.error || 'فشل في الاستيراد');
       }
-      
+
       setCommitResult(result.result);
       setCurrentStep('report');
-      
+
       if (result.result.failedCount === 0) {
         toast.success('تم الاستيراد بنجاح');
       } else {
         toast.warning(`تم الاستيراد مع ${result.result.failedCount} أخطاء`);
       }
-      
+
     } catch (error) {
       const message = error instanceof Error ? error.message : 'حدث خطأ';
       toast.error(message);
@@ -314,11 +315,11 @@ export default function ProductImportPage() {
       setIsLoading(false);
     }
   };
-  
+
   // Download failures report
   const handleDownloadFailures = async (format: 'csv' | 'json' = 'csv') => {
     if (!commitResult?.failures.length) return;
-    
+
     try {
       const response = await fetch('/api/admin/products/import/failures', {
         method: 'POST',
@@ -327,7 +328,7 @@ export default function ProductImportPage() {
         },
         body: JSON.stringify({ failures: commitResult.failures, format }),
       });
-      
+
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -335,12 +336,12 @@ export default function ProductImportPage() {
       a.download = `import-failures.${format}`;
       a.click();
       URL.revokeObjectURL(url);
-      
+
     } catch (error) {
       toast.error('فشل في تحميل التقرير');
     }
   };
-  
+
   // Reset
   const handleReset = () => {
     setDataFile(null);
@@ -349,7 +350,7 @@ export default function ProductImportPage() {
     setCommitResult(null);
     setCurrentStep('upload');
   };
-  
+
   // Stepper steps
   const steps = [
     {
@@ -381,7 +382,7 @@ export default function ProductImportPage() {
       isEnabled: currentStep === 'report'
     }
   ];
-  
+
   return (
     <div className="container max-w-7xl mx-auto px-6 py-8 space-y-8 animate-in fade-in duration-500">
       <PageHeader
@@ -403,14 +404,14 @@ export default function ProductImportPage() {
           </a>
         </div>
       </PageHeader>
-      
+
       {/* Stepper */}
       <Card>
         <CardContent className="pt-6">
           <Stepper steps={steps} />
         </CardContent>
       </Card>
-      
+
       {/* Step: Upload */}
       {currentStep === 'upload' && (
         <div className="grid gap-6 md:grid-cols-2">
@@ -464,7 +465,7 @@ export default function ProductImportPage() {
               </CardHeader>
             </Card>
           )}
-          
+
           {/* Data File Upload */}
           <Card>
             <CardHeader>
@@ -513,7 +514,7 @@ export default function ProductImportPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           {/* ZIP File Upload */}
           <Card>
             <CardHeader>
@@ -562,7 +563,7 @@ export default function ProductImportPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           {/* Parse Button */}
           <div className="md:col-span-2 flex justify-end">
             <Button
@@ -585,7 +586,7 @@ export default function ProductImportPage() {
           </div>
         </div>
       )}
-      
+
       {/* Step: Preview */}
       {currentStep === 'preview' && parseResult && (
         <div className="space-y-6">
@@ -620,7 +621,7 @@ export default function ProductImportPage() {
               </CardContent>
             </Card>
           </div>
-          
+
           {/* Warnings */}
           {parseResult.warnings.length > 0 && (
             <Card className="border-yellow-500/50 bg-yellow-500/5">
@@ -639,7 +640,7 @@ export default function ProductImportPage() {
               </CardContent>
             </Card>
           )}
-          
+
           {/* Duplicate SKUs */}
           {parseResult.duplicateSkus.length > 0 && (
             <Card className="border-red-500/50 bg-red-500/5">
@@ -656,7 +657,7 @@ export default function ProductImportPage() {
               </CardContent>
             </Card>
           )}
-          
+
           {/* Preview Table */}
           <Card>
             <CardHeader>
@@ -721,7 +722,7 @@ export default function ProductImportPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           {/* Actions */}
           <div className="flex justify-between">
             <Button variant="outline" onClick={handleReset}>
@@ -748,7 +749,7 @@ export default function ProductImportPage() {
           </div>
         </div>
       )}
-      
+
       {/* Step: Import (Loading) */}
       {currentStep === 'import' && (
         <Card>
@@ -766,14 +767,14 @@ export default function ProductImportPage() {
           </CardContent>
         </Card>
       )}
-      
+
       {/* Step: Report */}
       {currentStep === 'report' && commitResult && (
         <div className="space-y-6">
           {/* Summary */}
           <Card className={cn(
-            commitResult.failedCount === 0 
-              ? 'border-green-500/50 bg-green-500/5' 
+            commitResult.failedCount === 0
+              ? 'border-green-500/50 bg-green-500/5'
               : 'border-yellow-500/50 bg-yellow-500/5'
           )}>
             <CardContent className="pt-6">
@@ -785,8 +786,8 @@ export default function ProductImportPage() {
                 )}
                 <div>
                   <h3 className="text-xl font-semibold">
-                    {commitResult.failedCount === 0 
-                      ? 'تم الاستيراد بنجاح!' 
+                    {commitResult.failedCount === 0
+                      ? 'تم الاستيراد بنجاح!'
                       : 'تم الاستيراد مع بعض الأخطاء'}
                   </h3>
                   <p className="text-muted-foreground">
@@ -796,7 +797,7 @@ export default function ProductImportPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           {/* Stats */}
           <div className="grid gap-4 md:grid-cols-5">
             <Card>
@@ -830,7 +831,7 @@ export default function ProductImportPage() {
               </CardContent>
             </Card>
           </div>
-          
+
           {commitResult.uploadedImages > 0 && (
             <Card>
               <CardContent className="pt-6 text-center">
@@ -839,7 +840,7 @@ export default function ProductImportPage() {
               </CardContent>
             </Card>
           )}
-          
+
           {/* Failures */}
           {commitResult.failures.length > 0 && (
             <Card>
@@ -885,7 +886,7 @@ export default function ProductImportPage() {
               </CardContent>
             </Card>
           )}
-          
+
           {/* Actions */}
           <div className="flex justify-center">
             <Button size="lg" onClick={handleReset}>
