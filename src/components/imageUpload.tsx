@@ -17,6 +17,7 @@ import {
   Trash2,
   Plus,
 } from "lucide-react";
+import { compressImage } from "@/lib/compressImage";
 // set from react-hook-form is not used, so it can be removed.
 // import { set } from "react-hook-form";
 
@@ -77,58 +78,58 @@ export function ImageUpload({ onUploadComplete, initialUrls = [] }: ImageUploadP
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Initialize with initial URLs
- // Initialize with initial URLs
-useEffect(() => {
-  const initialUrlsString = JSON.stringify(initialUrls || []);
-  if (initialUrlsString === lastInitialUrlsRef.current) return;
+  // Initialize with initial URLs
+  useEffect(() => {
+    const initialUrlsString = JSON.stringify(initialUrls || []);
+    if (initialUrlsString === lastInitialUrlsRef.current) return;
 
-  lastInitialUrlsRef.current = initialUrlsString;
+    lastInitialUrlsRef.current = initialUrlsString;
 
-  // لو عندك initialUrls: اعرضها كـ existing
-  if (initialUrls && initialUrls.length > 0) {
-    const existingFiles: SelectedFile[] = initialUrls.map((url, index) => ({
-      id: `existing-${index}`,
-      name: url.split("/").pop() || `Image ${index + 1}`,
-      isExisting: true,
-      url,
-    }));
+    // لو عندك initialUrls: اعرضها كـ existing
+    if (initialUrls && initialUrls.length > 0) {
+      const existingFiles: SelectedFile[] = initialUrls.map((url, index) => ({
+        id: `existing-${index}`,
+        name: url.split("/").pop() || `Image ${index + 1}`,
+        isExisting: true,
+        url,
+      }));
 
-    setSelectedFiles(existingFiles);
+      setSelectedFiles(existingFiles);
 
-    const newStatus: Record<string | number, UploadStatus> = {};
-    const newUrls: Record<string | number, string> = {};
+      const newStatus: Record<string | number, UploadStatus> = {};
+      const newUrls: Record<string | number, string> = {};
 
-    existingFiles.forEach((f) => {
-      newStatus[f.id] = "success";
-      if (f.url) newUrls[f.id] = f.url;
-    });
-
-    setUploadStatus(newStatus);
-    setUploadedUrls(newUrls);
-    return;
-  }
-
-  // لو initialUrls بقت فاضية: شيل existing فقط (بدون ما تعتمد على selectedFiles.length)
-  if (initialUrls && initialUrls.length === 0) {
-    setSelectedFiles((prev) => prev.filter((f) => !f.isExisting));
-
-    setUploadStatus((prev) => {
-      const next = { ...prev };
-      Object.keys(next).forEach((k) => {
-        if (String(k).startsWith("existing-")) delete next[k];
+      existingFiles.forEach((f) => {
+        newStatus[f.id] = "success";
+        if (f.url) newUrls[f.id] = f.url;
       });
-      return next;
-    });
 
-    setUploadedUrls((prev) => {
-      const next = { ...prev };
-      Object.keys(next).forEach((k) => {
-        if (String(k).startsWith("existing-")) delete next[k];
+      setUploadStatus(newStatus);
+      setUploadedUrls(newUrls);
+      return;
+    }
+
+    // لو initialUrls بقت فاضية: شيل existing فقط (بدون ما تعتمد على selectedFiles.length)
+    if (initialUrls && initialUrls.length === 0) {
+      setSelectedFiles((prev) => prev.filter((f) => !f.isExisting));
+
+      setUploadStatus((prev) => {
+        const next = { ...prev };
+        Object.keys(next).forEach((k) => {
+          if (String(k).startsWith("existing-")) delete next[k];
+        });
+        return next;
       });
-      return next;
-    });
-  }
-}, [initialUrls]);
+
+      setUploadedUrls((prev) => {
+        const next = { ...prev };
+        Object.keys(next).forEach((k) => {
+          if (String(k).startsWith("existing-")) delete next[k];
+        });
+        return next;
+      });
+    }
+  }, [initialUrls]);
 
   const authenticator = async (): Promise<AuthParams> => {
     try {
@@ -136,7 +137,7 @@ useEffect(() => {
       if (!response.ok) {
         let errorMessage = `Request failed with status ${response.status}`;
         let errorData: any = null;
-        
+
         // Try to parse error response as JSON
         try {
           const responseClone = response.clone(); // Clone to avoid consuming the body
@@ -152,7 +153,7 @@ useEffect(() => {
             // Ignore parse errors
           }
         }
-        
+
         if (response.status === 401) {
           throw new Error("Unauthorized: Please sign in to upload files");
         } else if (response.status === 500) {
@@ -173,12 +174,12 @@ useEffect(() => {
 
       const data: AuthParams = await response.json();
       const { signature, expire, token, publicKey, urlEndpoint } = data;
-      
+
       // Validate response data
       if (!signature || !expire || !token || !publicKey) {
         throw new Error("Invalid authentication response: Missing required parameters");
       }
-      
+
       return { signature, expire, token, publicKey, urlEndpoint };
     } catch (error) {
       // Re-throw with original message if it's already an Error with a message
@@ -259,8 +260,20 @@ useEffect(() => {
     setErrorMessages((prev) => ({ ...prev, [id]: "" }));
 
     try {
+      // Compress image before upload (converts to WebP, resizes if >1920px)
+      const compressionResult = await compressImage(file);
+      const compressedFile = compressionResult.file;
+
+      if (compressionResult.wasCompressed) {
+        console.log(
+          `Image compressed: ${(compressionResult.originalSize / 1024).toFixed(0)}KB → ` +
+          `${(compressionResult.newSize / 1024).toFixed(0)}KB ` +
+          `(${(compressionResult.compressionRatio * 100).toFixed(0)}%)`
+        );
+      }
+
       const authParams = await authenticator();
-      const { signature, expire, token, publicKey, urlEndpoint } = authParams;
+      const { signature, expire, token, publicKey } = authParams;
 
       const abortController = new AbortController();
 
@@ -269,8 +282,8 @@ useEffect(() => {
         token,
         signature,
         publicKey,
-        file,
-        fileName: file.name,
+        file: compressedFile,
+        fileName: compressedFile.name,
         onProgress: (event) => {
           const progress = (event.loaded / event.total) * 100;
           setUploadProgress((prev) => ({ ...prev, [id]: progress }));
@@ -279,14 +292,14 @@ useEffect(() => {
       });
 
       setUploadStatus((prev) => ({ ...prev, [id]: "success" } as Record<string | number, UploadStatus>));
-      
+
       // Extract URL from ImageKit response - check multiple possible fields
       const imageUrl = uploadResponse.url || uploadResponse.filePath;
-      
+
       if (!imageUrl) {
         throw new Error("Upload succeeded but no URL returned from ImageKit");
       }
-      
+
       // Ensure URL is absolute (starts with http:// or https://)
       // ImageKit usually returns full URLs, but handle both cases
       let absoluteUrl: string;
@@ -302,17 +315,17 @@ useEffect(() => {
           absoluteUrl = imageUrl; // Fallback - should not happen
         }
       }
-      
+
       // Ensure URL is a clean string
       absoluteUrl = String(absoluteUrl).trim();
-      
+
       console.log('Image uploaded successfully:', {
         fileId: id,
         fileName: file.name,
         url: absoluteUrl,
         uploadResponse: uploadResponse
       });
-      
+
       setUploadedUrls((prev) =>
         Object.assign({}, prev, { [id]: absoluteUrl })
       );
@@ -415,9 +428,9 @@ useEffect(() => {
     const urlsArray: string[] = Object.values(uploadedUrls).filter(
       (url): url is string => typeof url === 'string' && url.trim().length > 0 && (url.startsWith('http://') || url.startsWith('https://'))
     );
-    
+
     const urlsString = JSON.stringify(urlsArray.sort());
-    
+
     if (urlsString !== lastNotifiedUrlsRef.current) {
       setImageUrls(urlsArray);
       lastNotifiedUrlsRef.current = urlsString;
@@ -439,13 +452,12 @@ useEffect(() => {
       <div
         className={`
                     relative border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200
-                    ${
-                      isDragging
-                        ? "border-blue-500 bg-blue-50"
-                        : selectedFiles.length > 0
-                        ? "border-[#838282] "
-                        : "border-gray-300  hover:border-gray-400"
-                    }
+                    ${isDragging
+            ? "border-blue-500 bg-blue-50"
+            : selectedFiles.length > 0
+              ? "border-[#838282] "
+              : "border-gray-300  hover:border-gray-400"
+          }
                 `}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -524,9 +536,9 @@ useEffect(() => {
                   <div className="flex items-center space-x-3 flex-1 min-w-0">
                     {fileObj.isExisting && fileObj.url ? (
                       <div className="relative w-10 h-10 rounded border overflow-hidden flex-shrink-0">
-                        <img 
-                          src={fileObj.url} 
-                          alt={fileObj.name} 
+                        <img
+                          src={fileObj.url}
+                          alt={fileObj.name}
                           className="object-cover w-full h-full"
                         />
                       </div>

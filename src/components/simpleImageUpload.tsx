@@ -10,6 +10,7 @@ import {
 import { useState, useRef, useEffect } from "react";
 import { Upload, X, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner"; // لاستخدام التنبيهات
+import { compressImage } from "@/lib/compressImage";
 
 // Props interface for the component
 interface SimpleImageUploadProps {
@@ -43,7 +44,7 @@ export function SimpleImageUpload({ value, onChange }: SimpleImageUploadProps) {
       if (!response.ok) {
         let errorMessage = `Request failed with status ${response.status}`;
         let errorData: any = null;
-        
+
         // Try to parse error response as JSON
         try {
           const responseClone = response.clone(); // Clone to avoid consuming the body
@@ -59,7 +60,7 @@ export function SimpleImageUpload({ value, onChange }: SimpleImageUploadProps) {
             // Ignore parse errors
           }
         }
-        
+
         if (response.status === 401) {
           toast.error("غير مصرح: يرجى تسجيل الدخول لرفع الصور");
           throw new Error("Unauthorized: Please sign in to upload files");
@@ -119,35 +120,46 @@ export function SimpleImageUpload({ value, onChange }: SimpleImageUploadProps) {
 
     setIsUploading(true); // Set uploading state to true
     setPreviewUrl(undefined); // Clear previous preview during upload
-    toast.info("جاري رفع الصورة..."); // Inform user about upload progress
+    toast.info("جاري ضغط ورفع الصورة..."); // Inform user about compression and upload
 
     try {
-      const authParams = await authenticator(); // Get auth parameters
-      const { signature, expire, token, publicKey, urlEndpoint } = authParams;
+      // Compress image before upload (converts to WebP, resizes if >1920px)
+      const compressionResult = await compressImage(file);
+      const compressedFile = compressionResult.file;
 
-      // Call ImageKit's upload function
+      if (compressionResult.wasCompressed) {
+        const savedPercent = Math.round((1 - compressionResult.compressionRatio) * 100);
+        toast.info(
+          `تم ضغط الصورة: ${(compressionResult.originalSize / 1024).toFixed(0)}KB → ${(compressionResult.newSize / 1024).toFixed(0)}KB (وفر ${savedPercent}%)`
+        );
+      }
+
+      const authParams = await authenticator(); // Get auth parameters
+      const { signature, expire, token, publicKey } = authParams;
+
+      // Call ImageKit's upload function with compressed file
       const uploadResponse = await upload({
         expire,
         token,
         signature,
         publicKey,
-        file,
-        fileName: file.name,
+        file: compressedFile,
+        fileName: compressedFile.name,
         // onProgress: (event) => { /* You can add a progress bar here if needed */ },
         // abortSignal: abortController.signal, // If you implement cancel functionality
       });
 
       // Extract URL from ImageKit response - check multiple possible fields
       const imageUrl = uploadResponse.url || uploadResponse.filePath;
-      
+
       if (imageUrl) {
         // Ensure URL is absolute (starts with http:// or https://)
-        const absoluteUrl = imageUrl.startsWith('http://') || imageUrl.startsWith('https://') 
-          ? imageUrl 
-          : (process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT ? 
-              `${process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT}/${imageUrl.replace(/^\//, '')}` 
-              : imageUrl);
-        
+        const absoluteUrl = imageUrl.startsWith('http://') || imageUrl.startsWith('https://')
+          ? imageUrl
+          : (process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT ?
+            `${process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT}/${imageUrl.replace(/^\//, '')}`
+            : imageUrl);
+
         setPreviewUrl(absoluteUrl); // Update preview with the new URL
         onChange(absoluteUrl); // Notify parent component with the new URL
         toast.success("تم رفع الصورة بنجاح!"); // Success message
