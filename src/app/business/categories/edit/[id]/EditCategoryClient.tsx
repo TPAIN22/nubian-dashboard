@@ -107,17 +107,17 @@ export default function EditCategoryClient({ categoryId }: { categoryId: string 
 
         const categoryData = categoryRes.data;
         const allCategories = allCategoriesRes.data;
-        
+
         setCurrentCategory(categoryData);
-        
+
         // فلترة الفئات: استبعاد الفئة الحالية وجميع فئاتها الفرعية
         const childrenIds = getAllChildrenIds(categoryId, allCategories);
         const excludedIds = [categoryId, ...childrenIds];
-        
+
         const filteredCategories = allCategories.filter(
           (cat: Category) => !excludedIds.includes(cat._id) && !cat.parent // عرض الفئات الرئيسية فقط
         );
-        
+
         setCategories(filteredCategories);
 
         // تحديد القيمة الصحيحة للفئة الرئيسية
@@ -153,11 +153,11 @@ export default function EditCategoryClient({ categoryId }: { categoryId: string 
         name: values.name.trim(),
         description: values.description?.trim() || "",
         image: values.image?.trim() || "",
-        parent: values.parent === 'none' || !values.parent ? null : values.parent,
+        parent: values.parent === 'none' || !values.parent || values.parent === '' ? null : values.parent,
       };
-      
+
       const token = await getToken();
-      
+
       if (!token) {
         toast.error("يجب تسجيل الدخول أولاً");
         return;
@@ -166,7 +166,7 @@ export default function EditCategoryClient({ categoryId }: { categoryId: string 
       await axiosInstance.put(`/categories/${categoryId}`, dataToSend, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       toast.success("تم تحديث الفئة بنجاح!");
       router.push("/business/categories");
       router.refresh();
@@ -223,9 +223,9 @@ export default function EditCategoryClient({ categoryId }: { categoryId: string 
                 <FormItem>
                   <FormLabel>اسم الفئة *</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
-                      placeholder="أدخل اسم الفئة" 
+                    <Input
+                      {...field}
+                      placeholder="أدخل اسم الفئة"
                       disabled={form.formState.isSubmitting}
                     />
                   </FormControl>
@@ -264,8 +264,8 @@ export default function EditCategoryClient({ categoryId }: { categoryId: string 
                   <div className="text-sm text-muted-foreground mb-2">
                     إذا أردت إنشاء فئة رئيسية، اختر &quot;بدون (فئة رئيسية)&quot;. إذا أردت إنشاء فئة فرعية، اختر الفئة الرئيسية المناسبة من القائمة.
                   </div>
-                  <Select 
-                    onValueChange={field.onChange} 
+                  <Select
+                    onValueChange={field.onChange}
                     value={field.value || "none"}
                     disabled={form.formState.isSubmitting}
                   >

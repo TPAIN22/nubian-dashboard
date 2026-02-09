@@ -61,7 +61,7 @@ export default function NewCategoryPage() {
         const parentCategories = res.data.filter((cat: Category) => !cat.parent);
         setCategories(parentCategories);
       } catch (error) {
-        toast.error("فشل في جلب قائمة الفئات." , {
+        toast.error("فشل في جلب قائمة الفئات.", {
           description: error instanceof Error ? error.message : "خطأ غير معروف",
         });
       }
@@ -82,9 +82,9 @@ export default function NewCategoryPage() {
   async function onSubmit(values: CategoryFormValues) {
     const dataToSend = {
       ...values,
-      parent: values.parent === 'none' ? null : values.parent,
+      parent: values.parent === 'none' || values.parent === '' ? null : values.parent,
     };
-    
+
     try {
       const token = await getToken();
       await axiosInstance.post(`/categories`, dataToSend, {
@@ -94,7 +94,7 @@ export default function NewCategoryPage() {
       router.push("/business/categories");
       router.refresh();
     } catch (error) {
-      toast.error("فشل إنشاء الفئة" , {
+      toast.error("فشل إنشاء الفئة", {
         description: error instanceof Error ? error.message : "خطأ غير معروف",
       });
     }
@@ -144,7 +144,7 @@ export default function NewCategoryPage() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>الفئة الرئيسية (اختياري)</FormLabel>
-                  <span style={{fontSize: '0.9em', color: '#888', display: 'block', marginBottom: 4}}>
+                  <span style={{ fontSize: '0.9em', color: '#888', display: 'block', marginBottom: 4 }}>
                     إذا أردت إنشاء فئة رئيسية، اختر &quot;بدون (فئة رئيسية)&quot;. إذا أردت إنشاء فئة فرعية، اختر الفئة الرئيسية المناسبة من القائمة.
                   </span>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
