@@ -471,7 +471,7 @@ export function ImageUpload({ onUploadComplete, initialUrls = [] }: ImageUploadP
         urls: urlsArray,
       });
     }
-  }, [uploadedUrls, initialUrls]);
+  }, [uploadedUrls, initialUrls, selectedFiles]);
 
   const stats = getOverallStats();
 

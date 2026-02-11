@@ -11,7 +11,7 @@ export function buildProductPayload(state: WizardState): ProductCreatePayloadDTO
 
   if (state.productType === "with_variants") {
     // 1. Sync Images
-    let processed = applyColorImagesToVariants(state.variants, state.colorImages);
+    const processed = applyColorImagesToVariants(state.variants, state.colorImages);
     
     // 2. Sync Prices (if not already synced in state)
     // We already keep variants updated, but let's double check if we want to enforce it at save time?

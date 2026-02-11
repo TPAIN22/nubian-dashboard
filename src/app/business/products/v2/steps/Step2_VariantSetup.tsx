@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { WizardState } from "../types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -178,7 +179,7 @@ export function Step2_VariantSetup({ state, onChange }: Step2Props) {
 }
 
 function OptionInput({ onAdd }: { onAdd: (val: string) => void }) {
-    const [val, setVal] = require("react").useState("");
+    const [val, setVal] = useState("");
 
     return (
         <Input

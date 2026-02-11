@@ -120,7 +120,7 @@ export function Step1_BasicInfo({ state, onChange, categories }: Step1Props) {
                         </SelectContent>
                     </Select>
                     <p className="text-sm text-muted-foreground mt-2">
-                        اختر "منتج بسيط" إذا كان المنتج قطعة واحدة فقط. اختر "متعدد الخيارات" إذا كان للمنتج ألوان أو مقاسات متعددة.
+                        اختر &quot;منتج بسيط&quot; إذا كان المنتج قطعة واحدة فقط. اختر &quot;متعدد الخيارات&quot; إذا كان للمنتج ألوان أو مقاسات متعددة.
                     </p>
                 </CardContent>
             </Card>

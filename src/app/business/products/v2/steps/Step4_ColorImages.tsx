@@ -46,7 +46,7 @@ export function Step4_ColorImages({ state, onChange }: Step4Props) {
     if (colors.length === 0) {
         return (
             <div className="text-center py-10">
-                <p className="text-muted-foreground">لا يوجد ألوان لإضافة صور لها. يرجى التأكد من إضافة خيار "اللون" في الخطوة 2.</p>
+                <p className="text-muted-foreground">لا يوجد ألوان لإضافة صور لها. يرجى التأكد من إضافة خيار &quot;اللون&quot; في الخطوة 2.</p>
             </div>
         );
     }
