@@ -16,6 +16,7 @@ import {
   Image,
   Trash2,
   Plus,
+  Star,
 } from "lucide-react";
 import { compressImage } from "@/lib/compressImage";
 // set from react-hook-form is not used, so it can be removed.
@@ -402,6 +403,26 @@ export function ImageUpload({ onUploadComplete, initialUrls = [] }: ImageUploadP
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
+  const makePrimary = (fileId: string | number) => {
+    setSelectedFiles(prev => {
+      const index = prev.findIndex(f => f.id === fileId);
+      if (index <= 0) return prev; // Already first or not found
+
+      const newFiles = [...prev];
+      const [item] = newFiles.splice(index, 1);
+      newFiles.unshift(item);
+      return newFiles;
+    });
+
+    // Note: uploadedUrls, uploadStatus etc are keyed by ID, so they don't need reordering.
+    // But the `useEffect` that outputs `urlsArray` relies on `Object.values(uploadedUrls)`.
+    // `Object.values` does NOT guarantee order based on insertion for non-integer keys, 
+    // but usually follows insertion order for strings.
+    // HOWEVER, `uploadedUrls` is not being reordered here.
+    // The parent receives URLs from `useEffect` which filters `uploadedUrls`.
+    // We need to ensure the OUTPUT array follows `selectedFiles` order.
+  };
+
   const isImage = (file?: File, isExisting?: boolean): boolean => {
     if (isExisting) return true; // Assume existing URLs are images for simplicity in this component
     return !!(file && file.type.startsWith("image/"));
@@ -424,14 +445,22 @@ export function ImageUpload({ onUploadComplete, initialUrls = [] }: ImageUploadP
   };
 
   useEffect(() => {
-    // Convert uploaded URLs object to array of URL strings
-    const urlsArray: string[] = Object.values(uploadedUrls).filter(
-      (url): url is string => typeof url === 'string' && url.trim().length > 0 && (url.startsWith('http://') || url.startsWith('https://'))
-    );
+    // Convert uploaded URLs object to array of URL strings, RESPECTING selectedFiles ORDER
+    const urlsArray: string[] = selectedFiles
+      .map(f => uploadedUrls[f.id])
+      .filter((url): url is string => typeof url === 'string' && url.trim().length > 0 && (url.startsWith('http://') || url.startsWith('https://')));
 
-    const urlsString = JSON.stringify(urlsArray.sort());
+    const urlsString = JSON.stringify(urlsArray);
 
     if (urlsString !== lastNotifiedUrlsRef.current) {
+      // Prevent feedback loop: if the current state exactly matches what was passed in initialUrls,
+      // do not trigger onUploadComplete again.
+      const initialString = JSON.stringify([...(initialUrls || [])]);
+      if (urlsString === initialString) {
+        lastNotifiedUrlsRef.current = urlsString; // Sync ref but don't callback
+        return;
+      }
+
       setImageUrls(urlsArray);
       lastNotifiedUrlsRef.current = urlsString;
       console.log('ImageUpload: Notifying parent with URLs:', urlsArray);
@@ -442,7 +471,7 @@ export function ImageUpload({ onUploadComplete, initialUrls = [] }: ImageUploadP
         urls: urlsArray,
       });
     }
-  }, [uploadedUrls]);
+  }, [uploadedUrls, initialUrls]);
 
   const stats = getOverallStats();
 
@@ -527,7 +556,7 @@ export function ImageUpload({ onUploadComplete, initialUrls = [] }: ImageUploadP
 
           {/* Files */}
           <div className="max-h-96 overflow-y-auto space-y-3">
-            {selectedFiles.map((fileObj) => (
+            {selectedFiles.map((fileObj, index) => (
               <div
                 key={fileObj.id}
                 className=" border rounded-lg p-4"
@@ -576,8 +605,16 @@ export function ImageUpload({ onUploadComplete, initialUrls = [] }: ImageUploadP
                   <button
                     onClick={() => removeFile(fileObj.id)}
                     className="p-1 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0 ml-2"
+                    title="Remove"
                   >
                     <X className="h-4 w-4 text-gray-500" />
+                  </button>
+                  <button
+                    onClick={() => makePrimary(fileObj.id)}
+                    className={`p-1 hover:bg-yellow-50 rounded-full transition-colors flex-shrink-0 ml-1 ${index === 0 ? 'text-yellow-500' : 'text-gray-300 hover:text-yellow-400'}`}
+                    title={index === 0 ? "Primary Image" : "Make Primary"}
+                  >
+                    <Star className={`h-4 w-4 ${index === 0 ? 'fill-yellow-500' : ''}`} />
                   </button>
                 </div>
 

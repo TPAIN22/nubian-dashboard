@@ -1,11 +1,11 @@
 import React from 'react'
-import ProductForm from './productForm'
+import ProductWizard from '../v2/ProductWizard';
 
-
-
-
-export default async function Page() {
+export default function Page() {
   return (
-    <ProductForm/>
+    <div className="container mx-auto py-6">
+      <h1 className="text-2xl font-bold mb-6 px-4">إضافة منتج جديد</h1>
+      <ProductWizard />
+    </div>
   )
 }

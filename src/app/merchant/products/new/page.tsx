@@ -1,13 +1,11 @@
-'use client'
+import React from 'react'
+import ProductWizard from '@/app/business/products/v2/ProductWizard';
 
-import MerchantProductForm from './productForm'
-
-export default function NewProductPage() {
+export default function Page() {
   return (
-    <div className="flex flex-col gap-4 h-full sm:mx-12 mx-2 py-4">
-      <h1 className="text-2xl font-bold">إنشاء منتج جديد</h1>
-      <MerchantProductForm/>
+    <div className="container mx-auto py-6">
+      <h1 className="text-2xl font-bold mb-6 px-4">إضافة منتج جديد</h1>
+      <ProductWizard redirectPath="/merchant/products" />
     </div>
   )
 }
-
