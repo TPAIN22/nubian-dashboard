@@ -16,7 +16,8 @@ import {
     validateStep2,
     validateStep3,
     validateStep4,
-    validateStep5
+    validateStep5,
+    ValidationResult
 } from "./helpers/validateProduct";
 
 import { Step1_BasicInfo } from "./steps/Step1_BasicInfo";
@@ -138,7 +139,7 @@ export default function ProductWizard({ productId, redirectPath = "/business/pro
     };
 
     const validateCurrentStep = () => {
-        let result = { isValid: true, errors: {} };
+        let result: ValidationResult = { isValid: true, errors: {} };
         switch (currentStep) {
             case 1: result = validateStep1(state); break;
             case 2: result = validateStep2(state); break;
