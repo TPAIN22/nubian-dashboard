@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,8 @@ import { Separator } from "@/components/ui/separator";
 import { AlertTriangle, User, MessageCircle, DollarSign, Ban, ShieldAlert } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
-export default function TicketDetails({ params }: { params: { id: string } }) {
+export default function TicketDetails({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     // Mock data - In real app, fetch using params.id
     const ticket = {
         id: "NB-2026-0001",
