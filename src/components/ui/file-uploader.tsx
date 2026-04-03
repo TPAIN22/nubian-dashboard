@@ -47,10 +47,10 @@ export const useFileUpload = () => {
 };
  
 type FileUploaderProps = {
-  value: File[] | null;
+  value: any[] | null;
   reSelect?: boolean;
-  onValueChange: (value: File[] | null) => void;
-  dropzoneOptions: DropzoneOptions;
+  onValueChange: (value: any[] | null) => void;
+  dropzoneOptions?: DropzoneOptions;
   orientation?: "horizontal" | "vertical";
 };
  
@@ -85,7 +85,7 @@ export const FileUploader = forwardRef<
       maxFiles = 1,
       maxSize = 4 * 1024 * 1024,
       multiple = true,
-    } = dropzoneOptions;
+    } = dropzoneOptions || {};
  
     const reSelectAll = maxFiles === 1 ? true : reSelect;
     const direction: DirectionOptions = dir === "rtl" ? "rtl" : "ltr";

@@ -107,7 +107,7 @@ async function CategoriesPage() {
               <p className="text-muted-foreground mb-4">
                 لم يتم إنشاء أي تصنيفات بعد. ابدأ بإضافة تصنيف جديد.
               </p>
-              <Link href="/categories/add">
+              <Link href="/business/categories/new">
                 <Button>إضافة أول تصنيف</Button>
               </Link>
             </div>

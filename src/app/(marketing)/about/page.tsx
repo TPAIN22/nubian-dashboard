@@ -17,13 +17,13 @@ export default function AboutPage() {
           <div className="space-y-4">
             <h2 className="text-2xl font-bold text-foreground border-b pb-2">من نحن | Who We Are</h2>
             <p className="text-foreground leading-relaxed">
-              <span className="font-semibold text-amber-600">نوبيان (Nubian)</span> هو متجر إلكتروني رائد في السودان،
-              يهدف إلى توفير تجربة تسوق استثنائية لعملائنا من خلال تقديم آلاف المنتجات الأصلية من أفضل العلامات التجارية
+              <span className="font-semibold text-amber-600">نوبيان (Nubian)</span> هي منصة تسوق إلكترونية رائدة في السودان،
+              تهدف إلى توفير تجربة تسوق استثنائية لعملائنا من خلال تقديم آلاف المنتجات الأصلية من أفضل العلامات التجارية
               والتجار المعتمدين. نحن ملتزمون بجلب أحدث المنتجات في مجالات الأزياء، الإلكترونيات، ديكور المنزل، ومجموعة
               واسعة من السلع الأخرى.
             </p>
             <p className="text-foreground leading-relaxed">
-              <span className="font-semibold text-amber-600">Nubian</span> is a leading online store in Sudan, dedicated
+              <span className="font-semibold text-amber-600">Nubian</span> is a leading online shopping platform in Sudan, dedicated
               to providing an exceptional shopping experience for our customers by offering thousands of authentic
               products from the best merchant and trusted sellers. We are committed to bringing you the latest products
               in fashion, electronics, home decor, and a wide range of other goods.
