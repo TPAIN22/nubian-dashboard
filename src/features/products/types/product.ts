@@ -1,17 +1,34 @@
+export interface ProductVariant {
+  _id: string;
+  sku: string;
+  attributes: Record<string, string>;
+  merchantPrice: number;
+  nubianMarkup?: number;
+  dynamicMarkup?: number;
+  merchantDiscount?: number;
+  finalPrice: number;
+  stock: number;
+  images: string[];
+  isActive: boolean;
+}
+
 export interface Product {
   _id: string;
   name: string;
-  price: number;
-  discountPrice: number;
+  description: string;
+  // Top-level pricing (derived from best variant by controller)
+  price?: number;
+  discountPrice?: number;
   merchantPrice?: number;
   nubianMarkup?: number;
   dynamicMarkup?: number;
   finalPrice?: number;
-  stock: number;
+  // Total active stock (derived from variants by controller/virtual)
+  stock?: number;
   isActive: boolean;
-  description: string;
   images: string[];
-  sizes: string[];
+  // Variant-first architecture
+  variants: ProductVariant[];
   category?: {
     _id: string;
     name: string;
@@ -25,9 +42,11 @@ export interface Product {
   deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
-  // Ranking fields (admin-controlled)
+  // Admin-controlled ranking fields (top-level on schema)
   priorityScore?: number;
   featured?: boolean;
+  averageRating?: number;
+  status?: 'active' | 'draft' | 'archived';
 }
 
 export interface ProductFilters {

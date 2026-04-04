@@ -543,7 +543,7 @@ export function ProductsTable({
     },
     {
       accessorKey: "discountPrice",
-      header: () => <div className="text-right">السعر النهائي</div>,
+      header: () => <div className="text-right">السعر الأصلي</div>,
       cell: ({ row }) => {
         const product = row.original
         const merchantPrice = product.merchantPrice || product.price || 0
@@ -581,7 +581,14 @@ export function ProductsTable({
         </Button>
       ),
       cell: ({ row }) => {
-        const stock = row.getValue("stock") as number
+        const product = row.original
+        // Sum stock across all active variants; fallback to root-level stock field
+        const stock =
+          Array.isArray(product.variants) && product.variants.length > 0
+            ? product.variants
+                .filter((v) => v.isActive !== false)
+                .reduce((sum, v) => sum + (v.stock || 0), 0)
+            : (product.stock ?? 0)
         return (
           <div className={`text-right ${stock < 10 ? "text-red-600 font-bold" : ""}`}>
             {stock}
