@@ -915,7 +915,7 @@ function VariantImagesStep({ onUpload }: { onUpload: any }) {
     const colorAttr = attributes.find((a: any) => a.name.toLowerCase() === 'color' || a.name === 'اللون');
     const colors = colorAttr?.options || [];
 
-    if (colors.length === 0) return <div className="text-center py-20">لا يوجد خيار "لون" متاح لإضافة صور مخصصة</div>;
+    if (colors.length === 0) return <div className="text-center py-20">لا يوجد خيار &quot;لون&quot; متاح لإضافة صور مخصصة</div>;
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-right-4">
