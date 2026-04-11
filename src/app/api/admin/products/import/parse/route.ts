@@ -99,6 +99,15 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    // Security validation for file size (5MB limit)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
+    if (dataFile.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { success: false, error: 'File size exceeds the 5MB limit' },
+        { status: 400 }
+      );
+    }
     
     // Read data file
     const dataBuffer = Buffer.from(await dataFile.arrayBuffer());
@@ -118,7 +127,7 @@ export async function POST(request: Request) {
       
       parseResult = { rows, headers: [] };
     } else {
-      const { rows, errors } = parseXlsx(dataBuffer);
+      const { rows, errors } = await parseXlsx(dataBuffer);
       
       if (errors.length > 0) {
         return NextResponse.json(

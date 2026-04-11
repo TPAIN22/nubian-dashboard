@@ -8,7 +8,7 @@ import { NextResponse } from 'next/server';
 import { createTemplateXlsx } from '@/lib/import';
 
 export async function GET() {
-  const xlsxBuffer = createTemplateXlsx();
+  const xlsxBuffer = await createTemplateXlsx();
   
   // Convert Buffer to Uint8Array for NextResponse compatibility
   const uint8Array = new Uint8Array(xlsxBuffer);

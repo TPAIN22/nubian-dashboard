@@ -1,9 +1,9 @@
 /**
- * XLSX Parsing Utility for Bulk Product Import
- * Uses xlsx library for parsing Excel files
+ * Excel Parsing Utility for Bulk Product Import
+ * Uses exceljs library for secure and efficient parsing
  */
 
-import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
 import { ImportRowRaw } from './types';
 
 interface ParseXlsxResult {
@@ -14,37 +14,38 @@ interface ParseXlsxResult {
 }
 
 /**
- * Parse XLSX buffer into structured rows
+ * Parse Excel buffer into structured rows using async loading
  */
-export function parseXlsx(buffer: Buffer): ParseXlsxResult {
+export async function parseXlsx(buffer: Buffer): Promise<ParseXlsxResult> {
   const errors: string[] = [];
   
   try {
-    // Read workbook from buffer
-    const workbook = XLSX.read(buffer, { type: 'buffer' });
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
     
     // Get first sheet
-    const sheetNames = workbook.SheetNames;
-    if (sheetNames.length === 0) {
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) {
       return { rows: [], headers: [], errors: ['No sheets found in Excel file'], sheetName: '' };
     }
     
-    const sheetName = sheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
+    const sheetName = worksheet.name;
     
-    // Convert to JSON with headers
-    const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, {
-      raw: false, // Get formatted strings
-      defval: '', // Default value for empty cells
-    });
-    
-    if (jsonData.length === 0) {
+    if (worksheet.rowCount === 0) {
       return { rows: [], headers: [], errors: ['Sheet is empty'], sheetName };
     }
-    
-    // Get headers from first row keys
-    const headers = Object.keys(jsonData[0] || {}).map(h => h.trim().toLowerCase());
-    
+
+    // Get headers
+    const headers: string[] = [];
+    const firstRow = worksheet.getRow(1);
+    firstRow.eachCell((cell: ExcelJS.Cell, colNumber: number) => {
+      headers[colNumber - 1] = String(cell.value || '').trim().toLowerCase();
+    });
+
+    if (headers.length === 0) {
+      return { rows: [], headers: [], errors: ['Could not read headers from the first row'], sheetName };
+    }
+
     // Validate required headers
     const requiredHeaders = ['sku', 'name', 'price'];
     const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
@@ -53,26 +54,51 @@ export function parseXlsx(buffer: Buffer): ParseXlsxResult {
       errors.push(`Missing required headers: ${missingHeaders.join(', ')}`);
       return { rows: [], headers, errors, sheetName };
     }
-    
-    // Convert to ImportRowRaw format
-    const rows: ImportRowRaw[] = jsonData.map(row => {
+
+    const rows: ImportRowRaw[] = [];
+
+    // Parse data rows
+    worksheet.eachRow((row: ExcelJS.Row, rowNumber: number) => {
+      if (rowNumber === 1) return; // Skip header
+      
       const normalizedRow: ImportRowRaw = {} as ImportRowRaw;
-      
-      Object.entries(row).forEach(([key, value]) => {
-        const normalizedKey = key.trim().toLowerCase();
-        normalizedRow[normalizedKey] = value !== null && value !== undefined 
-          ? String(value).trim() 
-          : '';
+      let hasData = false;
+
+      headers.forEach((header, index) => {
+        if (!header) return;
+        const cellValue = row.getCell(index + 1).value;
+        
+        let valueStr = '';
+        if (cellValue !== null && cellValue !== undefined) {
+          // Handle rich text, dates, numbers, etc.
+          if (typeof cellValue === 'object') {
+            if ('richText' in cellValue) {
+              valueStr = cellValue.richText.map((rt: any) => rt.text).join('').trim();
+            } else if (cellValue instanceof Date) {
+              valueStr = cellValue.toISOString();
+            } else if ('text' in cellValue) { // Hyperlink
+              valueStr = cellValue.text?.trim() || '';
+            } else {
+              valueStr = String(cellValue).trim();
+            }
+          } else {
+            valueStr = String(cellValue).trim();
+          }
+        }
+
+        if (valueStr !== '') hasData = true;
+        normalizedRow[header as keyof ImportRowRaw] = valueStr;
       });
-      
-      // Ensure required fields exist
-      normalizedRow.sku = normalizedRow.sku ?? '';
-      normalizedRow.name = normalizedRow.name ?? '';
-      normalizedRow.price = normalizedRow.price ?? '';
-      
-      return normalizedRow;
+
+      if (hasData) {
+        // Ensure required fields exist even if empty
+        normalizedRow.sku = normalizedRow.sku ?? '';
+        normalizedRow.name = normalizedRow.name ?? '';
+        normalizedRow.price = normalizedRow.price ?? '';
+        rows.push(normalizedRow);
+      }
     });
-    
+
     return { rows, headers, errors, sheetName };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error parsing Excel file';
@@ -81,38 +107,37 @@ export function parseXlsx(buffer: Buffer): ParseXlsxResult {
 }
 
 /**
- * Generate XLSX buffer from rows
+ * Generate Excel buffer from rows
  */
-export function generateXlsx(headers: string[], rows: Record<string, string | number | undefined>[]): Buffer {
-  // Create worksheet data with headers
-  const wsData = [
-    headers,
-    ...rows.map(row => headers.map(h => row[h] ?? ''))
-  ];
-  
-  // Create worksheet
-  const worksheet = XLSX.utils.aoa_to_sheet(wsData);
-  
-  // Set column widths based on header length
-  const colWidths = headers.map(h => ({
-    wch: Math.max(h.length + 2, 15)
+export async function generateXlsx(headers: string[], rows: Record<string, string | number | undefined>[]): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Products');
+
+  // Add Headers
+  worksheet.columns = headers.map(h => ({
+    header: h,
+    key: h,
+    width: Math.max(h.length + 2, 15)
   }));
-  worksheet['!cols'] = colWidths;
   
-  // Create workbook
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Products');
-  
-  // Write to buffer
-  const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-  
-  return buffer;
+  // Make header row bold
+  worksheet.getRow(1).font = { bold: true };
+
+  // Add Rows
+  rows.forEach(row => {
+    worksheet.addRow(row);
+  });
+
+  // Write to Buffer
+  const buffer = await workbook.xlsx.writeBuffer();
+  // writeBuffer returns ArrayBuffer in browser but Buffer in Node, we cast it
+  return Buffer.from(buffer);
 }
 
 /**
- * Create a template XLSX with headers and example row
+ * Create a template Excel file with headers and example rows
  */
-export function createTemplateXlsx(): Buffer {
+export async function createTemplateXlsx(): Promise<Buffer> {
   const headers = [
     'sku',
     'name',
