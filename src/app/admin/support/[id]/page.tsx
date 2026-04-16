@@ -20,26 +20,26 @@ export default function TicketDetails({ params }: { params: Promise<{ id: string
     const [replyText, setReplyText] = useState("");
     const [isSending, setIsSending] = useState(false);
 
-    const fetchTicket = async () => {
-        setIsLoading(true);
-        try {
-            const res = await fetch(`/api/admin/support/${id}`);
-            if (!res.ok) throw new Error("Ticket not found");
-            const data = await res.json();
-            setTicket(data.ticket);
-        } catch (error) {
-            console.error(error);
-            toast.error("خطأ في تحميل بيانات التذكرة");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     useEffect(() => {
+        const fetchTicket = async () => {
+            setIsLoading(true);
+            try {
+                const res = await fetch(`/api/admin/support/${id}`);
+                if (!res.ok) throw new Error("Ticket not found");
+                const data = await res.json();
+                setTicket(data.ticket);
+            } catch (error) {
+                console.error(error);
+                toast.error("خطأ في تحميل بيانات التذكرة");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
         if (isLoaded) {
             fetchTicket();
         }
-    }, [isLoaded, id, fetchTicket]);
+    }, [isLoaded, id]);
 
     const handleUpdateStatus = async (status: string) => {
         try {
