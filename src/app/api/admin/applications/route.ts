@@ -7,15 +7,26 @@ import { clerkClient } from '@clerk/nextjs/server';
 // GET: List all merchant applications (admin only)
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId, sessionClaims } = await auth();
     if (!userId) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify admin role
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-    const role = user.publicMetadata?.role as string | undefined;
+    // Try role from session claims first (fast path, matches project pattern)
+    let role = (sessionClaims as any)?.publicMetadata?.role ||
+               (sessionClaims as any)?.privateMetadata?.role as string | undefined;
+
+    // Fallback: fetch role directly from Clerk if not in claims
+    if (!role) {
+      try {
+        const client = await clerkClient();
+        const user = await client.users.getUser(userId);
+        role = user.publicMetadata?.role as string | undefined;
+      } catch (clerkErr) {
+        console.error('Clerk fallback failed:', clerkErr);
+      }
+    }
+
     if (role !== 'admin' && role !== 'support') {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
@@ -35,7 +46,7 @@ export async function GET(req: NextRequest) {
       { status: 200 }
     );
   } catch (error: any) {
-    console.error('Failed to fetch applications:', error);
+    console.error('Failed to fetch applications:', error.message);
     return NextResponse.json(
       { message: 'Failed to fetch applications', error: error.message },
       { status: 500 }
