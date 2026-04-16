@@ -39,7 +39,7 @@ export default function TicketDetails({ params }: { params: Promise<{ id: string
         if (isLoaded) {
             fetchTicket();
         }
-    }, [isLoaded, id]);
+    }, [isLoaded, id, fetchTicket]);
 
     const handleUpdateStatus = async (status: string) => {
         try {

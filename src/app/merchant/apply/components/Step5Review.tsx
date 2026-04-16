@@ -101,7 +101,7 @@ export default function Step5Review() {
           />
           <div className="flex flex-col gap-1">
             <span className="text-sm font-medium leading-relaxed">
-              بالضغط على "إرسال الطلب"، أنت توافق على{' '}
+              بالضغط على &quot;إرسال الطلب&quot;، أنت توافق على{' '}
               <a href="/terms" target="_blank" className="text-primary hover:underline font-bold">شروط الخدمة</a>
               {' '}و{' '}
               <a href="/privacy" target="_blank" className="text-primary hover:underline font-bold">سياسة الخصوصية</a>

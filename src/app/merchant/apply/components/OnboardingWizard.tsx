@@ -118,7 +118,7 @@ export default function OnboardingWizard() {
     // Explicitly validate just the fields in the current step
     let isStepValid = true;
     if (fieldsToValidate && fieldsToValidate.length > 0) {
-      // @ts-ignore
+      // @ts-expect-error - fieldsToValidate is type-casted for trigger function
       isStepValid = await trigger(fieldsToValidate as any);
     }
 

@@ -70,7 +70,6 @@ export default function MerchantPending() {
     }
 
     checkMerchantStatus()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, router])
 
   if (!isLoaded || loading) {
@@ -214,7 +213,7 @@ export default function MerchantPending() {
             {merchant.revisionNotes && (
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-5 mb-6 text-right">
                 <p className="text-sm font-semibold mb-2 text-yellow-900 dark:text-yellow-200">ملاحظات فريق المراجعة:</p>
-                <p className="text-sm text-yellow-800 dark:text-yellow-300 leading-relaxed italic">"{merchant.revisionNotes}"</p>
+                 <p className="text-sm text-yellow-800 dark:text-yellow-300 leading-relaxed italic">&quot;{merchant.revisionNotes}&quot;</p>
               </div>
             )}
             <div className="space-y-4">
