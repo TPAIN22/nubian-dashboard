@@ -32,7 +32,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     const { id } = await params;
     const body = await req.json();
-    const { status, rejectionReason, revisionNotes } = body;
+    const { status, rejectionReason, revisionNotes, suspensionReason } = body;
 
     if (!['approved', 'rejected', 'needs_revision', 'suspended'].includes(status)) {
       return NextResponse.json({ message: 'Invalid status' }, { status: 400 });
@@ -47,9 +47,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         status,
         ...(rejectionReason && { rejectionReason }),
         ...(revisionNotes && { revisionNotes }),
+        ...(suspensionReason && { suspensionReason }),
         // Clear notes when moving back to pending/approved/rejected if they were resolved
         ...(status !== 'needs_revision' && { revisionNotes: undefined }),
-        ...(status !== 'rejected' && { rejectionReason: undefined })
+        ...(status !== 'rejected' && { rejectionReason: undefined }),
+        ...(status === 'approved' && { suspensionReason: undefined })
       },
       { new: true }
     );

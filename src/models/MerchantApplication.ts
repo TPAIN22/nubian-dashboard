@@ -16,9 +16,10 @@ export interface IMerchantApplication extends Document {
   city: string;
   productSamples: string[];
   status: 'pending' | 'approved' | 'rejected' | 'needs_revision' | 'suspended';
-  rejectionReason?: string;
-  revisionNotes?: string;
-  createdAt: Date;
+   rejectionReason?: string;
+   revisionNotes?: string;
+   suspensionReason?: string;
+   createdAt: Date;
   updatedAt: Date;
 }
 
@@ -45,6 +46,7 @@ const MerchantApplicationSchema: Schema = new Schema(
     },
     rejectionReason: { type: String },
     revisionNotes: { type: String },
+    suspensionReason: { type: String },
   },
   { timestamps: true }
 );

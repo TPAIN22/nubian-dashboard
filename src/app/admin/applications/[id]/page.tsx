@@ -49,7 +49,7 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
     fetchApp();
   }, [id]);
 
-  const updateStatus = async (status: 'approved' | 'rejected' | 'needs_revision', reasonOrNotes?: string) => {
+  const updateStatus = async (status: 'approved' | 'rejected' | 'needs_revision' | 'suspended', reasonOrNotes?: string) => {
     setIsUpdating(true);
     try {
       const res = await fetch(`/api/admin/applications/${id}`, {
@@ -58,7 +58,8 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
         body: JSON.stringify({ 
           status,
           ...(status === 'rejected' && { rejectionReason: reasonOrNotes }),
-          ...(status === 'needs_revision' && { revisionNotes: reasonOrNotes })
+          ...(status === 'needs_revision' && { revisionNotes: reasonOrNotes }),
+          ...(status === 'suspended' && { suspensionReason: reasonOrNotes })
         })
       });
       if (!res.ok) throw new Error("Update failed");
