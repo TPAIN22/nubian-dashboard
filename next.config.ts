@@ -168,9 +168,6 @@ const nextConfig: NextConfig = {
   // Enable React strict mode
   reactStrictMode: true,
 
-  // Enable React strict mode
-  reactStrictMode: true,
-
   experimental: {
     staleTimes: {
       dynamic: 30,
