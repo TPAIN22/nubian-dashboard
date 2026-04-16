@@ -1,5 +1,5 @@
 import { use } from 'react'
-import ProductWizard from '@/app/business/products/v2/ProductWizard';
+import ProductWizard from '@/app/admin/products-advanced/v2/ProductWizard';
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)

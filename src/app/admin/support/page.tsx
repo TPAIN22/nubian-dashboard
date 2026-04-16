@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,25 +9,57 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertCircle, Clock, Search, ShieldAlert } from "lucide-react";
+import { AlertCircle, Clock, Loader2, Search, ShieldAlert } from "lucide-react";
 import Link from "next/link";
-
-// Mock Data for visualisation until API integration
-const MOCK_TICKETS = [
-    { id: "NB-2026-0001", type: "complaint", category: "fraud", subject: "Stolen Card Usage", status: "escalated", priority: "high", riskScore: 80, slaDue: "2026-02-14T10:00:00" },
-    { id: "NB-2026-0002", type: "support", category: "order_issue", subject: "Where is my order?", status: "open", priority: "medium", riskScore: 10, slaDue: "2026-02-15T12:00:00" },
-    { id: "NB-2026-0003", type: "complaint", category: "health_risk", subject: "Expired Food", status: "escalated", priority: "high", riskScore: 90, slaDue: "2026-02-13T09:00:00" }, // Overdue
-    { id: "NB-2026-0004", type: "support", category: "payment_issue", subject: "Payment Failed", status: "resolved_refund", priority: "medium", riskScore: 0, slaDue: "2026-02-10T10:00:00" },
-];
+import { toast } from "sonner";
 
 export default function SupportDashboard() {
+    const { isLoaded, userId } = useAuth();
     const [activeTab, setActiveTab] = useState("all");
     const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
+    const [categoryFilter, setCategoryFilter] = useState("all");
+    
+    const [tickets, setTickets] = useState<any[]>([]);
+    const [stats, setStats] = useState({
+        totalOpen: 0,
+        highRiskCount: 0,
+        disputesCount: 0,
+        overdueCount: 0
+    });
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchTickets = async () => {
+            setIsLoading(true);
+            try {
+                const params = new URLSearchParams();
+                if (statusFilter !== "all") params.append("status", statusFilter);
+                if (categoryFilter !== "all") params.append("category", categoryFilter);
+                if (searchTerm) params.append("query", searchTerm);
+
+                const response = await fetch(`/api/admin/support?${params.toString()}`);
+                if (!response.ok) throw new Error("Failed to fetch tickets");
+                const data = await response.json();
+                setTickets(data.tickets);
+                setStats(data.stats);
+            } catch (error) {
+                console.error(error);
+                toast.error("حدث خطأ أثناء تحميل التذاكر");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (isLoaded) {
+            fetchTickets();
+        }
+    }, [isLoaded, statusFilter, categoryFilter, searchTerm]);
 
     const getRiskColor = (score: number) => {
-        if (score >= 50) return "text-destructive border-destructive font-medium"; // High Risk
-        if (score >= 20) return "text-orange-600 border-orange-200 font-medium"; // Medium Risk
-        return "text-green-600 border-green-200 font-medium"; // Low Risk
+        if (score >= 50) return "text-destructive border-destructive font-medium bg-red-500/10";
+        if (score >= 20) return "text-orange-600 border-orange-200 font-medium bg-orange-500/10";
+        return "text-green-600 border-green-200 font-medium bg-green-500/10";
     };
 
     const isOverdue = (dateString: string) => {
@@ -54,8 +87,8 @@ export default function SupportDashboard() {
                         <Clock className="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-foreground">12</div>
-                        <p className="text-xs text-muted-foreground mt-1">+2 عن الأمس</p>
+                        <div className="text-2xl font-bold text-foreground">{stats.totalOpen}</div>
+                        <p className="text-xs text-muted-foreground mt-1">يتطلب استجابة</p>
                     </CardContent>
                 </Card>
                 <Card className="shadow-sm border-destructive/20">
@@ -64,8 +97,8 @@ export default function SupportDashboard() {
                         <ShieldAlert className="h-4 w-4 text-destructive" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-destructive">3</div>
-                        <p className="text-xs text-muted-foreground mt-1">يتطلب اهتمام فوري</p>
+                        <div className="text-2xl font-bold text-destructive">{stats.highRiskCount}</div>
+                        <p className="text-xs text-muted-foreground mt-1">تتطلب فحص دقيق</p>
                     </CardContent>
                 </Card>
                 <Card className="shadow-sm">
@@ -74,18 +107,18 @@ export default function SupportDashboard() {
                         <AlertCircle className="h-4 w-4 text-orange-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-orange-600">5</div>
-                        <p className="text-xs text-muted-foreground mt-1">$1,250 مبلغ مجمد</p>
+                        <div className="text-2xl font-bold text-orange-600">{stats.disputesCount}</div>
+                        <p className="text-xs text-muted-foreground mt-1">شكاوى حول الطلبات</p>
                     </CardContent>
                 </Card>
-                <Card className="shadow-sm">
+                <Card className="shadow-sm border-destructive/20">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">تجاوز SLA</CardTitle>
+                        <CardTitle className="text-sm font-medium text-destructive">تجاوز SLA</CardTitle>
                         <Clock className="h-4 w-4 text-destructive" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-destructive">1</div>
-                        <p className="text-xs text-muted-foreground mt-1">تذاكر متأخرة</p>
+                        <div className="text-2xl font-bold text-destructive">{stats.overdueCount}</div>
+                        <p className="text-xs text-muted-foreground mt-1">تجاوزت وقت الحل</p>
                     </CardContent>
                 </Card>
             </div>
@@ -102,7 +135,7 @@ export default function SupportDashboard() {
                     />
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
-                    <Select>
+                    <Select onValueChange={setStatusFilter} value={statusFilter}>
                         <SelectTrigger className="w-[180px] text-right" dir="rtl">
                             <SelectValue placeholder="الحالة" />
                         </SelectTrigger>
@@ -113,14 +146,15 @@ export default function SupportDashboard() {
                             <SelectItem value="resolved">تم الحل</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Select>
+                    <Select onValueChange={setCategoryFilter} value={categoryFilter}>
                         <SelectTrigger className="w-[180px] text-right" dir="rtl">
                             <SelectValue placeholder="الفئة" />
                         </SelectTrigger>
                         <SelectContent dir="rtl">
                             <SelectItem value="all">جميع الفئات</SelectItem>
                             <SelectItem value="fraud">احتيال</SelectItem>
-                            <SelectItem value="support">دعم</SelectItem>
+                            <SelectItem value="order_issue">مشاكل الطلب</SelectItem>
+                            <SelectItem value="payment_issue">مشاكل الدفع</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -136,15 +170,24 @@ export default function SupportDashboard() {
                     <TabsTrigger value="merchants">تجار</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="all" className="space-y-4">
-                    <TicketTable data={MOCK_TICKETS} getRiskColor={getRiskColor} isOverdue={isOverdue} />
-                </TabsContent>
-                <TabsContent value="risk" className="space-y-4">
-                    <TicketTable data={MOCK_TICKETS.filter(t => t.riskScore >= 50)} getRiskColor={getRiskColor} isOverdue={isOverdue} />
-                </TabsContent>
-                <TabsContent value="disputes" className="space-y-4">
-                    <div className="text-center py-10 text-muted-foreground">عرض النزاعات هنا</div>
-                </TabsContent>
+                {isLoading ? (
+                    <div className="flex flex-col items-center justify-center py-20">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                        <p className="text-muted-foreground">جاري تحميل التذاكر...</p>
+                    </div>
+                ) : (
+                    <>
+                        <TabsContent value="all" className="space-y-4">
+                            <TicketTable data={tickets} getRiskColor={getRiskColor} isOverdue={isOverdue} />
+                        </TabsContent>
+                        <TabsContent value="risk" className="space-y-4">
+                            <TicketTable data={tickets.filter(t => t.riskScore >= 50)} getRiskColor={getRiskColor} isOverdue={isOverdue} />
+                        </TabsContent>
+                        <TabsContent value="disputes" className="space-y-4">
+                           <TicketTable data={tickets.filter(t => t.type === 'complaint')} getRiskColor={getRiskColor} isOverdue={isOverdue} />
+                        </TabsContent>
+                    </>
+                )}
             </Tabs>
         </div>
     );
@@ -173,12 +216,12 @@ function TicketTable({ data, getRiskColor, isOverdue }: { data: any[], getRiskCo
                             const highRisk = ticket.riskScore >= 50;
 
                             return (
-                                <TableRow key={ticket.id} className="hover:bg-gray-50">
-                                    <TableCell className="font-medium text-gray-900 text-right">{ticket.id}</TableCell>
+                                <TableRow key={ticket.ticketId || ticket._id} className="hover:bg-muted/50 border-b">
+                                    <TableCell className="font-medium text-foreground text-right">{ticket.ticketId}</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex flex-col">
-                                            <span className="font-medium text-gray-900">{ticket.subject}</span>
-                                            <span className="text-xs text-gray-500 capitalize">{ticket.category.replace('_', ' ')}</span>
+                                            <span className="font-medium text-foreground">{ticket.subject}</span>
+                                            <span className="text-xs text-muted-foreground capitalize">{ticket.category.replace('_', ' ')}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right">
@@ -209,12 +252,12 @@ function TicketTable({ data, getRiskColor, isOverdue }: { data: any[], getRiskCo
                                             {highRisk && <ShieldAlert className="h-4 w-4 text-destructive" />}
                                         </div>
                                     </TableCell>
-                                    <TableCell className={`text-right ${overdue ? "text-destructive font-medium" : "text-gray-500"}`}>
+                                    <TableCell className={`text-right ${overdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
                                         {new Date(ticket.slaDue).toLocaleDateString("ar-EG")}
                                         {overdue && <span className="mr-1 text-xs text-destructive font-bold">!</span>}
                                     </TableCell>
                                     <TableCell className="text-left">
-                                        <Link href={`/admin/support/${ticket.id}`}>
+                                        <Link href={`/admin/support/${ticket.ticketId || ticket._id}`}>
                                             <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">عرض</Button>
                                         </Link>
                                     </TableCell>

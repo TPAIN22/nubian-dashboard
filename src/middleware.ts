@@ -5,16 +5,12 @@ import { NextResponse } from "next/server";
 type UserRole = "admin" | "merchant" | undefined;
 
 interface ClerkPublicMetadata {
-  role?: UserRole;
-}
-
-interface ClerkPrivateMetadata {
-  role?: UserRole;
+  role?: "admin" | "merchant" | "support";
+  merchantStatus?: "pending" | "approved" | "rejected" | "needs_revision";
 }
 
 interface ClerkSessionClaims {
   publicMetadata?: ClerkPublicMetadata;
-  privateMetadata?: ClerkPrivateMetadata;
 }
 
 export default clerkMiddleware(async (auth, req) => {
@@ -57,14 +53,22 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next();
   }
 
+  // 1. Redirect legacy /business routes to new /admin routes
+  if (url.pathname.startsWith("/business")) {
+    const newPath = url.pathname.replace("/business", "/admin");
+    // Handle specific dashboard mapping
+    if (newPath === "/admin/dashboard") {
+      return NextResponse.redirect(new URL("/admin", req.url));
+    }
+    return NextResponse.redirect(new URL(newPath, req.url));
+  }
+
   // Define protected business/admin routes
   const isBusinessRoute =
     url.pathname.startsWith("/admin") ||
-    url.pathname.startsWith("/business") ||
     url.pathname.startsWith("/dashboard") ||
     url.pathname.startsWith("/management") ||
-    url.pathname.startsWith("/shop/checkout") ||
-    url.pathname.startsWith("/shop/orders");
+    url.pathname.startsWith("/merchant");
 
   // If not a protected route, allow through
   if (!isBusinessRoute) {
@@ -76,48 +80,80 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(new URL("/sign-in", req.url));
   }
 
-  // Get role from Clerk session claims (publicMetadata or privateMetadata)
+  // Authenticated section
   const claims = sessionClaims as ClerkSessionClaims | undefined;
-  let role =
-    claims?.publicMetadata?.role ||
-    claims?.privateMetadata?.role;
+  let role = claims?.publicMetadata?.role?.toLowerCase();
+  let merchantStatus = claims?.publicMetadata?.merchantStatus;
 
-  // If role not in sessionClaims, fetch from Clerk API
-  if (role === undefined && userId) {
+  // 1. Robust role detection: If role is missing from session claims, fetch directly from Clerk
+  // This handles cases where publicMetadata hasn't been added to the session token yet
+  if (!role && userId) {
     try {
       const client = await clerkClient();
       const user = await client.users.getUser(userId);
-      role =
-        (user.publicMetadata as ClerkPublicMetadata)?.role ||
-        (user.privateMetadata as ClerkPrivateMetadata)?.role;
+      role = (user.publicMetadata?.role as string | undefined)?.toLowerCase() as any;
+      merchantStatus = user.publicMetadata?.merchantStatus as any;
     } catch (error) {
-      // If fetch fails, treat as undefined role
-      console.error("[Middleware] Failed to fetch user role:", error);
-      role = undefined;
+      console.error("Middleware fallback auth error:", error);
     }
   }
 
-  // ❌ Logged in but NOT admin
-  if (role !== "admin") {
+  // 2. Base Dashboard Redirection (/dashboard or /)
+  if (url.pathname === "/dashboard" || url.pathname === "/") {
+    // Only redirect from home page if they have a specialized role
+    if (role === "admin" || role === "support") {
+      return NextResponse.redirect(new URL("/admin", req.url));
+    }
     if (role === "merchant") {
+      if (merchantStatus === "approved") {
+        return NextResponse.redirect(new URL("/merchant/dashboard", req.url));
+      }
+      return NextResponse.redirect(new URL("/merchant/pending", req.url));
+    }
+    // Regular users stay on home page
+    if (url.pathname === "/dashboard") {
+       return NextResponse.redirect(new URL("/", req.url));
+    }
+    return NextResponse.next();
+  }
+
+  // 3. Admin Routes Protection (/admin/**)
+  if (url.pathname.startsWith("/admin")) {
+    if (role !== "admin" && role !== "support") {
+       return NextResponse.redirect(new URL("/", req.url));
+    }
+    return NextResponse.next();
+  }
+
+  // 4. Merchant Business Tools Protection (/merchant/dashboard, etc.)
+  const isBusinessTool = 
+    url.pathname.startsWith("/merchant/") && 
+    !["apply", "pending", "dashboard"].some(p => url.pathname.startsWith(`/merchant/${p}`));
+
+  // Specific dashboard check to allow consistent routing
+  if (url.pathname === "/merchant/dashboard") {
+     if (role !== "merchant" || merchantStatus !== "approved") {
+        return NextResponse.redirect(new URL("/merchant/apply", req.url));
+     }
+     return NextResponse.next();
+  }
+
+  if (isBusinessTool) {
+    if (role !== "merchant" || merchantStatus !== "approved") {
+      if (merchantStatus) return NextResponse.redirect(new URL("/merchant/pending", req.url));
       return NextResponse.redirect(new URL("/merchant/apply", req.url));
     }
-
-    // Any other role (including undefined) → redirect to /sign-in
-    return NextResponse.redirect(new URL("/sign-in", req.url));
+    return NextResponse.next();
   }
 
-  // ✅ Admin - allow access
   return NextResponse.next();
 });
 
 export const config = {
   matcher: [
-    "/admin/:path*",
-    "/business/:path*",
-    "/dashboard/:path*",
-    "/management/:path*",
-    "/merchant/apply/:path*",
-    "/api/:path*",
+    // Skip Next.js internals and all static files, unless found in search params
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|css|js|woff|woff2|ttf|eot|otf|webmanifest)).*)',
+    // Always run for API routes
+    '/(api|trpc)(.*)',
   ],
 };

@@ -50,14 +50,13 @@ export default function MerchantOrdersPage() {
           return
         }
 
-        const params = selectedStatus !== 'all' ? { status: selectedStatus } : {}
-        const response = await axiosInstance.get('/orders/merchant/my-orders', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          params,
-        })
-        setOrders(response.data || [])
+        const response = await fetch(`/api/merchant/orders${selectedStatus !== 'all' ? `?status=${selectedStatus}` : ''}`);
+        const data = await response.json();
+        if (data.success) {
+          setOrders(data.data || []);
+        } else {
+           toast.error(data.message || 'فشل تحميل الطلبات');
+        }
       } catch (error: any) {
         logger.error('Error fetching orders', { error: error instanceof Error ? error.message : String(error) })
         toast.error('فشل تحميل الطلبات')
@@ -111,7 +110,7 @@ export default function MerchantOrdersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              ${totalRevenue.toFixed(2)}
+              {new Intl.NumberFormat('ar-SD', { style: 'currency', currency: 'SDG' }).format(totalRevenue)}
             </div>
             <p className="text-xs text-muted-foreground">من جميع الطلبات</p>
           </CardContent>

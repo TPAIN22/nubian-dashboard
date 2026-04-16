@@ -62,9 +62,10 @@ export const validateEnv = (options: { throwOnError?: boolean; skipBuildTime?: b
 
 
   if (missing.length > 0) {
-    const errorMessage = `Missing required environment variables: ${missing.join(', ')}\nPlease check your .env.local file and ensure all required variables are set.`;
+    const errorMessage = `[ENV_ERROR] Missing required environment variables: ${missing.join(', ')}`;
+    console.error(errorMessage);
     
-    if (throwOnError) {
+    if (throwOnError && process.env.NODE_ENV === 'production') {
       throw new Error(errorMessage);
     }
   }

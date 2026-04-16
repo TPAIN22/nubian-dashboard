@@ -13,8 +13,11 @@ import {
   IconMapPin,
   IconSettings,
   IconUsers,
-  IconTooltip
+  IconTooltip,
+  IconMessageCircle,
+  IconClock
 } from "@tabler/icons-react";
+import { useUser } from "@clerk/nextjs";
 
 import { NavMain } from "@/components/nav-main";
 import { NavSecondary } from "@/components/nav-secondary";
@@ -28,127 +31,117 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+const adminNav = [
+  {
+    title: "نظرة عامة",
+    url: "/admin",
+    icon: IconDashboard,
   },
-  navMain: [
-    {
-      title: "لوحة التحكم",
-      url: "/business/dashboard",
-      icon: IconDashboard,
-    },
-    {
-      title: "المنتجات",
-      url: "/business/products",
-      icon: IconListDetails,
-    },
-    {
-      title: "التجار",
-      url: "/business/merchant",
-      icon: IconUsers,
-    },
-    {
-      title: "طلبات التجار",
-      url: "/business/merchants",
-      icon: IconUsers,
-    },
-    {
-      title: "التصنيفات",
-      url: "/business/categories",
-      icon: IconTooltip,
-    },
-    {
-      title: "الطلبات",
-      url: "/business/orders",
-      icon: IconFolder,
-    },
-    {
-      title: "مركز الاشعارات",
-      url: "/business/notifications",
-      icon: IconInnerShadowTop,
-    },
-    {
-      title: "العروض",
-      url: "/business/banners",
-      icon: IconCamera,
-    },
-    {
-      title: "كوبونات",
-      url: "/business/coupons",
-      icon: IconFileDescription,
-    },
-    {
-      title: "المناطق",
-      url: "/business/locations",
-      icon: IconMapPin,
-    },
-  ],
-  navClouds: [
-    {
-      title: "التقاط",
-      icon: IconCamera,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "الاقتراحات النشطة",
-          url: "#",
-        },
-        {
-          title: "المؤرشفة",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "اقتراح",
-      icon: IconFileDescription,
-      url: "#",
-      items: [
-        {
-          title: "الاقتراحات النشطة",
-          url: "#",
-        },
-        {
-          title: "المؤرشفة",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "الموجهات",
-      icon: IconFileAi,
-      url: "#",
-      items: [
-        {
-          title: "الاقتراحات النشطة",
-          url: "#",
-        },
-        {
-          title: "المؤرشفة",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  navSecondary: [
-    {
-      title: "الاعدادت",
-      url: "#",
-      icon: IconSettings,
-    },
-    {
-      title: "احصل على المساعدة",
-      url: "#",
-      icon: IconHelp,
-    },
-  ],
-};
+  {
+    title: "طلبات الانضمام",
+    url: "/admin/applications",
+    icon: IconUsers,
+  },
+  {
+    title: "الدعم والنزاعات",
+    url: "/admin/support",
+    icon: IconMessageCircle,
+  },
+  {
+    title: "المنتجات والمخزون",
+    url: "/admin/products-advanced",
+    icon: IconListDetails,
+  },
+  {
+    title: "إدارة التصنيفات",
+    url: "/admin/categories",
+    icon: IconTooltip,
+  },
+  {
+    title: "الطلبات والمبيعات",
+    url: "/admin/orders",
+    icon: IconFolder,
+  },
+  {
+    title: "العروض التسويقية",
+    url: "/admin/banners",
+    icon: IconCamera,
+  },
+  {
+    title: "الكوبونات والخصومات",
+    url: "/admin/coupons",
+    icon: IconFileDescription,
+  },
+  {
+    title: "المناطق والشحن",
+    url: "/admin/locations",
+    icon: IconMapPin,
+  },
+];
+
+const merchantNav = [
+  {
+    title: "لوحة تحكم المتجر",
+    url: "/merchant/dashboard",
+    icon: IconDashboard,
+  },
+  {
+    title: "منتجاتي",
+    url: "/merchant/products",
+    icon: IconListDetails,
+  },
+  {
+    title: "الطلبات",
+    url: "/merchant/orders",
+    icon: IconFolder,
+  },
+  {
+    title: "الدعم الفني",
+    url: "/admin/support",
+    icon: IconHelp,
+  },
+  {
+    title: "الإعدادات",
+    url: "/merchant/settings",
+    icon: IconSettings,
+  },
+];
+
+const applyingNav = [
+  {
+    title: "حالة الطلب",
+    url: "/merchant/pending",
+    icon: IconClock,
+  },
+  {
+    title: "تقديم طلب جديد",
+    url: "/merchant/apply",
+    icon: IconUsers,
+  },
+  {
+    title: "مركز المساعدة",
+    url: "/admin/support",
+    icon: IconHelp,
+  },
+];
+
+const secondaryNav = [
+  {
+    title: "المساعدة",
+    url: "/admin/support",
+    icon: IconHelp,
+  },
+];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user } = useUser();
+  const role = user?.publicMetadata?.role as string;
+  const status = user?.publicMetadata?.merchantStatus as string;
+
+  const items = role === "admin" || role === "support" 
+    ? adminNav 
+    : (role === "merchant" && status === "approved" ? merchantNav : applyingNav);
+
   return (
     <Sidebar collapsible="offcanvas" side="right" {...props}>
       <SidebarHeader>
@@ -159,16 +152,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
               <Link href="/">
-                <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Nubian Sd</span>
+                <IconInnerShadowTop className="!size-5 text-primary" />
+                <span className="text-base font-bold">Nubian Platform</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavMain items={items} />
+        <NavSecondary items={secondaryNav} className="mt-auto" />
       </SidebarContent>
     </Sidebar>
   );

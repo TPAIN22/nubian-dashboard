@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 
 /**
  * Robots.txt configuration for SEO
- * Explicitly allows shop pages for crawling
+ * Consolidated for Admin & Merchant Dashboard platform
  */
 export default function robots(): MetadataRoute.Robots {
   const baseUrl = 'https://nubian-sd.store';
@@ -13,8 +13,6 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: '*',
         allow: [
           '/',
-          '/shop',
-          '/shop/*',
           '/about',
           '/contact',
           '/privacy-policy',
@@ -30,14 +28,13 @@ export default function robots(): MetadataRoute.Robots {
           '/debug-role',
           '/_next/',
           '/admin/',
+          '/shop/',
         ],
       },
       {
         userAgent: 'Googlebot',
         allow: [
           '/',
-          '/shop',
-          '/shop/*',
           '/about',
           '/contact',
           '/privacy-policy',
@@ -53,35 +50,13 @@ export default function robots(): MetadataRoute.Robots {
           '/debug-role',
           '/_next/',
           '/admin/',
+          '/shop/',
         ],
       },
       {
         userAgent: 'Googlebot-Image',
-        allow: ['/', '/shop', '/shop/*'],
-        disallow: ['/api/', '/business/', '/merchant/'],
-      },
-      {
-        userAgent: 'Bingbot',
-        allow: [
-          '/',
-          '/shop',
-          '/shop/*',
-          '/about',
-          '/contact',
-          '/privacy-policy',
-          '/exchange-policy',
-          '/terms-conditions',
-        ],
-        disallow: [
-          '/api/',
-          '/business/',
-          '/merchant/apply',
-          '/sign-in',
-          '/sign-up',
-          '/debug-role',
-          '/_next/',
-          '/admin/',
-        ],
+        allow: ['/'],
+        disallow: ['/api/', '/business/', '/merchant/', '/shop/'],
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,

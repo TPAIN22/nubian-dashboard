@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import type { Merchant } from "@/app/business/merchants/[merchantId]/page";
+import type { Merchant } from "@/app/admin/merchants-legacy/[merchantId]/page";
 
 interface Product {
   _id: string;
@@ -374,7 +374,7 @@ function ProductCard({ product, onUpdate, getToken }: ProductCardProps) {
             </div>
             
             <div className="mt-3 flex flex-col gap-2">
-              <Link href={`/business/products/${product._id}`}>
+              <Link href={`/admin/products`}>
                 <Button variant="outline" size="sm" className="w-full">
                   <Eye className="h-4 w-4 ml-2" />
                   عرض التفاصيل
@@ -382,7 +382,7 @@ function ProductCard({ product, onUpdate, getToken }: ProductCardProps) {
               </Link>
               
               <div className="grid grid-cols-2 gap-2">
-                <Link href={`/business/products/${product._id}/edit`}>
+                <Link href={`/admin/products`}>
                   <Button variant="outline" size="sm" className="w-full">
                     <Edit className="h-4 w-4 ml-1" />
                     تعديل

@@ -168,26 +168,13 @@ const nextConfig: NextConfig = {
   // Enable React strict mode
   reactStrictMode: true,
 
+  // Enable React strict mode
+  reactStrictMode: true,
+
   experimental: {
     staleTimes: {
       dynamic: 30,
     },
-  },
-
-  // Rewrite /business routes to /business (to match actual folder structure)
-  async rewrites() {
-    return [
-      {
-        source: '/business/:path*',
-        destination: '/business/:path*',
-      },
-    ];
-  },
-
-  // Generate sitemap and robots.txt
-  generateBuildId: async () => {
-    // Generate a unique build ID
-    return 'nubian-' + Date.now().toString();
   },
 };
 

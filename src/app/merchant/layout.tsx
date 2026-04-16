@@ -1,10 +1,4 @@
-import type { Metadata } from 'next'
-import { MerchantSidebarWrapper } from '@/components/merchant-sidebar-wrapper'
-
-export const metadata: Metadata = {
-  title: 'لوحة تحكم التاجر - نوبيان',
-  description: 'لوحة تحكم التاجر لإدارة متجرك',
-}
+import Side from '@/components/ui/side-bar-provider'
 
 export default function MerchantLayout({
   children,
@@ -12,9 +6,12 @@ export default function MerchantLayout({
   children: React.ReactNode
 }>) {
   return (
-    <MerchantSidebarWrapper>
-      {children}
-    </MerchantSidebarWrapper>
+    <div className="merchant-theme min-h-screen bg-background text-foreground font-sans overflow-hidden">
+      <Side>
+        <div className="h-full flex flex-col overflow-auto">
+          {children}
+        </div>
+      </Side>
+    </div>
   )
 }
-

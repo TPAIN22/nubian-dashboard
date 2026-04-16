@@ -9,12 +9,13 @@ import logger from '@/lib/logger'
 
 interface Merchant {
   _id: string
-  businessName: string
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED'
+  storeName: string
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'NEEDS_REVISION'
   rejectionReason?: string
+  revisionNotes?: string
   suspensionReason?: string
   suspendedAt?: string
-  appliedAt: string
+  createdAt: string
 }
 
 export default function MerchantPending() {
@@ -29,28 +30,25 @@ export default function MerchantPending() {
 
     const checkMerchantStatus = async () => {
       try {
-        const token = await getToken()
-        const response = await axiosInstance.get('/merchants/my-status', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        // Handle standardized response format: { success: true, data: { merchant, hasApplication }, message: "..." }
-        const responseData = response.data?.data || response.data
+        const response = await fetch('/api/merchant/my-status');
+        if (!response.ok) throw new Error("Failed to fetch status");
+        
+        const responseData = await response.json();
+        
         if (responseData.hasApplication) {
-          const merchantData = responseData.merchant
-          // Normalize status to uppercase
-          const normalizedStatus = merchantData.status?.toUpperCase()
+          const merchantData = responseData.application;
+          // Normalize status to uppercase for UI consistency
+          const normalizedStatus = merchantData.status.toUpperCase();
           const normalizedMerchant = {
             ...merchantData,
-            status: normalizedStatus as 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED'
-          }
-          setMerchant(normalizedMerchant)
+            status: normalizedStatus as 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'NEEDS_REVISION'
+          };
+          setMerchant(normalizedMerchant);
           
           // If merchant is approved, redirect to dashboard
           if (normalizedStatus === 'APPROVED') {
-            router.push('/merchant/dashboard')
-            return
+            router.push('/merchant/dashboard');
+            return;
           }
         } else {
           // No application found, redirect to apply
@@ -127,9 +125,9 @@ export default function MerchantPending() {
             <h1 className="text-3xl font-bold mb-3 text-foreground">الطلب قيد المراجعة</h1>
             <div className="space-y-4 mb-6">
               <p className="text-lg text-muted-foreground">
-                طلب التاجر الخاص بك لـ <span className="font-semibold text-foreground">{merchant.businessName}</span> قيد المراجعة حالياً من قبل فريقنا.
+                طلب التاجر الخاص بك لـ <span className="font-semibold text-foreground">{merchant.storeName}</span> قيد المراجعة حالياً من قبل فريقنا.
               </p>
-              <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
                 <p className="text-sm text-yellow-800 dark:text-yellow-200">
                   <strong>⏱️ المدة المتوقعة:</strong> عادة ما يستغرق هذا 1-2 يوم عمل. سنخطرك بمجرد معالجة طلبك.
                 </p>
@@ -140,7 +138,7 @@ export default function MerchantPending() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <span>تاريخ التقديم: {formatDate(merchant.appliedAt)}</span>
+                <span>تاريخ التقديم: {formatDate(merchant.createdAt)}</span>
               </div>
             </div>
           </div>
@@ -167,11 +165,11 @@ export default function MerchantPending() {
             </div>
             <h1 className="text-3xl font-bold mb-3 text-foreground">تم رفض الطلب</h1>
             <p className="text-lg text-muted-foreground mb-6">
-              للأسف، تم رفض طلب التاجر الخاص بك لـ <span className="font-semibold text-foreground">{merchant.businessName}</span>.
+              للأسف، تم رفض طلب التاجر الخاص بك لـ <span className="font-semibold text-foreground">{merchant.storeName}</span>.
             </p>
             {merchant.rejectionReason && (
-              <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-5 mb-6 text-right">
-                <p className="text-sm font-semibold mb-2 text-red-900 dark:text-red-200">سبب الرفض:</p>
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-5 mb-6 text-right">
+                <p className="text-sm font-semibold mb-2 text-red-900 dark:text-red-400">سبب الرفض:</p>
                 <p className="text-sm text-red-800 dark:text-red-300 leading-relaxed">{merchant.rejectionReason}</p>
               </div>
             )}
@@ -185,6 +183,50 @@ export default function MerchantPending() {
               </Button>
               <p className="text-xs text-muted-foreground">
                 يمكنك مراجعة المعلومات المقدمة وتقديم طلب جديد
+              </p>
+            </div>
+          </div>
+        )}
+
+        {normalizedStatus === 'NEEDS_REVISION' && (
+          <div className="rounded-xl border bg-card p-8 sm:p-10 text-center shadow-lg">
+            <div className="mb-6">
+              <div className="mx-auto w-20 h-20 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mb-6">
+                <svg
+                  className="w-10 h-10 text-yellow-600 dark:text-yellow-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+              </div>
+            </div>
+            <h1 className="text-3xl font-bold mb-3 text-foreground">يتطلب تعديلات</h1>
+            <p className="text-lg text-muted-foreground mb-6">
+              لقد قام فريق المراجعة بطلب بعض التعديلات على طلب متجر <span className="font-semibold text-foreground">{merchant.storeName}</span>.
+            </p>
+            {merchant.revisionNotes && (
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-5 mb-6 text-right">
+                <p className="text-sm font-semibold mb-2 text-yellow-900 dark:text-yellow-200">ملاحظات فريق المراجعة:</p>
+                <p className="text-sm text-yellow-800 dark:text-yellow-300 leading-relaxed italic">"{merchant.revisionNotes}"</p>
+              </div>
+            )}
+            <div className="space-y-4">
+              <Button
+                onClick={() => router.push('/merchant/apply')}
+                className="w-full sm:w-auto px-8 bg-yellow-600 hover:bg-yellow-700 text-white"
+                size="lg"
+              >
+                تحديث الطلب وإعادة الإرسال
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                بياناتك السابقة تم حفظها، فقط قم بتعديل المطلوب
               </p>
             </div>
           </div>
@@ -211,16 +253,16 @@ export default function MerchantPending() {
             </div>
             <h1 className="text-3xl font-bold mb-3 text-foreground">تم تعليق حسابك التجاري</h1>
             <p className="text-lg text-muted-foreground mb-6">
-              حسابك التجاري <span className="font-semibold text-foreground">{merchant.businessName || 'غير محدد'}</span> تم تعليقه مؤقتاً.
+              حسابك التجاري <span className="font-semibold text-foreground">{merchant.storeName || 'غير محدد'}</span> تم تعليقه مؤقتاً.
             </p>
             {merchant.suspensionReason && (
-              <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800 rounded-lg p-5 mb-6 text-right">
-                <p className="text-sm font-semibold mb-2 text-orange-900 dark:text-orange-200">سبب التعليق:</p>
+              <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-5 mb-6 text-right">
+                <p className="text-sm font-semibold mb-2 text-orange-900 dark:text-orange-400">سبب التعليق:</p>
                 <p className="text-sm text-orange-800 dark:text-orange-300 leading-relaxed">{merchant.suspensionReason}</p>
               </div>
             )}
             {!merchant.suspensionReason && (
-              <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800 rounded-lg p-5 mb-6 text-right">
+              <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-5 mb-6 text-right">
                 <p className="text-sm text-orange-800 dark:text-orange-300 leading-relaxed">
                   لم يتم تحديد سبب التعليق. يرجى التواصل مع الإدارة للاستفسار.
                 </p>

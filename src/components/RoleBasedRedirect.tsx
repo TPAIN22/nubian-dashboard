@@ -28,7 +28,7 @@ export default function RoleBasedRedirect() {
     }
 
     // Don't redirect if already on a protected route
-    if (pathname?.startsWith('/business/') || pathname?.startsWith('/merchant/')) {
+    if (pathname?.startsWith('/admin/') || pathname?.startsWith('/merchant/')) {
       return
     }
 
@@ -43,13 +43,13 @@ export default function RoleBasedRedirect() {
       return
     }
 
-    const role = user.publicMetadata?.role as string | undefined
+    const role = (user.publicMetadata?.role as string | undefined)?.toLowerCase();
 
     // Only redirect if user has a role (admin or merchant) and they're not on the home page
     // Regular users without roles stay on the current page
-    if (role === 'admin') {
+    if (role === 'admin' || role === 'support') {
       hasRedirected.current = true
-      router.replace('/business/dashboard')
+      router.replace('/admin')
     } else if (role === 'merchant') {
       hasRedirected.current = true
       router.replace('/merchant/dashboard')

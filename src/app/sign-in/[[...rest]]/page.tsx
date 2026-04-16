@@ -43,7 +43,7 @@ export default function SignInPage() {
   // Helper function to determine redirect URL based on role
   const getRedirectUrl = (role: string | undefined): string => {
     if (role === 'admin') {
-      return '/business/dashboard'
+      return '/admin'
     } else if (role === 'merchant') {
       return '/merchant/dashboard'
     }

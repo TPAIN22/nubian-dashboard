@@ -28,12 +28,24 @@ if (typeof window === 'undefined') {
 }
 
 
-import { Outfit } from 'next/font/google'
+import { Outfit, Inter, IBM_Plex_Sans_Arabic } from 'next/font/google'
 
 const outfit = Outfit({
   subsets: ['latin', 'latin-ext'],
-  // Weights: 100-900 are available in variable fonts, but specifying helps if needed
   variable: '--font-outfit',
+  display: 'swap',
+})
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+})
+
+const ibmPlexArabic = IBM_Plex_Sans_Arabic({
+  subsets: ['arabic'],
+  weight: ['100', '200', '300', '400', '500', '600', '700'],
+  variable: '--font-ibm-plex-arabic',
   display: 'swap',
 })
 
@@ -158,7 +170,7 @@ export default function RootLayout({
       <html lang="ar" dir="rtl" suppressHydrationWarning className="overflow-x-clip">
         <head>
         </head>
-        <body className={`${outfit.variable} antialiased`}>
+        <body className={`${outfit.variable} ${inter.variable} ${ibmPlexArabic.variable} antialiased`}>
           <QueryProvider>
             <ErrorBoundary>
               <StructuredData />
