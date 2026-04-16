@@ -118,7 +118,6 @@ export default function OnboardingWizard() {
     // Explicitly validate just the fields in the current step
     let isStepValid = true;
     if (fieldsToValidate && fieldsToValidate.length > 0) {
-      // @ts-expect-error - fieldsToValidate is type-casted for trigger function
       isStepValid = await trigger(fieldsToValidate as any);
     }
 
@@ -210,8 +209,8 @@ export default function OnboardingWizard() {
               <div key={step.id} className="relative z-10 flex flex-col items-center">
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors duration-300 ${currentStep >= step.id
-                      ? 'bg-primary text-primary-foreground shadow-md'
-                      : 'bg-background border-2 border-border text-muted-foreground'
+                    ? 'bg-primary text-primary-foreground shadow-md'
+                    : 'bg-background border-2 border-border text-muted-foreground'
                     }`}
                 >
                   {currentStep > step.id ? <CheckCircle2 className="w-5 h-5" /> : step.id}
