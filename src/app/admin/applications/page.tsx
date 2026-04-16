@@ -1,22 +1,46 @@
-import { Metadata } from 'next';
+"use client";
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { connect } from '@/lib/connect';
-import MerchantApplication from '@/models/MerchantApplication';
+import { Loader2 } from 'lucide-react';
 
-export const metadata: Metadata = {
-  title: 'Merchant Applications | Admin Dashboard',
-};
+export default function ApplicationsPage() {
+  const [applications, setApplications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-// Next.js server component to fetch applications securely
-async function getApplications() {
-  await connect();
-  const applications = await MerchantApplication.find({}).sort({ createdAt: -1 }).lean();
-  // Stringify and parse to avoid Mongoose doc serialization issues in Next.js Server Components
-  return JSON.parse(JSON.stringify(applications));
-}
+  useEffect(() => {
+    const fetchApplications = async () => {
+      try {
+        const res = await fetch('/api/admin/applications');
+        if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+        const data = await res.json();
+        setApplications(data.applications || []);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load applications');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchApplications();
+  }, []);
 
-export default async function ApplicationsPage() {
-  const applications = await getApplications();
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-red-500 font-medium mb-2">Failed to load applications</p>
+        <p className="text-sm text-muted-foreground">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8">
@@ -83,6 +107,7 @@ export default async function ApplicationsPage() {
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
                         app.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
                         app.status === 'rejected' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                        app.status === 'suspended' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
                         'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
                       }`}>
                         {app.status}
@@ -92,7 +117,7 @@ export default async function ApplicationsPage() {
                       {new Date(app.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Link 
+                      <Link
                         href={`/admin/applications/${app._id}`}
                         className="text-primary hover:text-primary/80 font-semibold"
                       >
@@ -109,3 +134,4 @@ export default async function ApplicationsPage() {
     </div>
   );
 }
+
