@@ -12,23 +12,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    // Try role from session claims first (fast path, matches project pattern)
-    let role = (sessionClaims as any)?.publicMetadata?.role ||
-               (sessionClaims as any)?.privateMetadata?.role as string | undefined;
+    // Read role from session token (fast, no extra Clerk API call)
+    let role = (sessionClaims as any)?.publicMetadata?.role as string | undefined;
 
-    // Fallback: fetch role directly from Clerk if not in claims
+    // Fallback: fetch from Clerk if not in token yet (e.g. right after metadata update)
     if (!role) {
       try {
         const client = await clerkClient();
         const user = await client.users.getUser(userId);
         role = user.publicMetadata?.role as string | undefined;
-      } catch (clerkErr) {
-        console.error('Clerk fallback failed:', clerkErr);
+      } catch (clerkErr: any) {
+        console.error('Clerk fallback failed:', clerkErr.message);
       }
     }
 
     if (role !== 'admin' && role !== 'support') {
-      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ message: 'Forbidden', role }, { status: 403 });
     }
 
     await connect();
@@ -46,7 +45,7 @@ export async function GET(req: NextRequest) {
       { status: 200 }
     );
   } catch (error: any) {
-    console.error('Failed to fetch applications:', error.message);
+    console.error('[GET /api/admin/applications]', error.message);
     return NextResponse.json(
       { message: 'Failed to fetch applications', error: error.message },
       { status: 500 }
