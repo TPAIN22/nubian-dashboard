@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 export async function GET(req: NextRequest) {
   try {
     const { userId, sessionClaims, getToken } = await auth();
-    const role = (sessionClaims as any)?.publicMetadata?.role;
+    let role = (sessionClaims as any)?.publicMetadata?.role;
+
+    // Fallback: fetch from Clerk if not in token yet
+    if (!role && userId) {
+      try {
+        const client = await clerkClient();
+        const user = await client.users.getUser(userId);
+        role = user.publicMetadata?.role;
+      } catch (clerkErr: any) {
+        console.error('Clerk fallback failed:', clerkErr.message);
+      }
+    }
 
     if (!userId || (role !== 'admin' && role !== 'support')) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
