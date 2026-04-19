@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, clerkClient } from '@clerk/nextjs/server';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api";
 
 async function getAdminRole(userId: string, sessionClaims: any) {
   let role = (sessionClaims as any)?.publicMetadata?.role;
@@ -39,14 +39,19 @@ export async function GET(
       },
     });
 
-    const data = await response.json().catch(() => null);
+    const responseText = await response.text();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      data = null;
+    }
     
     if (data) {
       return NextResponse.json(data, { status: response.status });
     } else {
-      const text = await response.text().catch(() => "Unknown error");
       return NextResponse.json(
-        { message: 'Backend Error', error: text },
+        { message: 'Backend Error', error: responseText || 'Empty response' },
         { status: response.status }
       );
     }
@@ -84,6 +89,7 @@ export async function PUT(
       const body = await req.json();
 
       step = "backend-fetch";
+      console.log(`[DEBUG] Proxying PUT to ${BACKEND_URL}/admin/marketers/${id}`, body);
       const response = await fetch(`${BACKEND_URL}/admin/marketers/${id}`, {
         method: 'PUT',
         headers: {
@@ -94,21 +100,31 @@ export async function PUT(
       });
 
       step = "response-processing";
-      const data = await response.json().catch(() => null);
+      const responseText = await response.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        data = null;
+      }
       
       if (data) {
         return NextResponse.json(data, { status: response.status });
       } else {
-        const text = await response.text().catch(() => "Unknown error");
         return NextResponse.json(
-          { message: 'Backend Error', error: text, step },
+          { message: 'Backend Error', error: responseText || 'Empty response', step },
           { status: response.status }
         );
       }
     } catch (error: any) {
-      console.error(`[PUT /api/admin/marketers/${id}] Failed at ${step}:`, error.message);
+      console.error(`[PUT /api/admin/marketers/${id}] Failed at ${step}:`, error);
       return NextResponse.json(
-        { message: 'Internal Server Error', error: error.message, step },
+        { 
+          message: 'Internal Server Error', 
+          error: error.message, 
+          stack: error.stack,
+          step 
+        },
         { status: 500 }
       );
     }
@@ -136,14 +152,19 @@ export async function DELETE(
       },
     });
 
-    const data = await response.json().catch(() => null);
+    const responseText = await response.text();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      data = null;
+    }
     
     if (data) {
       return NextResponse.json(data, { status: response.status });
     } else {
-      const text = await response.text().catch(() => "Unknown error");
       return NextResponse.json(
-        { message: 'Backend Error', error: text },
+        { message: 'Backend Error', error: responseText || 'Empty response' },
         { status: response.status }
       );
     }

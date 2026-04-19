@@ -123,9 +123,11 @@ export default function Footer() {
             <ul className="space-y-3">
               {[
                 { href: "/", label: "الرئيسية" },
+                { href: "/affiliate/register", label: "برنامج المسوقين" },
+                { href: "/merchant/apply", label: "انضم كتاجر" },
                 { href: "/about", label: "عن نوبيان" },
                 { href: "/contact", label: "اتصل بنا" },
-                { href: "/dashboards", label: "لوحة التحكم", special: true },
+                { href: "/admin", label: "لوحة التحكم", special: true },
               ].map((link, index) => (
                 <li key={index}>
                   <Link
