@@ -11,11 +11,13 @@ import {
   IconInnerShadowTop,
   IconListDetails,
   IconMapPin,
-  IconSettings,
-  IconUsers,
   IconTooltip,
   IconMessageCircle,
-  IconClock
+  IconClock,
+  IconAffiliate,
+  IconCash,
+  IconLink,
+  IconChartBar
 } from "@tabler/icons-react";
 import { useUser } from "@clerk/nextjs";
 
@@ -77,6 +79,16 @@ const adminNav = [
     url: "/admin/locations",
     icon: IconMapPin,
   },
+  {
+    title: "إدارة المسوقين",
+    url: "/admin/marketers",
+    icon: IconAffiliate,
+  },
+  {
+    title: "العمولات والمدفوعات",
+    url: "/admin/commissions",
+    icon: IconCash,
+  },
 ];
 
 const merchantNav = [
@@ -107,6 +119,24 @@ const merchantNav = [
   },
 ];
 
+const affiliateNav = [
+  {
+    title: "لوحة تحكم المسوق",
+    url: "/affiliate",
+    icon: IconChartBar,
+  },
+  {
+    title: "العمولات المالية",
+    url: "/affiliate/commissions",
+    icon: IconCash,
+  },
+  {
+    title: "رابط الإحالة",
+    url: "/affiliate/referral",
+    icon: IconLink,
+  },
+];
+
 const applyingNav = [
   {
     title: "حالة الطلب",
@@ -125,6 +155,15 @@ const applyingNav = [
   },
 ];
 
+const joinAffiliateNav = [
+  ...applyingNav,
+  {
+    title: "انضم لبرنامج الإحالة",
+    url: "/affiliate/register",
+    icon: IconAffiliate,
+  },
+];
+
 const secondaryNav = [
   {
     title: "المساعدة",
@@ -140,7 +179,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const items = role === "admin" || role === "support" 
     ? adminNav 
-    : (role === "merchant" && status === "approved" ? merchantNav : applyingNav);
+    : (role === "marketer" ? affiliateNav : (role === "merchant" && status === "approved" ? merchantNav : joinAffiliateNav));
 
   return (
     <Sidebar collapsible="offcanvas" side="right" {...props}>
