@@ -2,16 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import { 
-  IconCash, 
-  IconShoppingCart, 
-  IconClick, 
-  IconTrendingUp, 
-  IconCopy, 
+import {
+  IconCash,
+  IconShoppingCart,
+  IconClick,
+  IconTrendingUp,
+  IconCopy,
   IconExternalLink,
   IconClock,
   IconCheck,
-  IconAlertCircle
+  IconAlertCircle,
+  IconLink
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 
@@ -38,7 +39,7 @@ export default function AffiliateDashboard() {
   useEffect(() => {
     async function fetchData() {
       if (!isLoaded || !user) return;
-      
+
       try {
         const [profileRes, statsRes, commissionsRes] = await Promise.all([
           fetch("/api/affiliate/me"),
@@ -115,9 +116,9 @@ export default function AffiliateDashboard() {
           </p>
         </div>
         <div className="flex gap-2">
-           <Button variant="outline" onClick={() => window.open(`https://www.nubian-sd.store/?ref=${profile?.code}`, '_blank')}>
-              <IconExternalLink size={18} className="ml-2" /> معاينة المتجر
-           </Button>
+          <Button variant="outline" onClick={() => window.open(`https://www.nubian-sd.store/?ref=${profile?.code}`, '_blank')}>
+            <IconExternalLink size={18} className="ml-2" /> معاينة المتجر
+          </Button>
         </div>
       </div>
 
@@ -183,26 +184,26 @@ export default function AffiliateDashboard() {
               <p className="text-xs font-mono break-all pr-8 leading-relaxed">
                 {profile?.referralLink || "جاري التحميل..."}
               </p>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="absolute right-1 top-1" 
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1"
                 onClick={() => copyToClipboard(profile?.referralLink)}
               >
                 <IconCopy size={16} />
               </Button>
             </div>
-            
+
             <div className="space-y-2">
               <p className="text-sm font-medium">كود الإحالة: <span className="font-mono text-primary font-bold">{profile?.code}</span></p>
               <p className="text-xs text-muted-foreground">نسبة العمولة: {profile?.commissionRate ? (profile.commissionRate * 100) : 10}%</p>
             </div>
-            
+
             <div className="pt-2">
-               <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-2 rounded">
-                  <IconAlertCircle size={14} className="mt-0.5 shrink-0" />
-                  <span>تأكد من استخدام الرابط الصحيح لضمان احتساب العمولات.</span>
-               </div>
+              <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-2 rounded">
+                <IconAlertCircle size={14} className="mt-0.5 shrink-0" />
+                <span>تأكد من استخدام الرابط الصحيح لضمان احتساب العمولات.</span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -218,7 +219,7 @@ export default function AffiliateDashboard() {
               <CardDescription>قائمة بأحدث العمولات المستحقة من طلبات عملائك.</CardDescription>
             </div>
             <Button variant="ghost" className="text-primary hover:text-primary/80" onClick={() => window.location.href = "/affiliate/commissions"}>
-               عرض الكل
+              عرض الكل
             </Button>
           </CardHeader>
           <CardContent>
