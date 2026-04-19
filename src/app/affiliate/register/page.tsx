@@ -75,6 +75,28 @@ export default function AffiliateRegisterPage() {
 
   if (!isLoaded) return <div className="p-8 text-center">جاري التحميل...</div>;
 
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-4 text-center space-y-6 animate-in fade-in duration-500">
+        <div className="p-4 rounded-full bg-primary/10 text-primary">
+          <IconAffiliate size={48} />
+        </div>
+        <h1 className="text-3xl font-bold">انضم لبرنامج المسوقين</h1>
+        <p className="text-muted-foreground max-w-md mx-auto">
+          يرجى تسجيل الدخول أولاً لتتمكن من التسجيل كمسوق والبدء في كسب العمولات.
+        </p>
+        <div className="flex gap-4">
+          <Button onClick={() => router.push("/sign-in?redirect_url=/affiliate/register")}>
+            تسجيل الدخول
+          </Button>
+          <Button variant="outline" onClick={() => router.push("/")}>
+            العودة للرئيسية
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (user?.publicMetadata?.role === "marketer" && !successData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-4 text-center space-y-4">
