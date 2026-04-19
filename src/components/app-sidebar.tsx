@@ -17,7 +17,9 @@ import {
   IconAffiliate,
   IconCash,
   IconLink,
-  IconChartBar
+  IconChartBar,
+  IconSettings,
+  IconUsers
 } from "@tabler/icons-react";
 import { useUser } from "@clerk/nextjs";
 
@@ -177,8 +179,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const role = user?.publicMetadata?.role as string;
   const status = user?.publicMetadata?.merchantStatus as string;
 
-  const items = role === "admin" || role === "support" 
-    ? adminNav 
+  const items = role === "admin" || role === "support"
+    ? adminNav
     : (role === "marketer" ? affiliateNav : (role === "merchant" && status === "approved" ? merchantNav : joinAffiliateNav));
 
   return (

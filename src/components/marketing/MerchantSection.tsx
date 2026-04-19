@@ -10,6 +10,13 @@ const benefits = [
   "الوصول إلى ملايين المشترين المحتملين"
 ]
 
+const marketerBenefits = [
+  "عمولة فورية 10% على كل طلب",
+  "لوحة تحكم متطورة لمتابعة الأرباح",
+  "رابط إحالة دائم لا يتغير",
+  "دعم فني مخصص للمسوقين"
+]
+
 export function MerchantSection() {
   return (
     <section className="py-24 bg-white">
@@ -62,11 +69,50 @@ export function MerchantSection() {
             
             <div className="pt-4 flex justify-end">
               <Link href="/merchant/apply">
-                <Button variant="outline" size="lg" className="rounded-full px-8 h-14 border-zinc-950 text-zinc-950 hover:bg-zinc-950 hover:text-white transition-all">
+                <Button size="lg" className="rounded-full px-8 h-14 bg-zinc-950 text-white hover:bg-zinc-800 transition-all">
                   انضم كتاجر الآن
                 </Button>
               </Link>
             </div>
+          </div>
+        </div>
+
+        {/* Affiliate Section (Added) */}
+        <div className="mt-32 pt-32 border-t border-zinc-100 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div className="flex flex-col gap-8 text-right">
+            <h2 className="text-sm font-bold tracking-widest text-zinc-400 uppercase">للمسوقين</h2>
+            <h3 className="text-4xl md:text-5xl font-bold text-zinc-950 leading-[1.1]">
+               شارك و اربح <br /> بنسبة 10% على كل طلب.
+            </h3>
+            <p className="text-lg text-zinc-500 leading-relaxed">
+              ليس لديك منتجات؟ لا مشكلة. انضم إلى برنامج المسوقين في نوبيان وابدأ في كسب المال عن طريق مشاركة المنتجات التي تحبها.
+            </p>
+            
+            <ul className="space-y-4">
+              {marketerBenefits.map((benefit, idx) => (
+                <li key={idx} className="flex items-center gap-3 text-zinc-700 font-medium justify-end">
+                  {benefit}
+                  <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <IconCheck size={12} strokeWidth={3} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+            
+            <div className="pt-4 flex justify-end">
+              <Link href="/affiliate/register">
+                <Button variant="outline" size="lg" className="rounded-full px-8 h-14 border-zinc-950 text-zinc-950 hover:bg-zinc-950 hover:text-white transition-all">
+                  سجل كمسوق (ابدأ الربح)
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <div className="relative aspect-square md:aspect-video lg:aspect-[4/3] bg-primary/5 rounded-2xl border border-primary/10 overflow-hidden flex items-center justify-center">
+             <div className="flex flex-col items-center gap-4 text-primary opacity-40">
+                <div className="text-6xl font-black">10%</div>
+                <div className="text-sm font-bold uppercase tracking-widest">Commission Rate</div>
+             </div>
           </div>
         </div>
       </div>

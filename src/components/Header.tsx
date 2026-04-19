@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Users, MessageCircle, HelpCircle, LayoutDashboard, UserCircle, Briefcase } from "lucide-react";
 
 type NavLink = {
   href: string;
@@ -22,6 +22,7 @@ const NAV_LINKS: NavLink[] = [
   { href: "#shoppers", label: "للمشترين", ariaLabel: "للمشترين - For Shoppers" },
   { href: "#merchants", label: "للتجار", ariaLabel: "للتجار - For Merchants" },
   { href: "#faq", label: "الأسئلة الشائعة", ariaLabel: "الأسئلة الشائعة - FAQ" },
+  { href: "/affiliate/register", label: "برنامج المسوقين", ariaLabel: "برنامج المسوقين - Affiliate Program" },
 ];
 
 export default function Header() {
@@ -105,6 +106,12 @@ export default function Header() {
 
               {/* Left: Desktop CTAs */}
               <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+                <Link href="/affiliate/register">
+                  <Button variant="ghost" className="text-primary hover:bg-primary/10 font-bold px-4 flex items-center gap-2">
+                    <Briefcase className="w-4 h-4" />
+                    كن مسوقاً
+                  </Button>
+                </Link>
                 <Link href="/merchant/apply">
                   <Button className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transition-all duration-300 font-bold px-5">
                     سجّل كتاجر
@@ -176,6 +183,11 @@ export default function Header() {
                       <Link href="/merchant/apply" onClick={() => setIsOpen(false)}>
                         <Button className="w-full bg-gradient-to-r from-primary to-primary/90 text-white shadow-lg font-bold">
                           سجّل كتاجر
+                        </Button>
+                      </Link>
+                      <Link href="/affiliate/register" onClick={() => setIsOpen(false)}>
+                        <Button variant="ghost" className="w-full text-primary hover:bg-primary/10 font-bold border-2 border-primary/20">
+                          انضم كمسوق
                         </Button>
                       </Link>
                       <Link href="/sign-in" onClick={() => setIsOpen(false)}>

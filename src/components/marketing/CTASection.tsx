@@ -85,6 +85,16 @@ export function CTASection() {
               تصفح المتجر
             </Button>
           </Link>
+
+          <Link href="/affiliate/register">
+            <Button
+              variant="ghost"
+              size="lg"
+              className="rounded-full h-16 px-10 text-lg text-primary hover:bg-primary/10 border-2 border-primary/20 min-w-[220px] font-bold"
+            >
+              انضم كمسوق
+            </Button>
+          </Link>
         </div>
 
         {/* Stats Cards */}
@@ -114,7 +124,7 @@ export function CTASection() {
           {[
             "بدون رسوم تسجيل",
             "توصيل سريع لجميع الولايات",
-            "دفع آمن 100%",
+            "عمولة على كل عمليه شراء عن طريقك",
           ].map((text, i) => (
             <div key={i} className="flex items-center gap-2">
               <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
