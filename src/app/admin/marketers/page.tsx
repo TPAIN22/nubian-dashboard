@@ -362,7 +362,7 @@ export default function MarketersAdminPage() {
                   type="number"
                   step="0.01"
                   value={editFormData.commissionRate}
-                  onChange={(e) => setEditFormData({ ...editFormData, commissionRate: parseFloat(e.target.value) })}
+                  onChange={(e) => setEditFormData({ ...editFormData, commissionRate: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
                 />
               </div>
               <div className="grid gap-2">
@@ -372,7 +372,7 @@ export default function MarketersAdminPage() {
                   type="number"
                   step="0.01"
                   value={editFormData.discountRate}
-                  onChange={(e) => setEditFormData({ ...editFormData, discountRate: parseFloat(e.target.value) })}
+                  onChange={(e) => setEditFormData({ ...editFormData, discountRate: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
                 />
               </div>
             </div>

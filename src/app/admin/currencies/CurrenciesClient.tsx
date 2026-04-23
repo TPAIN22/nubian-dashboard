@@ -70,8 +70,11 @@ export default function CurrenciesClient() {
     const loadData = useCallback(async () => {
         try {
             setLoading(true);
+            const token = await getToken();
             const [currenciesRes, fxRes] = await Promise.all([
-                axiosInstance.get("/meta/currencies"),
+                axiosInstance.get("/admin/currencies", {
+                    headers: { Authorization: `Bearer ${token}` }
+                }),
                 axiosInstance.get("/fx/latest"),
             ]);
             setCurrencies(currenciesRes.data.data || []);
