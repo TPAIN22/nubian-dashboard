@@ -122,6 +122,10 @@ export default clerkMiddleware(async (auth, req) => {
     if (role !== "admin" && role !== "support") {
        return NextResponse.redirect(new URL("/", req.url));
     }
+    // FX rates page is restricted to admin only — support is not allowed
+    if (url.pathname.startsWith("/admin/fx-rates") && role !== "admin") {
+      return NextResponse.redirect(new URL("/admin", req.url));
+    }
     return NextResponse.next();
   }
 

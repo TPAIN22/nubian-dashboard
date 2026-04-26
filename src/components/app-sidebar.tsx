@@ -19,7 +19,8 @@ import {
   IconLink,
   IconChartBar,
   IconSettings,
-  IconUsers
+  IconUsers,
+  IconArrowsExchange,
 } from "@tabler/icons-react";
 import { useUser } from "@clerk/nextjs";
 
@@ -90,6 +91,14 @@ const adminNav = [
     title: "العمولات والمدفوعات",
     url: "/admin/commissions",
     icon: IconCash,
+  },
+];
+
+const adminOnlyNav = [
+  {
+    title: "أسعار الصرف",
+    url: "/admin/fx-rates",
+    icon: IconArrowsExchange,
   },
 ];
 
@@ -179,7 +188,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const role = user?.publicMetadata?.role as string;
   const status = user?.publicMetadata?.merchantStatus as string;
 
-  const items = role === "admin" || role === "support"
+  const items = role === "admin"
+    ? [...adminNav, ...adminOnlyNav]
+    : role === "support"
     ? adminNav
     : (role === "marketer" ? affiliateNav : (role === "merchant" && status === "approved" ? merchantNav : joinAffiliateNav));
 
