@@ -1,12 +1,15 @@
 /**
- * MongoDB Commit Logic for Bulk Product Import
- * Uses bulkWrite with upsert operations
- * 
- * Aligned with backend: nubian-auth/src/models/product.model.js
+ * Bulk product import — commit step.
+ *
+ * Architecture:
+ *   - The dashboard owns the file-handling concerns: ZIP extraction and
+ *     image upload to ImageKit (which needs the user's session + a server-side
+ *     API key the backend doesn't have).
+ *   - The unified backend (`nubian-auth`) owns all DB writes via
+ *     `POST /api/products/admin/bulk-import`. The Mongoose schema lives there,
+ *     not here. Schema drift is impossible because we never define it twice.
  */
 
-import mongoose from 'mongoose';
-import { connect } from '../connect';
 import {
   ImportRowValidated,
   CommitResult,
@@ -16,449 +19,292 @@ import {
 } from './types';
 import { uploadRowImages } from './imagekit';
 import { extractFiles } from './zip';
+import { auth } from '@clerk/nextjs/server';
+import axios from 'axios';
 import logger from '../logger';
 
-// Attribute definition schema (matches backend)
-const attributeDefSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true, trim: true, lowercase: true },
-    displayName: { type: String, required: true, trim: true },
-    type: { type: String, enum: ['select', 'text', 'number'], default: 'select' },
-    required: { type: Boolean, default: false },
-    options: { type: [String], default: [] },
-  },
-  { _id: true }
-);
-
-// Variant schema (matches backend)
-const variantSchema = new mongoose.Schema(
-  {
-    sku: { type: String, required: true, trim: true },
-    attributes: { type: Map, of: String, required: true },
-    
-    // Pricing fields
-    merchantPrice: { type: Number, required: true, min: 0 },
-    price: { type: Number, required: true, min: 0 }, // legacy mirror
-    
-    // Smart pricing fields
-    nubianMarkup: { type: Number, default: 10, min: 0 },
-    dynamicMarkup: { type: Number, default: 0, min: -50 },
-    finalPrice: { type: Number, default: 0, min: 0 },
-    discountPrice: { type: Number, default: 0, min: 0 },
-    
-    stock: { type: Number, required: true, min: 0 },
-    images: { type: [String], default: [] },
-    isActive: { type: Boolean, default: true },
-  },
-  { _id: true }
-);
-
-// Product schema (matches backend nubian-auth/src/models/product.model.js)
-const productSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true, trim: true },
-    description: { type: String, required: true, trim: true },
-
-    // Product-level pricing for simple products
-    merchantPrice: { type: Number, min: 0 },
-    price: { type: Number, min: 0 },
-
-    // Smart pricing fields
-    nubianMarkup: { type: Number, default: 10, min: 0 },
-    dynamicMarkup: { type: Number, default: 0, min: -50 },
-    finalPrice: { type: Number, default: 0, min: 0 },
-    discountPrice: { type: Number, default: 0, min: 0 },
-
-    // Stock for simple products
-    stock: { type: Number, min: 0 },
-
-    // Legacy fields
-    sizes: { type: [String], default: [] },
-    colors: { type: [String], default: [] },
-
-    // New attributes definitions
-    attributes: { type: [attributeDefSchema], default: [] },
-
-    // Variants
-    variants: { type: [variantSchema], default: [] },
-
-    isActive: { type: Boolean, default: true },
-
-    // Admin ranking controls
-    priorityScore: { type: Number, default: 0, min: 0, max: 100 },
-    featured: { type: Boolean, default: false },
-
-    // Tracking + ranking
-    trackingFields: {
-      views24h: { type: Number, default: 0, min: 0 },
-      cartCount24h: { type: Number, default: 0, min: 0 },
-      sales24h: { type: Number, default: 0, min: 0 },
-      favoritesCount: { type: Number, default: 0, min: 0 },
-    },
-
-    rankingFields: {
-      visibilityScore: { type: Number, default: 0, min: 0 },
-      conversionRate: { type: Number, default: 0, min: 0, max: 100 },
-      storeRating: { type: Number, default: 0, min: 0, max: 5 },
-      priorityScore: { type: Number, default: 0, min: 0 },
-      featured: { type: Boolean, default: false },
-    },
-
-    visibilityScore: { type: Number, default: 0, min: 0, index: true },
-    scoreCalculatedAt: { type: Date, default: null },
-
-    category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
-
-    images: {
-      type: [String],
-      required: true,
-      validate: {
-        validator: (v: string[]) => Array.isArray(v) && v.length > 0,
-        message: 'At least one image is required',
-      },
-    },
-
-    reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Review' }],
-    averageRating: { type: Number, default: 0, min: 0, max: 5 },
-
-    merchant: { type: mongoose.Schema.Types.ObjectId, ref: 'Merchant', default: null },
-
-    deletedAt: { type: Date, default: null, index: true },
-    
-    // Import tracking - SKU field for import upsert matching
-    // Note: This is used for import matching, not in original backend schema
-    // The backend uses name + merchant for uniqueness, but we add SKU for import
-    importSku: { type: String, trim: true, index: true },
-  },
-  { timestamps: true }
-);
-
-// Compound index for import upsert (merchant + importSku)
-productSchema.index({ merchant: 1, importSku: 1 }, { unique: true, sparse: true });
-
-// Standard indexes from backend
-productSchema.index({ category: 1, isActive: 1, deletedAt: 1 });
-productSchema.index({ merchant: 1, deletedAt: 1, createdAt: -1 });
-productSchema.index({ isActive: 1, deletedAt: 1, featured: -1, priorityScore: -1, createdAt: -1 });
-productSchema.index({ visibilityScore: -1 });
-
-// Get or create Product model
-function getProductModel() {
-  // Clear existing model to ensure schema is up to date
-  if (mongoose.models.Product) {
-    return mongoose.models.Product;
-  }
-  return mongoose.model('Product', productSchema);
-}
+const API_BASE = (() => {
+  const raw = process.env.NEXT_PUBLIC_API_URL || process.env.AUTH_API_URL || '';
+  if (!raw) return '';
+  const trimmed = raw.replace(/\/$/, '');
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+})();
 
 interface CommitOptions {
   merchantId: string;
   rows: ImportRowValidated[];
   mode: 'url' | 'zip';
   zipBuffer?: Buffer;
-  categoryMap?: Map<string, string>; // category name -> ObjectId
-  defaultCategoryId?: string; // fallback category if none specified
+  /** category name (lowercase) → ObjectId */
+  categoryMap?: Map<string, string>;
+  /** fallback category ObjectId */
+  defaultCategoryId?: string;
 }
 
 /**
- * Calculate final price using smart pricing (matches backend pre-save middleware)
+ * Backend bulk-import row payload.
+ * MUST stay in sync with `bulkImportProducts` in nubian-auth/src/controllers/products.controller.js.
  */
-function calculateFinalPrice(merchantPrice: number, nubianMarkup = 10, dynamicMarkup = 0, discountPrice = 0): number {
-  // If there's a manual discountPrice override, it takes absolute priority
-  if (discountPrice && discountPrice > 0) {
-    return discountPrice;
-  }
-
-  if (merchantPrice <= 0) return 0;
-
-  // final = merchant + (merchant * markup%) + (merchant * dynamic%)
-  const markupAmount = (merchantPrice * nubianMarkup) / 100;
-  const dynamicAmount = (merchantPrice * dynamicMarkup) / 100;
-
-  return Math.max(0, merchantPrice + markupAmount + dynamicAmount);
+interface BackendRow {
+  importSku: string;
+  name: string;
+  description: string;
+  category: string;
+  images: string[];
+  variants: Array<{
+    sku: string;
+    attributes: Record<string, string>;
+    merchantPrice: number;
+    stock: number;
+    images: string[];
+    isActive: boolean;
+  }>;
 }
 
 /**
- * Commit validated rows to MongoDB
+ * Build a single backend-ready row (or null if the row should be skipped/failed).
+ * Returns the row or pushes to `failures` and returns null.
+ */
+function buildBackendRow(
+  row: ImportRowValidated,
+  categoryId: string,
+  resolvedImages: string[],
+): BackendRow {
+  // Variants are required by the backend Product schema. If the import row
+  // has no explicit variants, synthesize a single default variant from the
+  // row's flat fields so the backend accepts it.
+  const variants =
+    row.variants && row.variants.length > 0
+      ? row.variants.map((v) => ({
+          sku: v.sku,
+          attributes: v.attributes,
+          merchantPrice: Number(v.merchantPrice),
+          stock: Number(v.stock),
+          images: v.images ?? [],
+          isActive: v.isActive !== false,
+        }))
+      : [
+          {
+            sku: row.sku,
+            attributes: { default: 'default' },
+            merchantPrice: Number(row.price),
+            stock: Number(row.stock),
+            images: resolvedImages,
+            isActive: true,
+          },
+        ];
+
+  return {
+    importSku: row.sku,
+    name: row.name,
+    description: row.description || row.name,
+    category: categoryId,
+    images: resolvedImages,
+    variants,
+  };
+}
+
+/**
+ * Commit validated rows by uploading images and forwarding to the backend.
  */
 export async function commitImport(options: CommitOptions): Promise<CommitResult> {
   const { merchantId, rows, mode, zipBuffer, categoryMap, defaultCategoryId } = options;
-  
-  // Connect to MongoDB
-  await connect();
-  const Product = getProductModel();
-  
+
+  if (!API_BASE) {
+    throw new Error(
+      'NEXT_PUBLIC_API_URL is not set — cannot reach the unified backend for bulk import.',
+    );
+  }
+
   const failures: FailedRow[] = [];
-  const bulkOps: any[] = [];
+  const backendRows: BackendRow[] = [];
+  const rowIndexByPosition: number[] = []; // backendRows[i] ↔ rows[rowIndexByPosition[i]]
   const uploadCache = new Map<string, ImageKitUploadResult>();
-  
+
   let uploadedImages = 0;
   let skippedCount = 0;
-  
-  // Extract ZIP files if needed
+
+  // Extract only the ZIP entries we actually need (lazy)
   let zipFiles: Map<string, ZipFileEntry> | undefined;
   if (mode === 'zip' && zipBuffer) {
-    // Collect all needed filenames
-    const neededFiles = new Set<string>();
-    for (const row of rows) {
-      if (row.isValid && row.imageFiles) {
-        row.imageFiles.forEach(f => neededFiles.add(f.toLowerCase()));
-      }
+    const needed = new Set<string>();
+    for (const r of rows) {
+      if (r.isValid && r.imageFiles) r.imageFiles.forEach((f) => needed.add(f.toLowerCase()));
     }
-    
-    if (neededFiles.size > 0) {
-      zipFiles = await extractFiles(zipBuffer, Array.from(neededFiles));
-      logger.info('Extracted files from ZIP for commit', { count: zipFiles.size });
+    if (needed.size > 0) {
+      zipFiles = await extractFiles(zipBuffer, Array.from(needed));
+      logger.info('Extracted ZIP files for bulk import', { count: zipFiles.size });
     }
   }
-  
-  // Process each row
-  for (const row of rows) {
-    // Skip invalid rows
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+
     if (!row.isValid) {
       failures.push({
         rowIndex: row.rowIndex,
         sku: row.sku,
         name: row.name,
         reason: 'Validation failed',
-        errors: row.errors
+        errors: row.errors,
       });
       skippedCount++;
       continue;
     }
-    
+
     try {
-      // Resolve images
+      // 1) Resolve images
       let images: string[] = [];
-      
-      if (mode === 'zip' && row.imageFiles && row.imageFiles.length > 0 && zipFiles) {
-        // Upload images from ZIP
+      if (mode === 'zip' && row.imageFiles?.length && zipFiles) {
         const { urls, errors } = await uploadRowImages(
           row.imageFiles,
           zipFiles,
           merchantId,
-          uploadCache
+          uploadCache,
         );
-        
-        if (errors.length > 0) {
+        if (errors.length) {
           failures.push({
             rowIndex: row.rowIndex,
             sku: row.sku,
             name: row.name,
             reason: 'Image upload failed',
-            errors: errors.map(e => ({ field: 'images', message: e, code: 'FILE_NOT_FOUND' as const }))
+            errors: errors.map((e) => ({
+              field: 'images',
+              message: e,
+              code: 'FILE_NOT_FOUND' as const,
+            })),
           });
           skippedCount++;
           continue;
         }
-        
         images = urls;
         uploadedImages += urls.length;
       } else if (mode === 'url') {
-        // Use URLs directly (filter out any pending: prefixes)
-        images = row.images.filter(url => !url.startsWith('pending:'));
+        images = row.images.filter((u) => !u.startsWith('pending:'));
       }
-      
-      // Validate images - at least one required
+
       if (images.length === 0) {
         failures.push({
           rowIndex: row.rowIndex,
           sku: row.sku,
           name: row.name,
           reason: 'At least one image is required',
-          errors: [{ field: 'images', message: 'At least one image is required', code: 'REQUIRED_FIELD' }]
+          errors: [
+            { field: 'images', message: 'At least one image is required', code: 'REQUIRED_FIELD' },
+          ],
         });
         skippedCount++;
         continue;
       }
-      
-      // Resolve category to ObjectId - required field
-      let categoryId: mongoose.Types.ObjectId | undefined;
+
+      // 2) Resolve category
+      let categoryId: string | undefined;
       if (row.category && categoryMap) {
-        const catId = categoryMap.get(row.category.toLowerCase());
-        if (catId) {
-          categoryId = new mongoose.Types.ObjectId(catId);
-        }
+        categoryId = categoryMap.get(row.category.toLowerCase());
       }
-      
-      // Use default category if not resolved
       if (!categoryId && defaultCategoryId) {
-        categoryId = new mongoose.Types.ObjectId(defaultCategoryId);
+        categoryId = defaultCategoryId;
       }
-      
-      // Category is required
       if (!categoryId) {
         failures.push({
           rowIndex: row.rowIndex,
           sku: row.sku,
           name: row.name,
           reason: 'Category is required and could not be resolved',
-          errors: [{ field: 'category', message: 'Category is required', code: 'REQUIRED_FIELD' }]
+          errors: [{ field: 'category', message: 'Category is required', code: 'REQUIRED_FIELD' }],
         });
         skippedCount++;
         continue;
       }
-      
-      // Calculate final price
-      const finalPrice = calculateFinalPrice(row.price, 10, 0, 0);
-      
-      // Prepare update document aligned with backend schema
-      const updateDoc: Record<string, unknown> = {
-        name: row.name,
-        description: row.description || 'No description provided', // Required field
-        merchantPrice: row.price,
-        price: row.price, // Legacy mirror
-        stock: row.stock,
-        images,
-        category: categoryId,
-        isActive: true,
-        nubianMarkup: 10, // Default markup
-        dynamicMarkup: 0,
-        finalPrice,
-        discountPrice: 0,
-        deletedAt: null,
-      };
-      
-      // Handle variants if present
-      if (row.variants && row.variants.length > 0) {
-        const processedVariants = row.variants.map(v => {
-          const variantFinalPrice = calculateFinalPrice(v.merchantPrice, 10, 0, 0);
-          return {
-            sku: v.sku,
-            attributes: v.attributes,
-            merchantPrice: v.merchantPrice,
-            price: v.merchantPrice, // Legacy mirror
-            nubianMarkup: 10,
-            dynamicMarkup: 0,
-            finalPrice: variantFinalPrice,
-            discountPrice: 0,
-            stock: v.stock,
-            images: v.images || [],
-            isActive: v.isActive !== false
-          };
-        });
-        
-        updateDoc.variants = processedVariants;
-        updateDoc.attributes = []; // Would need to extract from variants
-        
-        // For variant products, set product-level finalPrice as minimum variant price
-        const minVariantPrice = Math.min(...processedVariants.map(v => v.finalPrice));
-        updateDoc.finalPrice = minVariantPrice > 0 ? minVariantPrice : finalPrice;
-        
-        // Clear product-level stock/price for variant products (optional)
-        // Backend schema makes these conditional based on variants presence
-      }
-      
-      // Create bulkWrite operation using importSku for upsert matching
-      bulkOps.push({
-        updateOne: {
-          filter: {
-            merchant: new mongoose.Types.ObjectId(merchantId),
-            importSku: row.sku
-          },
-          update: {
-            $set: updateDoc,
-            $setOnInsert: {
-              importSku: row.sku,
-              merchant: new mongoose.Types.ObjectId(merchantId),
-              createdAt: new Date(),
-              priorityScore: 0,
-              featured: false,
-              sizes: [],
-              colors: [],
-              reviews: [],
-              averageRating: 0,
-              visibilityScore: 0,
-              scoreCalculatedAt: null,
-              trackingFields: {
-                views24h: 0,
-                cartCount24h: 0,
-                sales24h: 0,
-                favoritesCount: 0,
-              },
-              rankingFields: {
-                visibilityScore: 0,
-                conversionRate: 0,
-                storeRating: 0,
-                priorityScore: 0,
-                featured: false,
-              },
-            }
-          },
-          upsert: true
-        }
-      });
+
+      // 3) Build backend payload
+      backendRows.push(buildBackendRow(row, categoryId, images));
+      rowIndexByPosition.push(i);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const message = error instanceof Error ? error.message : 'Unknown error';
       failures.push({
         rowIndex: row.rowIndex,
         sku: row.sku,
         name: row.name,
-        reason: errorMessage,
-        errors: [{ field: 'general', message: errorMessage, code: 'INVALID_FORMAT' }]
+        reason: message,
+        errors: [{ field: 'general', message, code: 'INVALID_FORMAT' }],
       });
       skippedCount++;
     }
   }
-  
-  // Execute bulkWrite
+
+  // 4) Forward to backend in one call
   let insertedCount = 0;
   let updatedCount = 0;
-  
-  if (bulkOps.length > 0) {
+
+  if (backendRows.length > 0) {
+    const { getToken } = await auth();
+    const token = await getToken();
+    if (!token) {
+      throw new Error('Unauthorized: missing Clerk session for bulk-import call.');
+    }
+
     try {
-      // Use collection.bulkWrite directly to avoid Mongoose type conflicts
-      const result = await Product.collection.bulkWrite(bulkOps, { ordered: false });
-      
-      insertedCount = result.upsertedCount || 0;
-      updatedCount = result.modifiedCount || 0;
-      
-      logger.info('BulkWrite completed', {
-        merchantId,
-        insertedCount,
-        updatedCount,
-        totalOps: bulkOps.length
-      });
-    } catch (error: unknown) {
-      // Handle partial failures
-      const bulkError = error as { writeErrors?: Array<{ index: number; errmsg?: string }>; result?: { upsertedCount?: number; modifiedCount?: number } };
-      
-      if (bulkError.writeErrors) {
-        const writeErrors = bulkError.writeErrors;
-        
-        for (const writeError of writeErrors) {
-          const opIndex = writeError.index;
-          // Find the corresponding row (account for skipped rows)
-          const validRows = rows.filter(r => r.isValid);
-          const row = validRows[opIndex];
-          
-          if (row) {
-            failures.push({
-              rowIndex: row.rowIndex,
-              sku: row.sku,
-              name: row.name,
-              reason: writeError.errmsg || 'Database write error',
-              errors: [{ field: 'database', message: writeError.errmsg || 'Write error', code: 'INVALID_FORMAT' }]
-            });
-          }
+      const response = await axios.post(
+        `${API_BASE}/products/admin/bulk-import`,
+        { merchantId, rows: backendRows },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 120_000, // bulk imports can be large
+          validateStatus: () => true,
+        },
+      );
+
+      if (response.status >= 400) {
+        // Whole-batch failure — surface a single error against every row we tried
+        const message =
+          response.data?.error?.message || response.data?.message || `Backend returned ${response.status}`;
+        for (const idx of rowIndexByPosition) {
+          const r = rows[idx];
+          failures.push({
+            rowIndex: r.rowIndex,
+            sku: r.sku,
+            name: r.name,
+            reason: message,
+            errors: [{ field: 'database', message, code: 'INVALID_FORMAT' }],
+          });
         }
-        
-        // Get successful counts from partial result
-        insertedCount = bulkError.result?.upsertedCount || 0;
-        updatedCount = bulkError.result?.modifiedCount || 0;
-        
-        logger.warn('BulkWrite completed with errors', {
-          merchantId,
-          insertedCount,
-          updatedCount,
-          errorCount: writeErrors.length
-        });
       } else {
-        throw error;
+        const data = response.data?.data ?? {};
+        insertedCount = data.insertedCount ?? 0;
+        updatedCount = data.updatedCount ?? 0;
+        // Map backend per-row failures back to our rowIndex space
+        const beFailures: Array<{ index: number; importSku: string | null; reason: string }> =
+          data.failures ?? [];
+        for (const f of beFailures) {
+          const sourceRow = f.index >= 0 && f.index < rowIndexByPosition.length
+            ? rows[rowIndexByPosition[f.index]]
+            : undefined;
+          failures.push({
+            rowIndex: sourceRow?.rowIndex ?? -1,
+            sku: sourceRow?.sku ?? f.importSku ?? '',
+            name: sourceRow?.name ?? '',
+            reason: f.reason,
+            errors: [{ field: 'database', message: f.reason, code: 'INVALID_FORMAT' }],
+          });
+        }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Backend unreachable';
+      logger.error('Bulk-import backend call failed', { error: message });
+      for (const idx of rowIndexByPosition) {
+        const r = rows[idx];
+        failures.push({
+          rowIndex: r.rowIndex,
+          sku: r.sku,
+          name: r.name,
+          reason: message,
+          errors: [{ field: 'database', message, code: 'INVALID_FORMAT' }],
+        });
       }
     }
   }
-  
+
   return {
     success: failures.length === 0,
     totalRows: rows.length,
@@ -467,64 +313,65 @@ export async function commitImport(options: CommitOptions): Promise<CommitResult
     skippedCount,
     failedCount: failures.length,
     failures,
-    uploadedImages
+    uploadedImages,
   };
 }
 
 /**
- * Ensure the compound index exists
+ * Index management is now the backend's responsibility (see product.model.js).
+ * Kept as a no-op so callers don't have to change.
  */
 export async function ensureIndexes(): Promise<void> {
-  await connect();
-  const Product = getProductModel();
-  
-  try {
-    await Product.collection.createIndex(
-      { merchant: 1, importSku: 1 },
-      { unique: true, sparse: true, background: true }
-    );
-    logger.info('Ensured compound index on (merchant, importSku)');
-  } catch (error) {
-    // Index might already exist
-    logger.debug('Index creation result', { error });
-  }
+  // No-op — the backend owns the schema and its indexes.
 }
 
 /**
- * Get category map for resolving category names to ObjectIds
+ * Fetch the category-name → ObjectId map from the backend.
+ *
+ * Replaces the previous direct-Mongo lookup. Cached per server process via
+ * the closure module; if you need fresh data, restart the server.
  */
 export async function getCategoryMap(): Promise<Map<string, string>> {
-  await connect();
-  
-  const Category = mongoose.models.Category || mongoose.model('Category', new mongoose.Schema({
-    name: { type: String, required: true },
-    parent: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' }
-  }));
-  
-  const categories = await Category.find({}).select('_id name').lean();
-  
+  if (!API_BASE) {
+    throw new Error('NEXT_PUBLIC_API_URL is not set — cannot fetch categories.');
+  }
+
+  const { getToken } = await auth();
+  const token = await getToken();
+  if (!token) throw new Error('Unauthorized: missing Clerk session for category fetch.');
+
+  const response = await axios.get(`${API_BASE}/categories`, {
+    headers: { Authorization: `Bearer ${token}` },
+    timeout: 30_000,
+    validateStatus: () => true,
+  });
+
+  if (response.status >= 400) {
+    throw new Error(
+      `Failed to fetch categories from backend (status ${response.status}): ${
+        response.data?.error?.message ?? response.data?.message ?? 'unknown error'
+      }`,
+    );
+  }
+
+  const data = response.data?.data ?? response.data ?? [];
+  const list: Array<{ _id: string; name: string }> = Array.isArray(data) ? data : [];
+
   const map = new Map<string, string>();
-  for (const cat of categories) {
-    if (cat.name) {
+  for (const cat of list) {
+    if (cat?.name && cat?._id) {
       map.set(String(cat.name).toLowerCase(), String(cat._id));
     }
   }
-  
   return map;
 }
 
 /**
- * Get a default category ID (first available category)
+ * Fallback category for rows that don't resolve a name.
+ * Returns the first category from the backend list.
  */
 export async function getDefaultCategoryId(): Promise<string | undefined> {
-  await connect();
-  
-  const Category = mongoose.models.Category || mongoose.model('Category', new mongoose.Schema({
-    name: { type: String, required: true },
-    parent: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' }
-  }));
-  
-  const category = await Category.findOne({}).select('_id').lean() as { _id: unknown } | null;
-  
-  return category ? String(category._id) : undefined;
+  const map = await getCategoryMap();
+  const first = map.values().next();
+  return first.done ? undefined : first.value;
 }

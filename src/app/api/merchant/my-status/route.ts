@@ -1,33 +1,67 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { connect } from '@/lib/connect';
-import MerchantApplication from '@/models/MerchantApplication';
-import { auth } from '@clerk/nextjs/server';
+/**
+ * Current user's merchant application status.
+ *
+ * Backend returns `{ data: { hasApplication: boolean, merchant?: ... } }`.
+ * We re-shape it to the legacy contract `{ hasApplication, application }`
+ * the dashboard UI was written against.
+ */
 
-export async function GET(req: NextRequest) {
+import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import axios, { AxiosError } from 'axios';
+import logger from '@/lib/logger';
+
+const API_BASE = (() => {
+  const raw = process.env.NEXT_PUBLIC_API_URL || process.env.AUTH_API_URL || '';
+  if (!raw) return '';
+  const trimmed = raw.replace(/\/$/, '');
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+})();
+
+export async function GET() {
+  if (!API_BASE) {
+    return NextResponse.json(
+      { message: 'Server misconfigured: AUTH backend URL is not set.' },
+      { status: 500 },
+    );
+  }
+
   try {
-    const { userId } = await auth();
-    
-    if (!userId) {
+    const { getToken } = await auth();
+    const token = await getToken();
+    if (!token) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    await connect();
+    const response = await axios.get(`${API_BASE}/merchants/my-status`, {
+      headers: { Authorization: `Bearer ${token}` },
+      validateStatus: () => true,
+      timeout: 30_000,
+    });
 
-    const application = await MerchantApplication.findOne({ userId }).sort({ createdAt: -1 });
-
-    if (!application) {
-      return NextResponse.json({ hasApplication: false }, { status: 200 });
+    if (response.status >= 400) {
+      return NextResponse.json(response.data, { status: response.status });
     }
 
-    return NextResponse.json({ 
-      hasApplication: true, 
-      application 
-    }, { status: 200 });
-  } catch (error: any) {
-    console.error('Error fetching merchant status:', error);
+    // Backend payload: { success, data: { hasApplication, merchant? } }
+    const payload = response.data?.data ?? {};
     return NextResponse.json(
-      { message: 'Failed to fetch status', error: error.message },
-      { status: 500 }
+      {
+        hasApplication: Boolean(payload.hasApplication),
+        // Keep the historical key the dashboard reads from.
+        application: payload.merchant ?? null,
+      },
+      { status: 200 },
+    );
+  } catch (err) {
+    const axErr = err as AxiosError<{ message?: string }>;
+    logger.error('Failed to fetch merchant status', {
+      error: axErr.message,
+      status: axErr.response?.status,
+    });
+    return NextResponse.json(
+      { message: axErr.response?.data?.message || 'Failed to fetch status' },
+      { status: axErr.response?.status || 500 },
     );
   }
 }

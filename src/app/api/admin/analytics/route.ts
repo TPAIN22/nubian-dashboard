@@ -1,67 +1,75 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
-import { clerkClient } from '@clerk/nextjs/server';
-import { connect } from '@/lib/connect';
-import Product from '@/models/Product';
-import Order from '@/models/Order';
-import MerchantApplication from '@/models/MerchantApplication';
-
 /**
- * GET: Global Analytics for Admin
+ * Admin global analytics — overview cards.
+ *
+ * Backend endpoint: GET /api/analytics/overview
+ * The dashboard's old shape was `{ stats: { totalMerchants, ... } }`.
+ * We adapt the new payload to that shape so existing admin pages keep
+ * rendering without changes.
  */
-export async function GET(req: NextRequest) {
-  try {
-    const { userId, sessionClaims } = await auth();
-    if (!userId) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
-    // Read role from session token first (fast path)
-    let role = (sessionClaims as any)?.publicMetadata?.role as string | undefined;
+import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import axios, { AxiosError } from 'axios';
+import logger from '@/lib/logger';
 
-    // Fallback: fetch from Clerk if not in token yet
-    if (!role) {
-      try {
-        const client = await clerkClient();
-        const user = await client.users.getUser(userId);
-        role = user.publicMetadata?.role as string | undefined;
-      } catch (clerkErr: any) {
-        console.error('Clerk fallback failed:', clerkErr.message);
-      }
-    }
+const API_BASE = (() => {
+  const raw = process.env.NEXT_PUBLIC_API_URL || process.env.AUTH_API_URL || '';
+  if (!raw) return '';
+  const trimmed = raw.replace(/\/$/, '');
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+})();
 
-    if (role !== 'admin' && role !== 'support') {
-      return NextResponse.json({ message: 'Forbidden', role }, { status: 403 });
-    }
-
-    await connect();
-
-    const [totalMerchants, pendingMerchants, totalProducts, totalOrders, salesAggregate] =
-      await Promise.all([
-        MerchantApplication.countDocuments({ status: 'approved' }),
-        MerchantApplication.countDocuments({ status: 'pending' }),
-        Product.countDocuments(),
-        Order.countDocuments(),
-        Order.aggregate([
-          { $match: { status: 'delivered' } },
-          { $group: { _id: null, totalSales: { $sum: '$totalAmount' } } }
-        ])
-      ]);
-
-    return NextResponse.json({
-      success: true,
-      stats: {
-        totalMerchants,
-        pendingMerchants,
-        totalProducts,
-        totalOrders,
-        totalRevenue: salesAggregate[0]?.totalSales || 0
-      }
-    }, { status: 200 });
-
-  } catch (error: any) {
-    console.error('[GET /api/admin/analytics]', error.message);
+export async function GET() {
+  if (!API_BASE) {
     return NextResponse.json(
-      { message: 'Failed to fetch analytics', error: error.message },
-      { status: 500 }
+      { message: 'Server misconfigured: AUTH backend URL is not set.' },
+      { status: 500 },
+    );
+  }
+
+  try {
+    const { getToken } = await auth();
+    const token = await getToken();
+    if (!token) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const response = await axios.get(`${API_BASE}/analytics/overview`, {
+      headers: { Authorization: `Bearer ${token}` },
+      validateStatus: () => true,
+      timeout: 30_000,
+    });
+
+    if (response.status >= 400) {
+      return NextResponse.json(response.data, { status: response.status });
+    }
+
+    const payload = response.data?.data ?? {};
+
+    return NextResponse.json(
+      {
+        success: true,
+        stats: {
+          totalMerchants:   payload.merchants?.approved   ?? 0,
+          pendingMerchants: payload.merchants?.pending    ?? 0,
+          totalProducts:    payload.products?.total       ?? 0,
+          totalOrders:      payload.orders?.total         ?? 0,
+          totalRevenue:     payload.revenue?.netDelivered ?? 0,
+        },
+        // Full payload available for richer admin views.
+        raw: payload,
+      },
+      { status: 200 },
+    );
+  } catch (err) {
+    const axErr = err as AxiosError<{ message?: string }>;
+    logger.error('Failed to fetch admin analytics', {
+      error: axErr.message,
+      status: axErr.response?.status,
+    });
+    return NextResponse.json(
+      { message: axErr.response?.data?.message || 'Failed to fetch analytics' },
+      { status: axErr.response?.status || 500 },
     );
   }
 }
