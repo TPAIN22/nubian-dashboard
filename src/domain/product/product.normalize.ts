@@ -40,7 +40,16 @@ function normalizeVariant(v: any): ProductVariantDTO {
     price: Number(v?.price ?? v?.merchantPrice ?? 0),
     nubianMarkup: asNum(v?.nubianMarkup) ?? undefined,
     dynamicMarkup: asNum(v?.dynamicMarkup) ?? undefined,
-    finalPrice: asNum(v?.finalPrice) ?? undefined,
+    merchantDiscount: asNum(v?.merchantDiscount) ?? undefined,
+
+    basePrice:          asNum(v?.basePrice) ?? undefined,
+    listPrice:          asNum(v?.listPrice) ?? undefined,
+    originalPrice:      asNum(v?.originalPrice) ?? undefined,
+    finalPrice:         asNum(v?.finalPrice) ?? undefined,
+    discountAmount:     asNum(v?.discountAmount) ?? undefined,
+    discountPercentage: asNum(v?.discountPercentage) ?? undefined,
+    hasDiscount:        typeof v?.hasDiscount === "boolean" ? v.hasDiscount : undefined,
+
     discountPrice: asNum(v?.discountPrice) ?? undefined,
     stock: Number(v?.stock ?? 0),
     images: asStringArray(v?.images),

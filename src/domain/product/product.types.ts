@@ -24,7 +24,18 @@ export type ProductVariantDTO = {
 
   nubianMarkup?: number;
   dynamicMarkup?: number;
+  merchantDiscount?: number;
+
+  // Authoritative pricing block from backend pricing engine.
+  basePrice?: number;
+  listPrice?: number;
+  originalPrice?: number;
   finalPrice?: number;
+  discountAmount?: number;
+  discountPercentage?: number;
+  hasDiscount?: boolean;
+
+  // Legacy field — back-compat with old simple products.
   discountPrice?: number;
 
   stock: number;
@@ -52,7 +63,25 @@ export type ProductDTO = {
 
   nubianMarkup?: number;
   dynamicMarkup?: number;
+
+  // Authoritative root pricing block (lowest active variant when applicable).
+  basePrice?: number;
+  listPrice?: number;
+  originalPrice?: number;
   finalPrice?: number;
+  discountAmount?: number;
+  discountPercentage?: number;
+  hasDiscount?: boolean;
+  discount?: {
+    type?: 'percentage' | 'fixed' | null;
+    value?: number;
+    isActive?: boolean;
+    startsAt?: string | null;
+    endsAt?: string | null;
+    maxDiscount?: number | null;
+  } | null;
+
+  // Legacy field — back-compat with old simple products.
   discountPrice?: number;
 
   // legacy fields still present in backend schema
