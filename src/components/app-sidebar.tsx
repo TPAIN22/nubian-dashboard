@@ -21,6 +21,7 @@ import {
   IconSettings,
   IconUsers,
   IconArrowsExchange,
+  IconBell,
 } from "@tabler/icons-react";
 import { useUser } from "@clerk/nextjs";
 
@@ -91,6 +92,11 @@ const adminNav = [
     title: "العمولات والمدفوعات",
     url: "/admin/commissions",
     icon: IconCash,
+  },
+  {
+    title: "الإشعارات",
+    url: "/admin/notifications",
+    icon: IconBell,
   },
 ];
 
