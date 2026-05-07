@@ -87,6 +87,8 @@ export default function OnboardingWizard() {
             router.push('/merchant/pending');
           } else if (app.status === 'approved') {
             router.push('/merchant/dashboard');
+          } else if (app.status === 'rejected' || app.status === 'suspended') {
+            router.push('/merchant/pending');
           }
         }
       } catch (error) {
@@ -152,7 +154,25 @@ export default function OnboardingWizard() {
       if (!response.ok) {
         const errorData = await response.json();
         console.error("Backend Error Detail:", errorData);
-        throw new Error(errorData.error || errorData.message || "Failed to submit application");
+
+        if (response.status === 409) {
+          const status = errorData?.error?.details?.status;
+          if (status === 'pending') {
+            toast.info("لديك طلب قيد المراجعة بالفعل.");
+            router.push('/merchant/pending');
+            return;
+          }
+          if (status === 'approved') {
+            toast.info("حسابك معتمد بالفعل.");
+            router.push('/merchant/dashboard');
+            return;
+          }
+          toast.error("لديك طلب موجود بالفعل لا يمكن إعادة تقديمه حالياً.");
+          return;
+        }
+
+        const errMsg = errorData?.error?.message || errorData?.message || "Failed to submit application";
+        throw new Error(errMsg);
       }
 
       setIsSuccess(true);
