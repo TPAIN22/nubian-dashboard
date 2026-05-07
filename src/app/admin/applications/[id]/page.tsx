@@ -17,7 +17,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, CheckCircle2, XCircle, Edit3, AlertCircle } from "lucide-react";
+import { Loader2, ArrowLeft, CheckCircle2, XCircle, Edit3, AlertCircle, ChevronLeft, ChevronRight, X, Download } from "lucide-react";
 import Link from 'next/link';
 
 export default function ApplicationDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -30,6 +30,29 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
   const [notes, setNotes] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [targetStatus, setTargetStatus] = useState<'approved' | 'rejected' | 'needs_revision' | 'suspended' | null>(null);
+
+  // Lightbox: -1 = closed, -2 = logo, 0..n = product sample index
+  const [viewerIndex, setViewerIndex] = useState<number>(-1);
+  const sampleCount: number = app?.productSamples?.length || 0;
+  const viewerSrc: string | null =
+    viewerIndex === -2
+      ? app?.logoUrl ?? null
+      : viewerIndex >= 0
+        ? app?.productSamples?.[viewerIndex] ?? null
+        : null;
+
+  useEffect(() => {
+    if (viewerIndex === -1) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setViewerIndex(-1);
+      if (viewerIndex >= 0 && sampleCount > 1) {
+        if (e.key === 'ArrowRight') setViewerIndex((i) => (i + 1) % sampleCount);
+        if (e.key === 'ArrowLeft') setViewerIndex((i) => (i - 1 + sampleCount) % sampleCount);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [viewerIndex, sampleCount]);
 
   useEffect(() => {
     // In a real robust app, this would be a server component fetching data,
@@ -331,27 +354,107 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
           <div className="space-y-6">
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-3">Store Logo</p>
-              <div className="w-24 h-24 rounded-xl border border-border p-1 bg-background shadow-sm">
-                <img src={app.logoUrl} alt="Store Logo" className="w-full h-full object-cover rounded-lg" />
-              </div>
+              {app.logoUrl ? (
+                <button
+                  type="button"
+                  onClick={() => setViewerIndex(-2)}
+                  className="group relative w-24 h-24 rounded-xl border border-border p-1 bg-background shadow-sm cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                >
+                  <img src={app.logoUrl} alt="Store Logo" className="w-full h-full object-cover rounded-lg" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
+                    <span className="text-white text-[10px] font-medium px-2 py-0.5 bg-black/50 rounded-full backdrop-blur-sm">View Full</span>
+                  </div>
+                </button>
+              ) : (
+                <div className="w-24 h-24 rounded-xl border border-dashed border-border bg-muted flex items-center justify-center text-xs text-muted-foreground">No logo</div>
+              )}
             </div>
-            
+
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-3">Product Images ({app.productSamples?.length || 0})</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
                 {app.productSamples?.map((url: string, i: number) => (
-                  <div key={i} className="group relative aspect-square rounded-xl border border-border overflow-hidden bg-muted cursor-pointer hover:ring-2 hover:ring-primary transition-all shadow-sm">
+                  <button
+                    type="button"
+                    key={i}
+                    onClick={() => setViewerIndex(i)}
+                    className="group relative aspect-square rounded-xl border border-border overflow-hidden bg-muted cursor-pointer hover:ring-2 hover:ring-primary transition-all shadow-sm"
+                  >
                     <img src={url} alt={`Sample ${i+1}`} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <span className="text-white text-xs font-medium px-2 py-1 bg-black/40 rounded-full backdrop-blur-sm">View Full</span>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {viewerSrc && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setViewerIndex(-1)}
+        >
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setViewerIndex(-1); }}
+            className="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          <a
+            href={viewerSrc}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="absolute top-4 right-16 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors"
+            aria-label="Open in new tab"
+          >
+            <Download className="w-5 h-5" />
+          </a>
+
+          {viewerIndex >= 0 && sampleCount > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setViewerIndex((i) => (i - 1 + sampleCount) % sampleCount); }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-3 transition-colors"
+                aria-label="Previous"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setViewerIndex((i) => (i + 1) % sampleCount); }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-3 transition-colors"
+                aria-label="Next"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            </>
+          )}
+
+          <div
+            className="relative max-w-[90vw] max-h-[85vh] flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={viewerSrc}
+              alt={viewerIndex === -2 ? 'Store Logo' : `Sample ${viewerIndex + 1}`}
+              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+            />
+            <div className="mt-3 text-white/80 text-sm font-medium">
+              {viewerIndex === -2
+                ? 'Store Logo'
+                : `Sample ${viewerIndex + 1} of ${sampleCount}`}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -89,8 +89,18 @@ export function MarketingNotificationForm() {
       )
 
       if (response.data.success) {
+        // With ENABLE_QUEUE=true the backend enqueues a fanout job and returns
+        // `{ status: 'processing' }` (no `sent` count). Sync fallback returns
+        // a count under `sent`. Show whichever is available.
+        const sent = response.data.data?.sent
+        const queued = response.data.data?.status === 'processing'
         toast.success('Marketing notification sent successfully!', {
-          description: `Sent to ${response.data.data?.sent || 0} recipients`,
+          description:
+            typeof sent === 'number'
+              ? `Sent to ${sent} recipients`
+              : queued
+                ? 'Queued for delivery — recipients will be processed in the background.'
+                : 'Notification dispatched.',
         })
         setTitle('')
         setBody('')

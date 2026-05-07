@@ -115,6 +115,8 @@ export function NotificationHistory() {
       case 'delivered':
         return 'default'
       case 'pending':
+      case 'queued':
+      case 'retrying':
         return 'secondary'
       case 'failed':
         return 'destructive'
@@ -184,6 +186,8 @@ export function NotificationHistory() {
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="queued">Queued</SelectItem>
+              <SelectItem value="retrying">Retrying</SelectItem>
               <SelectItem value="sent">Sent</SelectItem>
               <SelectItem value="delivered">Delivered</SelectItem>
               <SelectItem value="failed">Failed</SelectItem>
