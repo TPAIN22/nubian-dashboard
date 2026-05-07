@@ -34,7 +34,10 @@ function pickAuthParams(payload: any): ImageKitAuthParams | null {
   return null;
 }
 
-export const uploadImageToImageKit = async (file: File): Promise<string> => {
+export const uploadImageToImageKit = async (
+  file: File,
+  folder: string = "/uploads/"
+): Promise<string> => {
   // 1. Compress image before upload (converts to WebP, resizes if >1920px)
   const compressionResult = await compressImage(file);
   const compressedFile = compressionResult.file;
@@ -64,7 +67,7 @@ export const uploadImageToImageKit = async (file: File): Promise<string> => {
   formData.append("signature", authParams.signature);
   formData.append("expire", String(authParams.expire));
   formData.append("token", authParams.token);
-  formData.append("folder", "/payment-proofs/");
+  formData.append("folder", folder);
   formData.append("useUniqueFileName", "true");
 
   // 4. Upload

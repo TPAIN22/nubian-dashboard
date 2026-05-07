@@ -71,14 +71,14 @@ export default function Step4StoreProfile() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("حجم الصورة يجب أن لا يتجاوز 2 ميجابايت");
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error("حجم الصورة يجب أن لا يتجاوز 15 ميجابايت");
       return;
     }
 
     setIsUploading(true);
     try {
-      const uploadedUrl = await uploadImageToImageKit(file);
+      const uploadedUrl = await uploadImageToImageKit(file, "/merchant-logos/");
       setValue("logoUrl", uploadedUrl, { shouldValidate: true });
       toast.success("تم رفع الشعار بنجاح!");
     } catch (error) {
@@ -86,6 +86,7 @@ export default function Step4StoreProfile() {
       toast.error("فشل رفع الشعار، يرجى المحاولة مرة أخرى");
     } finally {
       setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -99,11 +100,11 @@ export default function Step4StoreProfile() {
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        if (file.size > 3 * 1024 * 1024) {
-          toast.error(`الصورة ${file.name} تتجاوز 3 ميجابايت`);
+        if (file.size > 15 * 1024 * 1024) {
+          toast.error(`الصورة ${file.name} تتجاوز 15 ميجابايت`);
           continue;
         }
-        const url = await uploadImageToImageKit(file);
+        const url = await uploadImageToImageKit(file, "/merchant-samples/");
         newSamples.push(url);
       }
       setValue("productSamples", newSamples, { shouldValidate: true });
@@ -133,10 +134,10 @@ export default function Step4StoreProfile() {
         {/* Logo Upload */}
         <div>
           <Label className="font-semibold block mb-2">شعار المتجر <span className="text-red-500">*</span></Label>
-          <input 
-            type="file" 
-            accept="image/png, image/jpeg, image/jpg"
-            className="hidden" 
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
             ref={fileInputRef}
             onChange={handleFileUpload}
           />
@@ -168,7 +169,7 @@ export default function Step4StoreProfile() {
               <>
                 <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
                 <p className="text-sm font-medium">اضغط لرفع الشعار</p>
-                <p className="text-xs text-muted-foreground mt-1">صيغ PNG أو JPG بحجم لا يتجاوز 2 ميجابايت</p>
+                <p className="text-xs text-muted-foreground mt-1">PNG أو JPG أو HEIC — يتم ضغط الصورة تلقائياً</p>
               </>
             )}
           </div>
