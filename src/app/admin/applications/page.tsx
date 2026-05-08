@@ -1,21 +1,56 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
+
+type MerchantStatus = 'pending' | 'approved' | 'rejected' | 'suspended' | 'needs_revision';
+type TabKey = 'all' | MerchantStatus;
+
+interface MerchantRow {
+  _id: string;
+  storeName: string;
+  ownerName: string;
+  email: string;
+  city?: string;
+  merchantType: 'individual' | 'business';
+  status: MerchantStatus;
+  createdAt: string;
+}
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: 'all', label: 'All Merchants' },
+  { key: 'pending', label: 'Pending' },
+  { key: 'approved', label: 'Approved' },
+  { key: 'needs_revision', label: 'Needs Revision' },
+  { key: 'rejected', label: 'Rejected' },
+  { key: 'suspended', label: 'Suspended' },
+];
+
+const STATUS_PILL: Record<MerchantStatus, string> = {
+  approved: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  rejected: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+  suspended: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+  needs_revision: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+  pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+};
 
 export default function ApplicationsPage() {
-  const [applications, setApplications] = useState<any[]>([]);
+  const [applications, setApplications] = useState<MerchantRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabKey>('all');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     const fetchApplications = async () => {
       try {
-        const res = await fetch('/api/admin/applications');
+        // Load the full set once; filter client-side. Server still supports
+        // ?status= for future server-side filtering if the list grows large.
+        const res = await fetch('/api/admin/applications', { cache: 'no-store' });
         if (!res.ok) throw new Error(`Server responded with ${res.status}`);
         const data = await res.json();
-        setApplications(data.applications || []);
+        setApplications(Array.isArray(data.applications) ? data.applications : []);
       } catch (err: any) {
         setError(err.message || 'Failed to load applications');
       } finally {
@@ -24,6 +59,35 @@ export default function ApplicationsPage() {
     };
     fetchApplications();
   }, []);
+
+  const counts = useMemo(() => {
+    const base: Record<TabKey, number> = {
+      all: applications.length,
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      suspended: 0,
+      needs_revision: 0,
+    };
+    for (const app of applications) {
+      if (app.status in base) base[app.status] += 1;
+    }
+    return base;
+  }, [applications]);
+
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return applications.filter((app) => {
+      if (activeTab !== 'all' && app.status !== activeTab) return false;
+      if (!q) return true;
+      return (
+        app.storeName?.toLowerCase().includes(q) ||
+        app.ownerName?.toLowerCase().includes(q) ||
+        app.email?.toLowerCase().includes(q) ||
+        app.city?.toLowerCase().includes(q)
+      );
+    });
+  }, [applications, activeTab, search]);
 
   if (loading) {
     return (
@@ -44,13 +108,58 @@ export default function ApplicationsPage() {
 
   return (
     <div className="p-8">
-      <div className="sm:flex sm:items-center sm:justify-between mb-8">
+      <div className="sm:flex sm:items-center sm:justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Merchant Applications</h1>
+          <h1 className="text-2xl font-bold text-foreground">Merchants</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            A list of all incoming Merchant requests. Review and approve directly from here.
+            Browse every merchant on the platform. Use the tabs to filter by status.
           </p>
         </div>
+      </div>
+
+      {/* Status tabs */}
+      <div className="border-b border-border mb-4 -mx-2 overflow-x-auto">
+        <nav className="flex gap-1 px-2" aria-label="Merchant status tabs">
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.key;
+            const count = counts[tab.key];
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                className={`whitespace-nowrap px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  isActive
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                }`}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                {tab.label}
+                <span
+                  className={`ml-2 inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                    isActive ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Search */}
+      <div className="mb-4 relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by store, owner, email, city…"
+          className="w-full pl-9 pr-3 py-2 text-sm rounded-md border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/40"
+          aria-label="Search merchants"
+        />
       </div>
 
       <div className="bg-card rounded-lg shadow border border-border overflow-hidden">
@@ -79,14 +188,16 @@ export default function ApplicationsPage() {
               </tr>
             </thead>
             <tbody className="bg-card divide-y divide-border">
-              {applications.length === 0 ? (
+              {visible.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
-                    No applications found.
+                    {applications.length === 0
+                      ? 'No applications found.'
+                      : `No merchants match the current filter${search ? ' / search' : ''}.`}
                   </td>
                 </tr>
               ) : (
-                applications.map((app: any) => (
+                visible.map((app) => (
                   <tr key={app._id} className="hover:bg-muted/50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-foreground">{app.storeName}</div>
@@ -104,13 +215,8 @@ export default function ApplicationsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
-                        app.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                        app.status === 'rejected' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
-                        app.status === 'suspended' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
-                        'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                      }`}>
-                        {app.status}
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_PILL[app.status] ?? 'bg-muted text-muted-foreground'}`}>
+                        {app.status.replace('_', ' ')}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
@@ -121,7 +227,7 @@ export default function ApplicationsPage() {
                         href={`/admin/applications/${app._id}`}
                         className="text-primary hover:text-primary/80 font-semibold"
                       >
-                        Review
+                        {app.status === 'pending' || app.status === 'needs_revision' ? 'Review' : 'View'}
                       </Link>
                     </td>
                   </tr>
