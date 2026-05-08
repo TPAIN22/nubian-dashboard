@@ -83,3 +83,19 @@ export async function PATCH(
       );
   }
 }
+
+/**
+ * Hard-delete a merchant row. Cascades products to inactive on the backend
+ * so the storefront stops showing them. Use this to clear orphan rows blocking
+ * a user from re-applying after their Clerk account was removed.
+ */
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  return proxyToAuth({
+    path: `/merchants/${encodeURIComponent(id)}`,
+    method: 'DELETE',
+  });
+}

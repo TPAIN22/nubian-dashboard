@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2, Search, Trash2 } from 'lucide-react';
 
 type MerchantStatus = 'pending' | 'approved' | 'rejected' | 'suspended' | 'needs_revision';
 type TabKey = 'all' | MerchantStatus;
@@ -41,6 +41,32 @@ export default function ApplicationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [search, setSearch] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (row: MerchantRow) => {
+    const confirmed = window.confirm(
+      `Permanently delete merchant "${row.storeName}"?\n\n` +
+        `This removes the application row and deactivates all of their products. ` +
+        `Orders are kept for audit/refund history. The user can then re-apply.`,
+    );
+    if (!confirmed) return;
+
+    setDeletingId(row._id);
+    try {
+      const res = await fetch(`/api/admin/applications/${row._id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error?.message || body?.message || `Delete failed (${res.status})`);
+      }
+      setApplications((prev) => prev.filter((m) => m._id !== row._id));
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Failed to delete merchant');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -223,12 +249,28 @@ export default function ApplicationsPage() {
                       {new Date(app.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Link
-                        href={`/admin/applications/${app._id}`}
-                        className="text-primary hover:text-primary/80 font-semibold"
-                      >
-                        {app.status === 'pending' || app.status === 'needs_revision' ? 'Review' : 'View'}
-                      </Link>
+                      <div className="inline-flex items-center gap-3">
+                        <Link
+                          href={`/admin/applications/${app._id}`}
+                          className="text-primary hover:text-primary/80 font-semibold"
+                        >
+                          {app.status === 'pending' || app.status === 'needs_revision' ? 'Review' : 'View'}
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(app)}
+                          disabled={deletingId === app._id}
+                          className="inline-flex items-center gap-1 text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                          title="Delete merchant (cascades products to inactive)"
+                        >
+                          {deletingId === app._id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
