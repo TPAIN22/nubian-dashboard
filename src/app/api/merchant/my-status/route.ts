@@ -40,6 +40,8 @@ export async function GET() {
     });
 
     if (response.status >= 400) {
+      // Forward the standardized backend envelope so the client can read
+      // `error.code` / `error.details.messageAr` for proper UX.
       return NextResponse.json(response.data, { status: response.status });
     }
 
@@ -51,7 +53,12 @@ export async function GET() {
         // Keep the historical key the dashboard reads from.
         application: payload.merchant ?? null,
       },
-      { status: 200 },
+      {
+        status: 200,
+        // Defensive: status flips frequently as admins approve/reject; never
+        // let a CDN/SW serve a stale "approved" response to a deleted user.
+        headers: { 'Cache-Control': 'no-store' },
+      },
     );
   } catch (err) {
     const axErr = err as AxiosError<{ message?: string }>;

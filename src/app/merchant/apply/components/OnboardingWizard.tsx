@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -24,13 +24,58 @@ const steps = [
   { id: 5, title: "المراجعة", fields: ["agreedToTerms"] },
 ];
 
+// Backend conflict codes → bilingual user-facing messages.
+// Keep in sync with APPLY_CONFLICTS in apps/backend/src/controllers/merchant.controller.js.
+const APPLY_ERROR_MESSAGES: Record<string, { ar: string; en: string }> = {
+  APPLICATION_PENDING: {
+    ar: "لديك طلب قيد المراجعة بالفعل.",
+    en: "You already have an application under review.",
+  },
+  MERCHANT_APPROVED: {
+    ar: "حسابك التجاري معتمد بالفعل.",
+    en: "Your merchant account is already approved.",
+  },
+  MERCHANT_SUSPENDED: {
+    ar: "تم تعليق حسابك التجاري. يرجى التواصل مع الدعم.",
+    en: "Your merchant account is suspended. Please contact support.",
+  },
+  APPLICATION_CONFLICT: {
+    ar: "لا يمكن إعادة تقديم الطلب في حالته الحالية.",
+    en: "Application cannot be resubmitted in its current state.",
+  },
+  VALIDATION_ERROR: {
+    ar: "يرجى تعبئة جميع الحقول المطلوبة بشكل صحيح.",
+    en: "Please fill in all required fields correctly.",
+  },
+  UNAUTHORIZED: {
+    ar: "انتهت جلستك. يرجى تسجيل الدخول مرة أخرى.",
+    en: "Your session has expired. Please sign in again.",
+  },
+};
+
+function pickErrorMessage(code: string | undefined, fallbackAr: string, fallbackEn: string) {
+  const entry = code ? APPLY_ERROR_MESSAGES[code] : undefined;
+  return entry ?? { ar: fallbackAr, en: fallbackEn };
+}
+
 export default function OnboardingWizard() {
-  const { userId, isLoaded } = useAuth();
+  const { userId, isLoaded, getToken, signOut } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+
+  // Hand the latest Clerk token to fetch in case the in-flight session was stale.
+  // Cookies still drive auth in the App Router proxy, so this primarily forces
+  // Clerk to refresh the JWT and any stale publicMetadata claims.
+  const refreshClerkSession = useCallback(async () => {
+    try {
+      await getToken({ skipCache: true });
+    } catch (err) {
+      console.error("Failed to refresh Clerk session", err);
+    }
+  }, [getToken]);
 
   const methods = useForm<MerchantRegistrationData>({
     resolver: zodResolver(merchantRegistrationSchema),
@@ -56,16 +101,49 @@ export default function OnboardingWizard() {
   const { trigger, handleSubmit, reset } = methods;
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadStatus() {
+      // Try once; on 401, force a Clerk token refresh and retry once. This
+      // recovers from the stale-session-after-deletion scenario where the
+      // browser still holds a JWT for a Clerk user that no longer exists.
+      const fetchStatus = async () => fetch('/api/merchant/my-status', { cache: 'no-store' });
       try {
-        const res = await fetch('/api/merchant/my-status');
+        let res = await fetchStatus();
+
+        if (res.status === 401) {
+          await refreshClerkSession();
+          res = await fetchStatus();
+        }
+
+        if (res.status === 401) {
+          // Still unauthorized — the local session is unrecoverable.
+          if (!cancelled) {
+            toast.error(APPLY_ERROR_MESSAGES.UNAUTHORIZED.ar);
+            await signOut();
+            router.push('/sign-in?redirect_url=/merchant/apply');
+          }
+          return;
+        }
+
+        if (!res.ok) {
+          // Don't block the wizard on a transient status fetch — let the user
+          // try to apply; the POST will surface anything that's actually wrong.
+          console.error('my-status non-OK', res.status);
+          return;
+        }
+
         const data = await res.json();
+        if (cancelled || !data?.hasApplication) return;
 
-        if (data.hasApplication) {
-          const app = data.application;
+        const app = data.application;
+        if (!app) return;
 
-          if (app.status === 'needs_revision') {
-            // Pre-fill form with existing data for revision
+        switch (app.status) {
+          case 'needs_revision':
+          case 'rejected': {
+            // Both states let the user resubmit through this wizard; pre-fill
+            // the form so they only have to edit what changed.
             reset({
               storeName: app.storeName,
               ownerName: app.ownerName,
@@ -80,21 +158,32 @@ export default function OnboardingWizard() {
               categories: app.categories || [],
               city: app.city,
               productSamples: app.productSamples || [],
-              agreedToTerms: false, // Force re-agreement
+              agreedToTerms: false,
             });
-            toast.info("تم تحميل بيانات طلبك السابق لتعديله");
-          } else if (app.status === 'pending') {
-            router.push('/merchant/pending');
-          } else if (app.status === 'approved') {
-            router.push('/merchant/dashboard');
-          } else if (app.status === 'rejected' || app.status === 'suspended') {
-            router.push('/merchant/pending');
+            toast.info(
+              app.status === 'needs_revision'
+                ? "تم تحميل بيانات طلبك السابق لتعديله"
+                : "يمكنك تعديل بياناتك وإعادة التقديم"
+            );
+            break;
           }
+          case 'pending':
+            router.push('/merchant/pending');
+            break;
+          case 'approved':
+            router.push('/merchant/dashboard');
+            break;
+          case 'suspended':
+            router.push('/merchant/pending');
+            break;
+          default:
+            // Unknown status — surface the pending screen as a safe default.
+            router.push('/merchant/pending');
         }
       } catch (error) {
-        console.error("Error loading application status:", error);
+        if (!cancelled) console.error("Error loading application status:", error);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     }
 
@@ -103,7 +192,11 @@ export default function OnboardingWizard() {
     } else if (isLoaded && !userId) {
       setIsLoading(false);
     }
-  }, [isLoaded, userId, reset, router]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoaded, userId, reset, router, refreshClerkSession, signOut]);
 
   if (isLoading) {
     return (
@@ -139,47 +232,78 @@ export default function OnboardingWizard() {
   const onSubmit = async (data: MerchantRegistrationData) => {
     if (!isLoaded) return;
     if (!userId) {
-      toast.error("يجب عليك تسجيل الدخول لتقديم الطلب.");
+      toast.error(APPLY_ERROR_MESSAGES.UNAUTHORIZED.ar);
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/merchant/apply", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      const submit = () =>
+        fetch("/api/merchant/apply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Backend Error Detail:", errorData);
+      let response = await submit();
 
-        if (response.status === 409) {
-          const status = errorData?.error?.details?.status;
-          if (status === 'pending') {
-            toast.info("لديك طلب قيد المراجعة بالفعل.");
-            router.push('/merchant/pending');
-            return;
-          }
-          if (status === 'approved') {
-            toast.info("حسابك معتمد بالفعل.");
-            router.push('/merchant/dashboard');
-            return;
-          }
-          toast.error("لديك طلب موجود بالفعل لا يمكن إعادة تقديمه حالياً.");
-          return;
-        }
-
-        const errMsg = errorData?.error?.message || errorData?.message || "Failed to submit application";
-        throw new Error(errMsg);
+      // One-shot retry on 401 to recover from stale Clerk JWTs.
+      if (response.status === 401) {
+        await refreshClerkSession();
+        response = await submit();
       }
 
-      setIsSuccess(true);
-      toast.success("تم إرسال الطلب بنجاح!");
+      if (response.ok) {
+        setIsSuccess(true);
+        toast.success("تم إرسال الطلب بنجاح!");
+        return;
+      }
+
+      const errorData = await response.json().catch(() => ({}));
+      const code: string | undefined = errorData?.error?.code ?? errorData?.code;
+      const status: string | undefined = errorData?.error?.details?.status;
+      console.error("Apply error", { httpStatus: response.status, code, status, errorData });
+
+      if (response.status === 401) {
+        toast.error(APPLY_ERROR_MESSAGES.UNAUTHORIZED.ar);
+        await signOut();
+        router.push('/sign-in?redirect_url=/merchant/apply');
+        return;
+      }
+
+      if (response.status === 409) {
+        // Route the user to the screen that actually matches their state.
+        if (code === 'APPLICATION_PENDING' || status === 'pending') {
+          toast.info(APPLY_ERROR_MESSAGES.APPLICATION_PENDING.ar);
+          router.push('/merchant/pending');
+          return;
+        }
+        if (code === 'MERCHANT_APPROVED' || status === 'approved') {
+          toast.info(APPLY_ERROR_MESSAGES.MERCHANT_APPROVED.ar);
+          router.push('/merchant/dashboard');
+          return;
+        }
+        if (code === 'MERCHANT_SUSPENDED' || status === 'suspended') {
+          toast.error(APPLY_ERROR_MESSAGES.MERCHANT_SUSPENDED.ar);
+          router.push('/merchant/pending');
+          return;
+        }
+        // Unknown 409 — show the backend's own bilingual message if present,
+        // otherwise the generic conflict copy.
+        const messageAr = errorData?.error?.details?.messageAr;
+        const fallback = pickErrorMessage(code, "لا يمكن إعادة تقديم الطلب في حالته الحالية.", "Application cannot be resubmitted in its current state.");
+        toast.error(messageAr || fallback.ar);
+        return;
+      }
+
+      // Validation / other 4xx: prefer backend's Arabic copy, then English.
+      const messageAr = errorData?.error?.details?.messageAr;
+      const messageEn = errorData?.error?.message ?? errorData?.message;
+      const fallback = pickErrorMessage(code, "حدث خطأ أثناء الإرسال. يرجى المحاولة مرة أخرى.", "Submission failed. Please try again.");
+      toast.error(messageAr || fallback.ar || messageEn || fallback.en);
     } catch (error) {
       console.error(error);
-      toast.error("حدث خطأ أثناء الإرسال. يرجى المحاولة مرة أخرى.");
+      toast.error("تعذر الاتصال بالخادم. يرجى التحقق من الإنترنت والمحاولة مرة أخرى.");
     } finally {
       setIsSubmitting(false);
     }
