@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { axiosInstance } from '@/lib/axiosInstance'
 import { Button } from '@/components/ui/button'
 import logger from '@/lib/logger'
+import { Loader2 } from 'lucide-react'
 
 interface Merchant {
   _id: string
@@ -24,6 +25,40 @@ export default function MerchantPending() {
   const router = useRouter()
   const [merchant, setMerchant] = useState<Merchant | null>(null)
   const [loading, setLoading] = useState(true)
+  const [withdrawing, setWithdrawing] = useState(false)
+
+  const handleWithdraw = async () => {
+    const confirmed = window.confirm(
+      'هل أنت متأكد من سحب طلبك؟ سيتم حذف الطلب الحالي ويمكنك التقديم من جديد.'
+    )
+    if (!confirmed) return
+
+    setWithdrawing(true)
+    try {
+      const res = await fetch('/api/merchant/my-application', { method: 'DELETE' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        const msg =
+          body?.error?.details?.messageAr ||
+          body?.error?.message ||
+          body?.message ||
+          'تعذر سحب الطلب'
+        window.alert(msg)
+        return
+      }
+      // Force a fresh status fetch on the apply page rather than trusting
+      // any persisted client state.
+      router.replace('/merchant/apply')
+      router.refresh()
+    } catch (err) {
+      logger.error('Failed to withdraw application', {
+        error: err instanceof Error ? err.message : String(err),
+      })
+      window.alert('تعذر سحب الطلب. يرجى المحاولة مرة أخرى.')
+    } finally {
+      setWithdrawing(false)
+    }
+  }
 
   useEffect(() => {
     if (!isLoaded) return
@@ -139,6 +174,20 @@ export default function MerchantPending() {
                 </svg>
                 <span>تاريخ التقديم: {formatDate(merchant.createdAt)}</span>
               </div>
+              <div className="mt-6">
+                <Button
+                  variant="outline"
+                  onClick={handleWithdraw}
+                  disabled={withdrawing}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/10 border-red-200"
+                >
+                  {withdrawing && <Loader2 className="w-4 h-4 animate-spin ml-2" />}
+                  سحب الطلب وإعادة التقديم
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  سيتم حذف هذا الطلب ويمكنك تقديم طلب جديد
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -183,6 +232,18 @@ export default function MerchantPending() {
               <p className="text-xs text-muted-foreground">
                 يمكنك مراجعة المعلومات المقدمة وتقديم طلب جديد
               </p>
+              <div className="pt-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleWithdraw}
+                  disabled={withdrawing}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  {withdrawing && <Loader2 className="w-4 h-4 animate-spin ml-2" />}
+                  أو احذف هذا الطلب نهائياً
+                </Button>
+              </div>
             </div>
           </div>
         )}
