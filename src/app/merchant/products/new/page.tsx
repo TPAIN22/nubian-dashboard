@@ -5,7 +5,10 @@ export default function Page() {
   return (
     <div className="container mx-auto py-6">
       <h1 className="text-2xl font-bold mb-6 px-4">إضافة منتج جديد</h1>
-      <ProductWizard redirectPath="/merchant/products" />
+      <ProductWizard
+        redirectPath="/merchant/products"
+        addCategoryPath="/merchant/categories/new?from=/merchant/products/new"
+      />
     </div>
   )
 }

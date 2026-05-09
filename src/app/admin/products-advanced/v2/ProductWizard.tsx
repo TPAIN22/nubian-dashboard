@@ -20,8 +20,10 @@ import {
     LayoutGrid,
     CheckCircle2,
     AlertCircle,
-    CopyPlus
+    CopyPlus,
+    PlusCircle
 } from "lucide-react";
+import Link from "next/link";
 
 import { axiosInstance } from "@/lib/axiosInstance";
 import { Button } from "@/components/ui/button";
@@ -110,9 +112,10 @@ type ProductFormData = z.infer<typeof productSchema>;
 interface Props {
     productId?: string;
     redirectPath?: string;
+    addCategoryPath?: string;
 }
 
-export default function ProductWizard({ productId, redirectPath = "/business/products" }: Props) {
+export default function ProductWizard({ productId, redirectPath = "/business/products", addCategoryPath = "/admin/categories/new" }: Props) {
     const router = useRouter();
     const { getToken } = useAuth();
     const queryClient = useQueryClient();
@@ -510,7 +513,7 @@ export default function ProductWizard({ productId, redirectPath = "/business/pro
                 <main className="min-h-[500px]">
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                         <div className="md:col-span-12">
-                            {currentStep === 1 && <BasicInfoStep categories={categories} onUpload={handleImageUpload} />}
+                            {currentStep === 1 && <BasicInfoStep categories={categories} onUpload={handleImageUpload} addCategoryPath={addCategoryPath} />}
                             {currentStep === 2 && productType === "with_variants" && <VariantSetupStep generate={generateVariants} />}
                             {currentStep === 3 && productType === "with_variants" && <VariantMatrixStep />}
                             {currentStep === 4 && productType === "with_variants" && <VariantImagesStep onUpload={handleImageUpload} />}
@@ -565,7 +568,7 @@ export default function ProductWizard({ productId, redirectPath = "/business/pro
 // SUB-COMPONENTS (STEPS)
 // ==========================================
 
-function BasicInfoStep({ categories, onUpload }: { categories: any[]; onUpload: any }) {
+function BasicInfoStep({ categories, onUpload, addCategoryPath }: { categories: any[]; onUpload: any; addCategoryPath: string }) {
     const { control, watch } = useFormContext<ProductFormData>();
     const productType = watch("productType");
 
@@ -606,7 +609,7 @@ function BasicInfoStep({ categories, onUpload }: { categories: any[]; onUpload: 
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel className="font-semibold">التصنيف</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                                         <FormControl>
                                             <SelectTrigger className="h-11"><SelectValue placeholder="اختر تصنيفاً" /></SelectTrigger>
                                         </FormControl>
@@ -614,6 +617,16 @@ function BasicInfoStep({ categories, onUpload }: { categories: any[]; onUpload: 
                                             {categories.map(c => <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
+                                    <p className="text-xs text-muted-foreground mt-1.5">
+                                        لا تجد التصنيف المناسب؟{" "}
+                                        <Link
+                                            href={addCategoryPath}
+                                            className="inline-flex items-center gap-1 text-primary font-medium hover:underline"
+                                        >
+                                            <PlusCircle className="h-3.5 w-3.5" />
+                                            أضف فئة جديدة
+                                        </Link>
+                                    </p>
                                     <FormMessage />
                                 </FormItem>
                             )}
