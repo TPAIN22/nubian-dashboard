@@ -7,6 +7,7 @@ import { HowItWorks } from "@/components/marketing/HowItWorks";
 import { MerchantSection } from "@/components/marketing/MerchantSection";
 import { ProductPreview } from "@/components/marketing/ProductPreview";
 import { TrustSection } from "@/components/marketing/TrustSection";
+import { AppDownloadCTA } from "@/components/marketing/AppDownloadCTA";
 
 const baseUrl = "https://nubian-sd.store";
 
@@ -52,6 +53,7 @@ export default function Page() {
       <ProductPreview />
       <MerchantSection />
       <TrustSection />
+      <AppDownloadCTA />
 
       {/* SEO Content - Hidden from display but readable by search engines */}
       <div className="sr-only" aria-hidden="true">
