@@ -53,15 +53,15 @@ const nextConfig: NextConfig = {
       'https://*.clerk.dev',
       'https://clerk.com',
       'https://*.clerkstage.dev',
-      'https://clerk.nubian-sd.store',
-      'https://*.nubian-sd.store'
+      'https://clerk.nubian-sd.com',
+      'https://*.nubian-sd.com'
     ];
     const clerkDomainsString = clerkDomains.join(' ');
     const clerkWSSDomains = [
       'wss://*.clerk.accounts.dev',
       'wss://*.clerk.com',
-      'wss://clerk.nubian-sd.store',
-      'wss://*.nubian-sd.store'
+      'wss://clerk.nubian-sd.com',
+      'wss://*.nubian-sd.com'
     ].join(' ');
     
     const cspDirectives = [

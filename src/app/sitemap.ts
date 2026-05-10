@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next';
 
-const baseUrl = "https://nubian-sd.store";
+const baseUrl = "https://nubian-sd.com";
 
 /**
  * Dynamic sitemap generator

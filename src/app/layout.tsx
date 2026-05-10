@@ -49,7 +49,7 @@ const ibmPlexArabic = IBM_Plex_Sans_Arabic({
   display: 'swap',
 })
 
-const baseUrl = "https://nubian-sd.store";
+const baseUrl = "https://nubian-sd.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
@@ -65,7 +65,7 @@ export const metadata: Metadata = {
     "Nubian Sudan",
     "nubian sd", 
     "nubian store", 
-    "nubian-sd.store", 
+    "nubian-sd.com", 
     "nubian.com", 
     "nubian-sd.com",
     "متجر نوبيان",

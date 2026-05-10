@@ -9,7 +9,7 @@ import { ProductPreview } from "@/components/marketing/ProductPreview";
 import { TrustSection } from "@/components/marketing/TrustSection";
 import { AppDownloadCTA } from "@/components/marketing/AppDownloadCTA";
 
-const baseUrl = "https://nubian-sd.store";
+const baseUrl = "https://nubian-sd.com";
 
 export const runtime = 'edge';
 

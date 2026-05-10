@@ -5,7 +5,7 @@ import { MetadataRoute } from 'next';
  * Consolidated for Admin & Merchant Dashboard platform
  */
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = 'https://nubian-sd.store';
+  const baseUrl = 'https://nubian-sd.com';
 
   return {
     rules: [

@@ -1,6 +1,6 @@
 import React from "react";
 
-const baseUrl = "https://nubian-sd.store";
+const baseUrl = "https://nubian-sd.com";
 
 export default function StructuredData() {
   const organizationSchema = {
