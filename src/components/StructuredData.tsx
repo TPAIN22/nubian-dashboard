@@ -30,8 +30,9 @@ export default function StructuredData() {
       "@type": "PostalAddress",
       "streetAddress": "شارع النيل",
       "addressLocality": "الخرطوم",
-      "addressCountry": "SD",
-      "addressRegion": "Khartoum"
+      "addressRegion": "Khartoum",
+      "postalCode": "11111",
+      "addressCountry": "SD"
     },
     "areaServed": {
       "@type": "Country",
@@ -67,8 +68,10 @@ export default function StructuredData() {
     "priceRange": "$$",
     "address": {
       "@type": "PostalAddress",
+      "streetAddress": "شارع النيل",
       "addressLocality": "الخرطوم",
       "addressRegion": "Khartoum",
+      "postalCode": "11111",
       "addressCountry": "SD"
     },
     "geo": {
