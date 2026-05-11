@@ -24,14 +24,32 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly", 
       priority: 0.7 
     },
-    { 
-      url: `${baseUrl}/contact`, 
-      lastModified: now, 
-      changeFrequency: "monthly", 
-      priority: 0.7 
+    {
+      url: `${baseUrl}/contact`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7
     },
-    { 
-      url: `${baseUrl}/privacy-policy`, 
+    {
+      url: `${baseUrl}/pricing`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6
+    },
+    {
+      url: `${baseUrl}/dashboards`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.5
+    },
+    {
+      url: `${baseUrl}/affiliate`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6
+    },
+    {
+      url: `${baseUrl}/privacy-policy`,
       lastModified: now, 
       changeFrequency: "yearly", 
       priority: 0.3 

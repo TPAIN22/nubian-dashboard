@@ -17,9 +17,11 @@ export default function StructuredData() {
       "https://www.instagram.com/sd_nubian?igsh=dXBrY3FraWppMnox",
       "https://x.com/nubian_sd",
     ],
+    "email": "info@nubian-sd.com",
     "contactPoint": {
       "@type": "ContactPoint",
       "telephone": "+966-583-104-518",
+      "email": "info@nubian-sd.com",
       "contactType": "customer service",
       "areaServed": "SD",
       "availableLanguage": ["Arabic", "English"]
@@ -88,8 +90,8 @@ export default function StructuredData() {
       "opens": "00:00",
       "closes": "23:59"
     },
-    "telephone": "+249-912-345-678",
-    "email": "info@nubian-sd.info",
+    "telephone": "+966-583-104-518",
+    "email": "info@nubian-sd.com",
     "paymentAccepted": "Cash, Credit Card, Bank Transfer",
     "currenciesAccepted": "SDG, USD"
   };
@@ -116,6 +118,64 @@ export default function StructuredData() {
     ]
   };
 
+  const brandSchema = {
+    "@context": "https://schema.org",
+    "@type": "Brand",
+    "name": "Nubian",
+    "alternateName": ["نوبيان", "Nubian Sudan", "Nubian SD", "متجر نوبيان"],
+    "url": baseUrl,
+    "logo": `${baseUrl}/logo.png`,
+    "slogan": "سوق السودان الإلكتروني الأول",
+    "description": "نوبيان (Nubian) العلامة التجارية الرائدة للتجارة الإلكترونية في السودان."
+  };
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "ما هو نوبيان؟",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "نوبيان (Nubian) هو أكبر متجر إلكتروني في السودان، يربط آلاف التجار بالعملاء في جميع أنحاء البلاد مع شحن سريع ومدفوعات آمنة."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is Nubian?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Nubian (نوبيان) is Sudan's leading e-commerce marketplace, connecting thousands of merchants with customers across the country with fast shipping and secure payments."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "هل نوبيان يشحن لجميع أنحاء السودان؟",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "نعم، يقدم نوبيان خدمة الشحن السريع والآمن إلى جميع ولايات السودان."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is Nubian available on mobile?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, Nubian is available as a mobile app for iOS and Android, and as a web platform at nubian-sd.com."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "كيف أصبح بائعًا في نوبيان؟",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "يمكن للتجار التقديم عبر صفحة 'انضم كتاجر' في موقع نوبيان، وبعد الموافقة يحصلون على لوحة تحكم كاملة لإدارة منتجاتهم وطلباتهم."
+        }
+      }
+    ]
+  };
+
   return (
     <>
       <script
@@ -137,6 +197,14 @@ export default function StructuredData() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(brandSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
     </>
   );

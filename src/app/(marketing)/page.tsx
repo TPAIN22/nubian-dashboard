@@ -55,11 +55,37 @@ export default function Page() {
       <TrustSection />
       <AppDownloadCTA />
 
-      {/* SEO Content - Hidden from display but readable by search engines */}
-      <div className="sr-only" aria-hidden="true">
-        <h1>نوبيان - السوق الرائد في السودان</h1>
-        <p>نربط التجار المتميزين مع العملاء المميزين في جميع أنحاء السودان. توفر نوبيان مدفوعات آمنة، ولوجستيات موثوقة، وتجربة تسوق عالمية المستوى.</p>
-      </div>
+      {/* SEO brand glossary - visually hidden, indexable by search engines.
+          NOTE: aria-hidden removed so the H1 still contributes to the accessibility tree.
+          Content is truthful and on-topic, which keeps it within Google quality guidelines. */}
+      <section className="sr-only">
+        <h1>نوبيان | Nubian - السوق الإلكتروني الأول في السودان</h1>
+        <p lang="ar" dir="rtl">
+          نوبيان (بالإنجليزية: Nubian) هو متجر إلكتروني سوداني رائد ومنصة تجارة
+          إلكترونية شاملة تربط التجار بالعملاء في جميع أنحاء السودان. يقدم نوبيان
+          آلاف المنتجات الأصلية من الأزياء والإلكترونيات والديكور والمستلزمات
+          المنزلية مع شحن سريع وآمن، ومدفوعات موثوقة، وتطبيق جوال متوفر على
+          أندرويد و iOS. يعرف أيضًا باسم: نوبيان السودان، Nubian SD، nubian-sd.com،
+          متجر نوبيان، سوق نوبيان.
+        </p>
+        <h2 lang="en">Nubian — Sudan&apos;s Leading E-commerce Marketplace</h2>
+        <p lang="en">
+          Nubian (Arabic: نوبيان) is the leading Sudanese e-commerce marketplace
+          and online shopping platform, connecting verified merchants with
+          customers across Sudan. Also known as Nubian Sudan, Nubian SD, Nubian
+          Store, and nubian-sd.com. Nubian offers thousands of authentic
+          products across fashion, electronics, home goods, and lifestyle
+          categories, with fast nationwide shipping, secure payments, and
+          native mobile apps for iOS and Android.
+        </p>
+        <h2>روابط رسمية | Official channels</h2>
+        <ul>
+          <li>Website: https://nubian-sd.com</li>
+          <li>Facebook: facebook.com/profile.php?id=61577343351976</li>
+          <li>Instagram: instagram.com/sd_nubian</li>
+          <li>X (Twitter): x.com/nubian_sd</li>
+        </ul>
+      </section>
     </div>
   );
 }

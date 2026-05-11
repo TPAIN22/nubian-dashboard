@@ -88,14 +88,16 @@ export const metadata: Metadata = {
     telephone: false,
   },
   alternates: {
+    canonical: baseUrl,
     languages: {
-      'ar': baseUrl,
-      'en': baseUrl,
+      'ar-SD': baseUrl,
+      'x-default': baseUrl,
     },
   },
   openGraph: {
     type: "website",
-    locale: "ar_SA",
+    locale: "ar_SD",
+    alternateLocale: ["ar_SA", "ar_EG", "en_US"],
     url: baseUrl,
     siteName: "نوبيان | Nubian",
     title: "نوبيان | Nubian - متجر نوبيان للتسوق الإلكتروني في السودان",
@@ -114,7 +116,8 @@ export const metadata: Metadata = {
     title: "نوبيان | Nubian - متجر نوبيان للتسوق الإلكتروني",
     description: "نوبيان (Nubian) - أفضل متجر إلكتروني في السودان. تسوق آلاف المنتجات الأصلية.",
     images: [`${baseUrl}/nubi.png`],
-    creator: "@nubian",
+    site: "@nubian_sd",
+    creator: "@nubian_sd",
   },
   robots: {
     index: true,
@@ -128,10 +131,11 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    // Add your verification codes when available
-    // google: 'your-google-verification-code',
-    // yandex: 'your-yandex-verification-code',
-    // bing: 'your-bing-verification-code',
+    google: process.env.GOOGLE_SITE_VERIFICATION,
+    yandex: process.env.YANDEX_VERIFICATION,
+    other: process.env.BING_SITE_VERIFICATION
+      ? { 'msvalidate.01': process.env.BING_SITE_VERIFICATION }
+      : undefined,
   },
   category: "ecommerce",
 };
