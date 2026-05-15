@@ -43,6 +43,8 @@ interface ProxyOptions {
   allowAnonymous?: boolean;
   /** Forwarded request timeout in ms. */
   timeoutMs?: number;
+  /** Extra headers to forward to the backend (e.g. Idempotency-Key from the inbound request). */
+  forwardHeaders?: Record<string, string | undefined>;
 }
 
 /**
@@ -58,6 +60,7 @@ export async function proxyToAuth({
   query,
   allowAnonymous = false,
   timeoutMs = 30_000,
+  forwardHeaders,
 }: ProxyOptions): Promise<NextResponse> {
   if (!API_BASE) {
     return NextResponse.json(
@@ -86,6 +89,14 @@ export async function proxyToAuth({
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
+  // Only forward header values that are present — undefined values would
+  // otherwise turn into the literal string "undefined" on the wire.
+  const extraHeaders = forwardHeaders
+    ? Object.fromEntries(
+        Object.entries(forwardHeaders).filter(([, v]) => typeof v === 'string' && v.length > 0)
+      )
+    : {};
+
   const config: AxiosRequestConfig = {
     method,
     url: `${API_BASE}${path}`,
@@ -93,6 +104,7 @@ export async function proxyToAuth({
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...extraHeaders,
     },
     params: query,
     // Forward body only for methods that carry one.

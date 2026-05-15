@@ -66,7 +66,9 @@ export interface Order {
   // merchants
   merchants?: {
     _id: string;
-    businessName: string;
+    businessName?: string;
+    storeName?: string;
+    name?: string;
   }[];
 
   // new
@@ -75,6 +77,15 @@ export interface Order {
   shippingFee?: number;
   total?: number;
   currency?: string;
+
+  // multi-currency snapshot (backend orders.model.js):
+  // - currencyCodeSelected: the currency the shopper checked out in
+  // - *Converted: amounts already converted into that currency at the
+  //   locked-in fx snapshot, ready to display
+  currencyCodeSelected?: string;
+  totalAmountConverted?: number;
+  discountAmountConverted?: number;
+  finalAmountConverted?: number;
 
   paymentMethod?: PaymentMethod;
   paymentStatus?: PaymentStatus;
@@ -87,7 +98,7 @@ export interface Order {
 
   addressSnapshot?: AddressSnapshot;
 
-  // old fallback fields
+  // old fallback fields (USD base)
   products?: any[];
   productsDetails?: { name: string; quantity: number; price: number }[];
   totalAmount?: number;
@@ -161,14 +172,33 @@ export const formatDate = (dateString?: string) => {
   return d.toLocaleDateString("ar-SD", { year: "numeric", month: "short", day: "numeric" });
 };
 
-export const formatMoney = (amount?: number, currency = "SDG") => {
-  const v = typeof amount === "number" && isFinite(amount) ? amount : 0;
-  const formatted = new Intl.NumberFormat("en-SD", { minimumFractionDigits: 2 }).format(v);
-  return `${formatted} ${currency === "SDG" ? "ج.س" : currency}`;
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  SDG: "ج.س",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  AED: "د.إ",
+  SAR: "ر.س",
+  EGP: "ج.م",
 };
 
+export const formatMoney = (amount?: number, currency = "USD") => {
+  const v = typeof amount === "number" && isFinite(amount) ? amount : 0;
+  const formatted = new Intl.NumberFormat("en", { minimumFractionDigits: 2 }).format(v);
+  const symbol = CURRENCY_SYMBOLS[String(currency || "").toUpperCase()] || currency || "";
+  return `${formatted} ${symbol}`.trim();
+};
+
+// ─────────────────────────────────────────────────────────────
+// Money / currency accessors — always prefer the backend's converted
+// snapshot so the dashboard shows what the shopper actually paid.
+// ─────────────────────────────────────────────────────────────
+
+export const getOrderCurrency = (o: Order) =>
+  o.currencyCodeSelected || o.currency || "USD";
+
 export const getOrderTotal = (o: Order) => {
-  // prefer new
+  if (typeof o.finalAmountConverted === "number") return o.finalAmountConverted;
   if (typeof o.total === "number") return o.total;
   if (typeof o.finalAmount === "number") return o.finalAmount;
   if (typeof o.totalAmount === "number") return o.totalAmount;
@@ -176,8 +206,15 @@ export const getOrderTotal = (o: Order) => {
 };
 
 export const getOrderSubtotal = (o: Order) => {
+  if (typeof o.totalAmountConverted === "number") return o.totalAmountConverted;
   if (typeof o.subtotal === "number") return o.subtotal;
   if (typeof o.totalAmount === "number") return o.totalAmount;
+  return 0;
+};
+
+export const getOrderDiscount = (o: Order) => {
+  if (typeof o.discountAmountConverted === "number") return o.discountAmountConverted;
+  if (typeof o.discountAmount === "number") return o.discountAmount;
   return 0;
 };
 
@@ -195,7 +232,10 @@ export const getCustomerPhone = (o: Order) => o.customerInfo?.phone || o.phoneNu
 
 export const getMerchantNames = (o: Order) => {
   if (!o.merchants || o.merchants.length === 0) return "غير محدد";
-  return o.merchants.map(m => m.businessName).join(", ");
+  return o.merchants
+    .map((m) => m.businessName || m.storeName || m.name || "")
+    .filter(Boolean)
+    .join(", ") || "غير محدد";
 };
 
 export const getAddressText = (o: Order) => {

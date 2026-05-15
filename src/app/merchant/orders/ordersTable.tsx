@@ -48,11 +48,35 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { useAuth } from '@clerk/nextjs'
-import { axiosInstance } from '@/lib/axiosInstance'
 import { toast } from 'sonner'
 import logger from '@/lib/logger'
 import { Checkbox } from "@/components/ui/checkbox"
+import { formatMoney, getOrderCurrency } from "@/app/admin/orders/types"
+
+// Per-attempt idempotency key for merchant-scoped status mutations.
+function newMerchantStatusKey(orderId: string) {
+  const uuid =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  return `merchant-status:${orderId}:${uuid}`
+}
+
+async function patchMerchantOrderStatus(orderId: string, status: string) {
+  const res = await fetch(`/api/orders/merchant/${encodeURIComponent(orderId)}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Idempotency-Key': newMerchantStatusKey(orderId),
+    },
+    body: JSON.stringify({ status }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    throw new Error((data as any)?.message || `Request failed with status ${res.status}`)
+  }
+  return data
+}
 
 
 
@@ -73,6 +97,11 @@ export type Order = {
   }
   orderDate: string
   createdAt: string
+  // multi-currency fields propagated from the backend snapshot
+  currency?: string
+  currencyCodeSelected?: string
+  finalAmountConverted?: number
+  totalAmountConverted?: number
 }
 
 const getStatusColor = (status: string) => {
@@ -103,7 +132,10 @@ const merchantStatusOptions = [
 ]
 
 // Columns will be defined inside the component to access handlers
-const createColumns = (handleProductClick: (product: any) => void): ColumnDef<Order>[] => [
+const createColumns = (
+  handleProductClick: (product: any) => void,
+  onRefresh?: () => void
+): ColumnDef<Order>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -245,12 +277,12 @@ const createColumns = (handleProductClick: (product: any) => void): ColumnDef<Or
       )
     },
     cell: ({ row }) => {
-      const revenue = parseFloat(row.getValue("merchantRevenue"))
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(revenue)
-      return <div className="font-medium text-green-600">{formatted}</div>
+      const revenue = parseFloat(row.getValue("merchantRevenue") as string)
+      // merchantRevenue is stored in USD base by the backend — render with
+      // the same currency context the order was placed in so the table is
+      // visually consistent with the total column.
+      const code = getOrderCurrency(row.original as any)
+      return <div className="font-medium text-green-600">{formatMoney(revenue, code)}</div>
     },
   },
   {
@@ -289,35 +321,34 @@ const createColumns = (handleProductClick: (product: any) => void): ColumnDef<Or
   {
     id: "actions",
     header: "Actions",
-    cell: ({ row }) => <ActionsCell order={row.original} />,
+    cell: ({ row }) => <ActionsCell order={row.original} onRefresh={onRefresh} />,
   },
 ]
 
 export const columns = createColumns(() => {}) // Default empty handler
 
+interface PaginationMeta {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
 interface OrdersTableProps {
   orders: Order[]
+  onRefresh?: () => void
+  pagination?: PaginationMeta
+  onPageChange?: (page: number) => void
 }
 
 // Bulk Actions Component
 const BulkActions = ({ selectedOrders, onActionComplete }: { selectedOrders: Order[], onActionComplete: () => void }) => {
-  const { getToken } = useAuth()
-
   const handleBulkStatusUpdate = async (newStatus: string) => {
     try {
-      const token = await getToken()
-      if (!token) {
-        toast.error('فشل المصادقة')
-        return
-      }
-
-      // Update all selected orders
-      const promises = selectedOrders.map(order =>
-        axiosInstance.patch(
-          `/orders/merchant/${order._id}/status`,
-          { status: newStatus },
-          { headers: { Authorization: `Bearer ${token}` } }
-        )
+      // Update all selected orders — patchMerchantOrderStatus creates its own
+      // idempotency key per order so a duplicate click can't double-apply.
+      const promises = selectedOrders.map((order) =>
+        patchMerchantOrderStatus(order._id, newStatus)
       )
 
       await Promise.all(promises)
@@ -355,26 +386,12 @@ const BulkActions = ({ selectedOrders, onActionComplete }: { selectedOrders: Ord
 }
 
 // Actions Cell Component
-const ActionsCell = ({ order }: { order: Order }) => {
-  const { getToken } = useAuth()
-
+const ActionsCell = ({ order, onRefresh }: { order: Order; onRefresh?: () => void }) => {
   const handleStatusChange = async (newStatus: string) => {
     try {
-      const token = await getToken()
-      if (!token) {
-        toast.error('فشل المصادقة')
-        return
-      }
-
-      await axiosInstance.patch(
-        `/orders/merchant/${order._id}/status`,
-        { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-
+      await patchMerchantOrderStatus(order._id, newStatus)
       toast.success('تم تحديث حالة الطلب بنجاح')
-      // Refresh the page to show updated status
-      window.location.reload()
+      onRefresh?.()
     } catch (error: any) {
       logger.error('Error updating order status', { error: error instanceof Error ? error.message : String(error) })
       toast.error('فشل تحديث حالة الطلب')
@@ -406,7 +423,8 @@ const ActionsCell = ({ order }: { order: Order }) => {
   )
 }
 
-export function OrdersTable({ orders }: OrdersTableProps) {
+export function OrdersTable({ orders, onRefresh, pagination, onPageChange }: OrdersTableProps) {
+  const useServerPagination = !!pagination && !!onPageChange;
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
@@ -428,11 +446,13 @@ export function OrdersTable({ orders }: OrdersTableProps) {
 
   const table = useReactTable({
     data: orders,
-    columns: createColumns(handleProductClick),
+    columns: createColumns(handleProductClick, onRefresh),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    ...(useServerPagination
+      ? { manualPagination: true, pageCount: pagination!.totalPages }
+      : { getPaginationRowModel: getPaginationRowModel() }),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
@@ -457,7 +477,7 @@ export function OrdersTable({ orders }: OrdersTableProps) {
           </span>
           <BulkActions selectedOrders={selectedOrders} onActionComplete={() => {
             table.toggleAllPageRowsSelected(false)
-            window.location.reload()
+            onRefresh?.()
           }} />
         </div>
       )}
@@ -524,8 +544,17 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`عرض الطلب ${row.original.orderNumber || row.original._id}`}
                   onClick={() => handleRowClick(row.original)}
-                  className="cursor-pointer hover:bg-muted"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleRowClick(row.original);
+                    }
+                  }}
+                  className="cursor-pointer hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -552,22 +581,34 @@ export function OrdersTable({ orders }: OrdersTableProps) {
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} order(s)
+          {useServerPagination
+            ? `صفحة ${pagination!.page} من ${pagination!.totalPages || 1} • ${pagination!.total.toLocaleString()} طلب`
+            : `${table.getFilteredRowModel().rows.length} order(s)`}
         </div>
         <div className="space-x-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            onClick={() => {
+              if (useServerPagination) onPageChange!(Math.max(1, pagination!.page - 1))
+              else table.previousPage()
+            }}
+            disabled={useServerPagination ? pagination!.page <= 1 : !table.getCanPreviousPage()}
           >
             Previous
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            onClick={() => {
+              if (useServerPagination) onPageChange!(pagination!.page + 1)
+              else table.nextPage()
+            }}
+            disabled={
+              useServerPagination
+                ? pagination!.page >= pagination!.totalPages
+                : !table.getCanNextPage()
+            }
           >
             Next
           </Button>
@@ -631,7 +672,7 @@ function ProductDetailsModal({ isOpen, onClose, product }: ProductDetailsModalPr
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">السعر</p>
-                  <p className="font-medium">${(productData.price || 0).toFixed(2)}</p>
+                  <p className="font-medium">{formatMoney(productData.price || 0)}</p>
                 </div>
               </div>
 
@@ -642,7 +683,7 @@ function ProductDetailsModal({ isOpen, onClose, product }: ProductDetailsModalPr
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">السعر الكلي</p>
-                  <p className="font-medium">${((product.price || productData.price || 0) * product.quantity).toFixed(2)}</p>
+                  <p className="font-medium">{formatMoney((product.price || productData.price || 0) * product.quantity)}</p>
                 </div>
               </div>
 
@@ -717,19 +758,19 @@ function ProductDetailsModal({ isOpen, onClose, product }: ProductDetailsModalPr
                     {product.merchantPrice && (
                       <div className="flex justify-between text-sm">
                         <span>سعر التاجر:</span>
-                        <span className="font-medium">${product.merchantPrice.toFixed(2)}</span>
+                        <span className="font-medium">{formatMoney(product.merchantPrice)}</span>
                       </div>
                     )}
                     {product.nubianMarkup && (
                       <div className="flex justify-between text-sm">
                         <span>هامش Nubian:</span>
-                        <span className="font-medium">${product.nubianMarkup.toFixed(2)}</span>
+                        <span className="font-medium">{formatMoney(product.nubianMarkup)}</span>
                       </div>
                     )}
                     {product.dynamicMarkup && (
                       <div className="flex justify-between text-sm">
                         <span>هامش ديناميكي:</span>
-                        <span className="font-medium">${product.dynamicMarkup.toFixed(2)}</span>
+                        <span className="font-medium">{formatMoney(product.dynamicMarkup)}</span>
                       </div>
                     )}
                   </div>
@@ -762,6 +803,7 @@ interface ProductDetailsModalProps {
 
 function OrderDetailsDialog({ isOpen, onClose, order, onProductClick }: OrderDetailsDialogProps) {
   if (!order) return null
+  const code = getOrderCurrency(order as any)
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -839,8 +881,8 @@ function OrderDetailsDialog({ isOpen, onClose, order, onProductClick }: OrderDet
                       )}
                     </div>
                     <div className="text-left">
-                      <p className="font-medium">${(product.price || product.product?.price || 0).toFixed(2)}</p>
-                      <p className="text-sm text-gray-500">الإجمالي: ${((product.price || product.product?.price || 0) * product.quantity).toFixed(2)}</p>
+                      <p className="font-medium">{formatMoney(product.price || product.product?.price || 0, code)}</p>
+                      <p className="text-sm text-gray-500">الإجمالي: {formatMoney((product.price || product.product?.price || 0) * product.quantity, code)}</p>
                     </div>
                   </div>
                 ))}
@@ -856,7 +898,7 @@ function OrderDetailsDialog({ isOpen, onClose, order, onProductClick }: OrderDet
               <div className="flex justify-between items-center">
                 <span className="font-semibold">إيراد التاجر:</span>
                 <span className="font-bold text-green-600">
-                  ${order.merchantRevenue?.toFixed(2) || '0.00'}
+                  {formatMoney(order.merchantRevenue || 0, code)}
                 </span>
               </div>
             </div>

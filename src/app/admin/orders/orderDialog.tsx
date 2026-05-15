@@ -25,7 +25,16 @@ import {
 } from "@/components/ui/select";
 
 import type { Order } from "./types";
-import { getStatusInArabic, getPaymentStatusInArabic, formatDate } from "./types";
+import {
+  getStatusInArabic,
+  getPaymentStatusInArabic,
+  formatDate,
+  formatMoney,
+  getOrderCurrency,
+  getOrderTotal,
+  getOrderSubtotal,
+  getOrderDiscount,
+} from "./types";
 
 import {
   updateOrderStatus,
@@ -60,13 +69,12 @@ interface OrderDialogProps {
   isModalOpen: boolean;
   setIsModalOpen: (isOpen: boolean) => void;
   selectedRow: Order | null;
+  onChanged?: () => void;
 }
 
-function money(n: any) {
+function money(n: any, currency = "USD") {
   const num = Number(n || 0);
-  return new Intl.NumberFormat("en-SD", { minimumFractionDigits: 2 }).format(
-    Number.isFinite(num) ? num : 0
-  );
+  return formatMoney(Number.isFinite(num) ? num : 0, currency);
 }
 
 function safeText(v: any, fallback = "—") {
@@ -74,7 +82,7 @@ function safeText(v: any, fallback = "—") {
   return s ? s : fallback;
 }
 
-function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogProps) {
+function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow, onChanged }: OrderDialogProps) {
   const { getToken } = useAuth();
 
   const [status, setStatus] = useState<string>("");
@@ -123,34 +131,24 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
     };
   }, [selectedRow]);
 
+  const currency = useMemo(
+    () => (selectedRow ? getOrderCurrency(selectedRow) : "USD"),
+    [selectedRow]
+  );
+
   const totals = useMemo(() => {
     if (!selectedRow) return { total: 0, subtotal: 0, shipping: 0, discount: 0, final: 0 };
 
-    const subtotal =
-      (selectedRow as any).subtotal ??
-      (selectedRow as any).totalAmount ??
-      0;
-
-    const shipping =
-      (selectedRow as any).shippingFee ??
-      0;
-
+    // Prefer the currency-converted fields from the backend so the dialog
+    // shows what the shopper actually paid in their selected currency.
+    const subtotal = getOrderSubtotal(selectedRow);
+    const shipping = (selectedRow as any).shippingFee ?? 0;
     const discount =
-      (selectedRow as any).discountAmount ??
-      (selectedRow as any).couponDetails?.discountAmount ??
+      getOrderDiscount(selectedRow) ||
+      (selectedRow as any).couponDetails?.discountAmount ||
       0;
-
-    const final =
-      (selectedRow as any).finalTotal ??
-      (selectedRow as any).finalAmount ??
-      (selectedRow as any).total ??
-      (selectedRow as any).totalAmount ??
-      0;
-
-    const total =
-      (selectedRow as any).total ??
-      (selectedRow as any).totalAmount ??
-      final;
+    const final = getOrderTotal(selectedRow);
+    const total = final;
 
     return { total, subtotal, shipping, discount, final };
   }, [selectedRow]);
@@ -219,6 +217,7 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
 
       toast.success("تم تحديث الطلب بنجاح.");
       setIsModalOpen(false);
+      onChanged?.();
     } catch (err: any) {
       logger.error("Error updating order", { error: err?.message || "Unknown" });
       toast.error(`حدث خطأ أثناء التحديث: ${err?.message || "خطأ غير معروف"}`);
@@ -242,6 +241,7 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
       await approveBankakPayment(selectedRow._id, token);
       toast.success("✅ تم قبول التحويل وتأكيد الدفع.");
       setIsModalOpen(false);
+      onChanged?.();
     } catch (err: any) {
       logger.error("Approve payment failed", { error: err?.message || "Unknown" });
       toast.error(`فشل قبول التحويل: ${err?.message || "خطأ غير معروف"}`);
@@ -269,6 +269,7 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
       await rejectBankakPayment(selectedRow._id, rejectReason.trim(), token);
       toast.success("⛔ تم رفض التحويل.");
       setIsModalOpen(false);
+      onChanged?.();
     } catch (err: any) {
       logger.error("Reject payment failed", { error: err?.message || "Unknown" });
       toast.error(`فشل رفض التحويل: ${err?.message || "خطأ غير معروف"}`);
@@ -288,6 +289,7 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
       const created = formatDate(selectedRow.createdAt || selectedRow.orderDate);
       const couponCode = (selectedRow as any)?.couponDetails?.code || "";
       const discountAmount = totals.discount || 0;
+      const e = escapeHtml;
 
       // Create HTML template with proper Arabic text and RTL support (using only basic CSS colors)
       const htmlContent = `
@@ -400,8 +402,8 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
             <div class="header">
               <h1>نوبيان • ملخص الطلب</h1>
               <div class="order-info">
-                <div>رقم الطلب: ${orderId}</div>
-                <div>التاريخ: ${created}</div>
+                <div>رقم الطلب: ${e(String(orderId))}</div>
+                <div>التاريخ: ${e(created)}</div>
               </div>
             </div>
 
@@ -409,13 +411,13 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
             <div class="section customer-info">
               <h2>معلومات العميل</h2>
               <div class="grid">
-                <div><strong>الاسم:</strong> ${addressBlock?.fullName || "غير محدد"}</div>
-                <div><strong>البريد:</strong> ${selectedRow.customerInfo?.email || "—"}</div>
-                <div><strong>الهاتف:</strong> ${addressBlock?.phone || "غير محدد"}</div>
-                <div><strong>واتساب:</strong> ${addressBlock?.whatsapp || "غير محدد"}</div>
+                <div><strong>الاسم:</strong> ${e(addressBlock?.fullName || "غير محدد")}</div>
+                <div><strong>البريد:</strong> ${e(selectedRow.customerInfo?.email || "—")}</div>
+                <div><strong>الهاتف:</strong> ${e(addressBlock?.phone || "غير محدد")}</div>
+                <div><strong>واتساب:</strong> ${e(addressBlock?.whatsapp || "غير محدد")}</div>
               </div>
               <div style="margin-top: 10px;">
-                <strong>العنوان:</strong> ${addressBlock?.fullAddress || "—"}
+                <strong>العنوان:</strong> ${e(addressBlock?.fullAddress || "—")}
               </div>
             </div>
 
@@ -423,12 +425,12 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
             <div class="section order-status">
               <h2>حالة الطلب</h2>
               <div class="grid">
-                <div><strong>حالة الطلب:</strong> ${getStatusInArabic(String(selectedRow.status || ""))}</div>
-                <div><strong>طريقة الدفع:</strong> ${selectedRow.paymentMethod || "—"}</div>
-                <div><strong>حالة الدفع:</strong> ${getPaymentStatusInArabic(String(selectedRow.paymentStatus || ""))}</div>
-                ${couponCode ? `<div><strong>كوبون الخصم:</strong> ${couponCode}</div>` : '<div></div>'}
+                <div><strong>حالة الطلب:</strong> ${e(getStatusInArabic(String(selectedRow.status || "")))}</div>
+                <div><strong>طريقة الدفع:</strong> ${e(selectedRow.paymentMethod || "—")}</div>
+                <div><strong>حالة الدفع:</strong> ${e(getPaymentStatusInArabic(String(selectedRow.paymentStatus || "")))}</div>
+                ${couponCode ? `<div><strong>كوبون الخصم:</strong> ${e(couponCode)}</div>` : '<div></div>'}
               </div>
-              ${discountAmount > 0 ? `<div style="margin-top: 10px;"><strong>قيمة الخصم:</strong> ${money(discountAmount)} ج.س</div>` : ''}
+              ${discountAmount > 0 ? `<div style="margin-top: 10px;"><strong>قيمة الخصم:</strong> ${e(money(discountAmount, currency))}</div>` : ''}
             </div>
 
             <!-- Products -->
@@ -450,10 +452,10 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
                     return `
                       <tr>
                         <td class="text-center">${index + 1}</td>
-                        <td>${product.name}</td>
+                        <td>${e(product.name)}</td>
                         <td class="text-center">${product.quantity}</td>
-                        <td class="text-center">${money(product.price)} ج.س</td>
-                        <td class="text-center">${money(lineTotal)} ج.س</td>
+                        <td class="text-center">${e(money(product.price, currency))}</td>
+                        <td class="text-center">${e(money(lineTotal, currency))}</td>
                       </tr>
                     `;
                   }).join('')}
@@ -466,28 +468,28 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
               <h2 style="text-align: center;">ملخص المبالغ</h2>
               <div class="flex" style="margin-bottom: 10px;">
                 <span><strong>المجموع الفرعي:</strong></span>
-                <span>${money(totals.subtotal)} ج.س</span>
+                <span>${e(money(totals.subtotal, currency))}</span>
               </div>
               <div class="flex" style="margin-bottom: 10px;">
                 <span><strong>الشحن:</strong></span>
-                <span>${money(totals.shipping)} ج.س</span>
+                <span>${e(money(totals.shipping, currency))}</span>
               </div>
               ${totals.discount > 0 ? `
                 <div class="flex discount" style="margin-bottom: 10px;">
                   <span><strong>الخصم:</strong></span>
-                  <span>-${money(totals.discount)} ج.س</span>
+                  <span>-${e(money(totals.discount, currency))}</span>
                 </div>
               ` : ''}
               <hr style="border: none; border-top: 2px solid #333333; margin: 10px 0;">
               <div class="flex total">
                 <span><strong>الإجمالي النهائي:</strong></span>
-                <span>${money(totals.final)} ج.س</span>
+                <span>${e(money(totals.final, currency))}</span>
               </div>
             </div>
 
             <!-- Footer -->
             <div class="footer">
-              تم إنشاء هذا التقرير بواسطة نظام نوبيان • Order: ${orderId}
+              تم إنشاء هذا التقرير بواسطة نظام نوبيان • Order: ${e(String(orderId))}
             </div>
           </div>
         </body>
@@ -515,17 +517,30 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
       iframeDoc.write(htmlContent);
       iframeDoc.close();
 
-      // Wait for the iframe content to load and fonts to be ready
-      await new Promise((resolve) => {
-        const checkReady = () => {
-          if (iframeDoc.readyState === 'complete') {
-            // Wait a bit more for fonts to load
-            setTimeout(resolve, 1500);
-          } else {
-            setTimeout(checkReady, 100);
+      // Wait for the iframe document to reach `complete`, then for its
+      // FontFaceSet to settle. Event-driven (no fixed 1.5s timeout) — on
+      // a fast network the whole boot finishes in ~200ms. A 3s upper
+      // bound prevents getting stuck if a font CDN is down.
+      await new Promise<void>((resolve) => {
+        const onReady = async () => {
+          try {
+            const fonts: FontFaceSet | undefined = (iframeDoc as any).fonts;
+            if (fonts && typeof fonts.ready?.then === 'function') {
+              await Promise.race([
+                fonts.ready,
+                new Promise((r) => setTimeout(r, 3000)),
+              ]);
+            }
+          } catch {
+            // Older browsers without FontFaceSet — proceed anyway.
           }
+          resolve();
         };
-        checkReady();
+        if (iframeDoc.readyState === 'complete') {
+          onReady();
+        } else {
+          iframe.addEventListener('load', onReady, { once: true });
+        }
       });
 
       // Get the content element from the iframe
@@ -534,9 +549,10 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
         throw new Error('Container element not found');
       }
 
-      // Generate canvas from the iframe content
+      // Generate canvas from the iframe content. scale: 1.5 keeps text
+      // crisp on A4 while halving the canvas memory vs scale: 2.
       const canvas = await html2canvas(contentElement, {
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
         allowTaint: false,
         backgroundColor: '#ffffff',
@@ -552,39 +568,34 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
       // Remove the iframe
       document.body.removeChild(iframe);
 
-      // Create PDF from canvas
-      const imgData = canvas.toDataURL('image/png');
+      // JPEG @ 0.9 is visibly indistinguishable from PNG for text receipts
+      // and produces ~70% smaller files — meaningful when admins email
+      // PDFs to customers.
+      const imgData = canvas.toDataURL('image/jpeg', 0.9);
       const pdf = new jsPDF('p', 'mm', 'a4');
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pdfWidth - 20; // 10mm margin on each side
+      const margin = 10;
+      const imgWidth = pdfWidth - margin * 2;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const usablePageHeight = pdfHeight - margin * 2;
 
-      let yPosition = 10;
-      let remainingHeight = imgHeight;
+      // Multi-page: place the full image once per page with a negative
+      // Y offset so each page shows the correct slice of the same canvas.
+      // The previous loop scaled the image to fit each page, which
+      // produced duplicate-content pages instead of paginated content.
+      let positionY = margin;
+      let heightLeft = imgHeight;
 
-      // Handle multi-page PDF if content is too tall
-      while (remainingHeight > 0) {
-        const pageHeight = Math.min(remainingHeight, pdfHeight - 20);
+      pdf.addImage(imgData, 'JPEG', margin, positionY, imgWidth, imgHeight, undefined, 'FAST');
+      heightLeft -= usablePageHeight;
 
-        pdf.addImage(
-          imgData,
-          'PNG',
-          10,
-          yPosition,
-          imgWidth,
-          pageHeight,
-          undefined,
-          'FAST'
-        );
-
-        remainingHeight -= pdfHeight - 20;
-        yPosition = 10;
-
-        if (remainingHeight > 0) {
-          pdf.addPage();
-        }
+      while (heightLeft > 0) {
+        pdf.addPage();
+        positionY = margin - (imgHeight - heightLeft);
+        pdf.addImage(imgData, 'JPEG', margin, positionY, imgWidth, imgHeight, undefined, 'FAST');
+        heightLeft -= usablePageHeight;
       }
 
       // Save the PDF
@@ -653,8 +664,7 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow }: OrderDialogPr
               <div>
                 <div className="text-sm text-muted-foreground">الإجمالي</div>
                 <div className="font-bold text-primary">
-                  {money((selectedRow.total ?? selectedRow.finalAmount ?? (selectedRow as any).finalTotal ?? selectedRow.totalAmount ?? 0) as number)}{" "}
-                  ج.س
+                  {money(totals.final, currency)}
                 </div>
               </div>
             </div>

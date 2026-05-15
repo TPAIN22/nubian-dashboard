@@ -38,18 +38,20 @@ import {
 } from "@/components/ui/dialog";
 
 import type { Order, OrderStatus, PaymentStatus } from "./types";
-import { getStatusInArabic, getPaymentStatusInArabic, getPaymentMethodArabic, formatDate, formatMoney, getOrderTotal, getItemsCount, getCustomerName, getCustomerEmail, getCustomerPhone, getAddressText, getMerchantNames } from "./types";
-import { useAuth } from "@clerk/nextjs";
-import { axiosInstance } from "@/lib/axiosInstance";
+import { getStatusInArabic, getPaymentStatusInArabic, getPaymentMethodArabic, formatDate, formatMoney, getOrderTotal, getOrderCurrency, getItemsCount, getCustomerName, getCustomerEmail, getCustomerPhone, getAddressText, getMerchantNames } from "./types";
 import { toast } from "sonner";
 import logger from "@/lib/logger";
+import { updateOrderStatus, type AdminOrderStatus } from "./orderControler";
 
 // ─────────────────────────────────────────────────────────────
 // Columns
 // ─────────────────────────────────────────────────────────────
 
 // Columns will be defined inside the component to access handlers
-const createColumns = (handleProductClick: (product: any) => void): ColumnDef<Order>[] => [
+const createColumns = (
+  handleProductClick: (product: any) => void,
+  handleViewDetails: (order: Order) => void
+): ColumnDef<Order>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -269,7 +271,7 @@ const createColumns = (handleProductClick: (product: any) => void): ColumnDef<Or
       </Button>
     ),
     accessorFn: (row) => getOrderTotal(row),
-    cell: ({ row }) => <div className="font-medium">{formatMoney(getOrderTotal(row.original), row.original.currency || "SDG")}</div>,
+    cell: ({ row }) => <div className="font-medium">{formatMoney(getOrderTotal(row.original), getOrderCurrency(row.original))}</div>,
   },
 
   {
@@ -297,7 +299,7 @@ const createColumns = (handleProductClick: (product: any) => void): ColumnDef<Or
             <DropdownMenuLabel>العمليات</DropdownMenuLabel>
             <DropdownMenuItem onClick={() => navigator.clipboard.writeText(order._id)}>نسخ معرف الطلب</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>عرض التفاصيل</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleViewDetails(order)}>عرض التفاصيل</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
@@ -305,30 +307,20 @@ const createColumns = (handleProductClick: (product: any) => void): ColumnDef<Or
   },
 ];
 
-export const columns = createColumns(() => {}); // Default empty handler
+export const columns = createColumns(() => {}, () => {}); // Default no-op handlers
 
 // ─────────────────────────────────────────────────────────────
 // Bulk Actions Component
 // ─────────────────────────────────────────────────────────────
 
 const BulkActions = ({ selectedOrders, onActionComplete }: { selectedOrders: Order[], onActionComplete: () => void }) => {
-  const { getToken } = useAuth();
-
   const handleBulkStatusUpdate = async (newStatus: string) => {
     try {
-      const token = await getToken();
-      if (!token) {
-        toast.error('فشل المصادقة');
-        return;
-      }
-
-      // Update all selected orders
-      const promises = selectedOrders.map(order =>
-        axiosInstance.patch(
-          `/orders/${order._id}/status`,
-          { status: newStatus },
-          { headers: { Authorization: `Bearer ${token}` } }
-        )
+      // Each order gets its own idempotency key (the helper handles this),
+      // so a duplicate click won't double-apply the change for any one order.
+      // Auth is attached server-side by the proxy route.
+      const promises = selectedOrders.map((order) =>
+        updateOrderStatus(order._id, newStatus as AdminOrderStatus)
       );
 
       await Promise.all(promises);
@@ -380,7 +372,21 @@ const BulkActions = ({ selectedOrders, onActionComplete }: { selectedOrders: Ord
 // Table Component
 // ─────────────────────────────────────────────────────────────
 
-export function DataTable({ orders }: { orders: Order[] }) {
+interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+interface DataTableProps {
+  orders: Order[];
+  onRefresh?: () => void;
+  pagination?: PaginationMeta;
+  onPageChange?: (page: number) => void;
+}
+
+export function DataTable({ orders, onRefresh, pagination, onPageChange }: DataTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
@@ -400,13 +406,20 @@ export function DataTable({ orders }: { orders: Order[] }) {
     setIsProductModalOpen(true);
   };
 
+  // Server-driven pagination when the parent passes meta; otherwise fall
+  // back to the client-side row model so the table still works in places
+  // that haven't wired pagination yet.
+  const useServerPagination = !!pagination && !!onPageChange;
+
   const table = useReactTable({
     data: orders,
-    columns: createColumns(handleProductClick),
+    columns: createColumns(handleProductClick, handleRowClick),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    ...(useServerPagination
+      ? { manualPagination: true, pageCount: pagination!.totalPages }
+      : { getPaginationRowModel: getPaginationRowModel() }),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
@@ -426,8 +439,7 @@ export function DataTable({ orders }: { orders: Order[] }) {
           </span>
           <BulkActions selectedOrders={selectedOrders} onActionComplete={() => {
             table.toggleAllPageRowsSelected(false);
-            // Refresh the page to show updated data
-            window.location.reload();
+            onRefresh?.();
           }} />
         </div>
       )}
@@ -484,8 +496,17 @@ export function DataTable({ orders }: { orders: Order[] }) {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`عرض الطلب ${row.original.orderNumber || row.original._id}`}
                   onClick={() => handleRowClick(row.original)}
-                  className="cursor-pointer hover:bg-muted"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleRowClick(row.original);
+                    }
+                  }}
+                  className="cursor-pointer hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -507,19 +528,46 @@ export function DataTable({ orders }: { orders: Order[] }) {
 
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} من {table.getFilteredRowModel().rows.length} صف محدد.
+          {useServerPagination
+            ? `صفحة ${pagination!.page} من ${pagination!.totalPages || 1} • ${pagination!.total.toLocaleString()} طلب`
+            : `${table.getFilteredSelectedRowModel().rows.length} من ${table.getFilteredRowModel().rows.length} صف محدد.`}
         </div>
         <div className="space-x-2">
-          <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (useServerPagination) onPageChange!(Math.max(1, pagination!.page - 1));
+              else table.previousPage();
+            }}
+            disabled={useServerPagination ? pagination!.page <= 1 : !table.getCanPreviousPage()}
+          >
             السابق
           </Button>
-          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (useServerPagination) onPageChange!(pagination!.page + 1);
+              else table.nextPage();
+            }}
+            disabled={
+              useServerPagination
+                ? pagination!.page >= pagination!.totalPages
+                : !table.getCanNextPage()
+            }
+          >
             التالي
           </Button>
         </div>
       </div>
 
-      <OrderDialog isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} selectedRow={selectedRow} />
+      <OrderDialog
+        isModalOpen={isModalOpen}
+        setIsModalOpen={setIsModalOpen}
+        selectedRow={selectedRow}
+        onChanged={onRefresh}
+      />
 
       <ProductDetailsModal
         isOpen={isProductModalOpen}
@@ -571,7 +619,7 @@ function ProductDetailsModal({ isOpen, onClose, product }: { isOpen: boolean; on
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">السعر</p>
-                  <p className="font-medium">${(productData.price || 0).toFixed(2)}</p>
+                  <p className="font-medium">{formatMoney(productData.price || 0)}</p>
                 </div>
               </div>
 
@@ -582,7 +630,7 @@ function ProductDetailsModal({ isOpen, onClose, product }: { isOpen: boolean; on
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">السعر الكلي</p>
-                  <p className="font-medium">${((product.price || productData.price || 0) * product.quantity).toFixed(2)}</p>
+                  <p className="font-medium">{formatMoney((product.price || productData.price || 0) * product.quantity)}</p>
                 </div>
               </div>
 
@@ -657,19 +705,19 @@ function ProductDetailsModal({ isOpen, onClose, product }: { isOpen: boolean; on
                     {product.merchantPrice && (
                       <div className="flex justify-between text-sm">
                         <span>سعر التاجر:</span>
-                        <span className="font-medium">${product.merchantPrice.toFixed(2)}</span>
+                        <span className="font-medium">{formatMoney(product.merchantPrice)}</span>
                       </div>
                     )}
                     {product.nubianMarkup && (
                       <div className="flex justify-between text-sm">
                         <span>هامش Nubian:</span>
-                        <span className="font-medium">${product.nubianMarkup.toFixed(2)}</span>
+                        <span className="font-medium">{formatMoney(product.nubianMarkup)}</span>
                       </div>
                     )}
                     {product.dynamicMarkup && (
                       <div className="flex justify-between text-sm">
                         <span>هامش ديناميكي:</span>
-                        <span className="font-medium">${product.dynamicMarkup.toFixed(2)}</span>
+                        <span className="font-medium">{formatMoney(product.dynamicMarkup)}</span>
                       </div>
                     )}
                   </div>

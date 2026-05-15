@@ -1,58 +1,116 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useAuth } from "@clerk/nextjs";
-import { axiosInstance } from "@/lib/axiosInstance";
-import { SimpleOrdersTable } from "./simpleTable";
-import OrdersTable, { DataTable } from "./ordersTable";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { DataTable } from "./ordersTable";
 import { PageHeader } from "@/components/dashboard/PageHeader";
-import { Order } from "./types";
-import { getOrderTotal } from "./types";
+import { Order, getOrderTotal, getOrderCurrency, formatMoney } from "./types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type OrderStatus = 'all' | 'PENDING' | 'AWAITING_PAYMENT_CONFIRMATION' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'PAYMENT_FAILED';
 
+// Matches `pending` (lowercase legacy) and `PENDING` / `AWAITING_PAYMENT_CONFIRMATION`.
+const PENDING_LIKE = new Set([
+  'PENDING',
+  'AWAITING_PAYMENT_CONFIRMATION',
+  'PROCESSING',
+  'pending',
+]);
 
+const DEFAULT_PAGE_SIZE = 20;
+
+interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
 
 
 export default function Page() {
-  const { getToken } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [pagination, setPagination] = useState<PaginationMeta>({
+    page: 1,
+    limit: DEFAULT_PAGE_SIZE,
+    total: 0,
+    totalPages: 0,
+  });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus>('all');
+  const [page, setPage] = useState(1);
+
+  // Server-side pagination. The backend caps `limit` at 100 and accepts an
+  // optional `status` filter; we forward both. Tab counts reflect the
+  // filtered total (`meta.pagination.total` from the response).
+  const fetchOrders = useCallback(async () => {
+    setError(null);
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(DEFAULT_PAGE_SIZE),
+      });
+      if (selectedStatus !== 'all') params.set('status', selectedStatus);
+
+      const res = await fetch(`/api/orders/admin?${params.toString()}`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data?.message || `فشل تحميل الطلبات (${res.status})`);
+        return;
+      }
+      // Backend wraps the response: { success, data, meta: { pagination } }.
+      // Tolerate both wrapped and bare shapes so this works if the envelope
+      // ever changes upstream.
+      const items: Order[] = Array.isArray(data?.data) ? data.data
+        : Array.isArray(data) ? data
+        : [];
+      const meta = data?.meta?.pagination;
+      setOrders(items);
+      setPagination({
+        page: meta?.page ?? page,
+        limit: meta?.limit ?? DEFAULT_PAGE_SIZE,
+        total: meta?.total ?? items.length,
+        totalPages: meta?.totalPages ?? 1,
+      });
+    } catch (e: any) {
+      console.error("Error fetching orders:", e);
+      setError(e?.message || 'فشل تحميل الطلبات');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, selectedStatus]);
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const token = await getToken();
-        if (!token) return;
-
-        const params = selectedStatus !== 'all' ? { status: selectedStatus } : {};
-        const response = await axiosInstance.get("/orders/admin", {
-          headers: { Authorization: `Bearer ${token}` },
-          params,
-        });
-        setOrders(response.data || []);
-      } catch (error) {
-        console.error("Error fetching orders:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchOrders();
-  }, [getToken, selectedStatus]);
+  }, [fetchOrders]);
 
+  // Reset to page 1 when the user changes the status filter.
+  useEffect(() => {
+    setPage(1);
+  }, [selectedStatus]);
+
+  // Per-tab counts: only the active tab's count is server-truthful. Other
+  // tabs are best-effort from the current page payload — a real admin
+  // stats endpoint (commented out at backend orders.route.js:42) would
+  // let us show accurate per-status totals here.
   const getStatusCount = (status: OrderStatus) => {
-    if (status === 'all') return orders.length;
+    if (status === selectedStatus) return pagination.total;
+    if (status === 'all' && selectedStatus === 'all') return pagination.total;
     return orders.filter(order => order.status === status).length;
   };
 
-  // Analytics calculations
-  const totalRevenue = orders.reduce((sum, order) => sum + (getOrderTotal(order) || 0), 0);
-  const pendingOrders = orders.filter(order => ['PENDING', 'AWAITING_PAYMENT_CONFIRMATION', 'pending'].includes(order.status || '')).length;
+  // Revenue card is necessarily approximate without a stats endpoint — we
+  // only see the current page. Label it accordingly.
+  const revenueByCurrency = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const o of orders) {
+      const code = getOrderCurrency(o);
+      map[code] = (map[code] || 0) + (getOrderTotal(o) || 0);
+    }
+    return map;
+  }, [orders]);
+  const pendingOrders = orders.filter(order => PENDING_LIKE.has(order.status || '')).length;
   const todaysOrders = orders.filter(order => {
     const today = new Date().toDateString();
     return new Date(order.createdAt || order.orderDate || '').toDateString() === today;
@@ -72,8 +130,38 @@ export default function Page() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <div className="text-sm text-muted-foreground animate-pulse">جاري التحميل...</div>
+      <div className="container max-w-7xl mx-auto px-6 py-8 space-y-8">
+        <div className="space-y-2">
+          <div className="h-8 w-48 bg-muted animate-pulse rounded" />
+          <div className="h-4 w-72 bg-muted/60 animate-pulse rounded" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="border rounded-lg p-6 space-y-3">
+              <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+              <div className="h-8 w-32 bg-muted animate-pulse rounded" />
+            </div>
+          ))}
+        </div>
+        <div className="border rounded-md">
+          <div className="h-12 bg-muted/40 animate-pulse rounded-t" />
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-14 border-t bg-muted/20 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container max-w-7xl mx-auto px-6 py-8">
+        <div className="border border-destructive/40 bg-destructive/5 rounded-lg p-6 text-center space-y-3">
+          <p className="text-sm text-destructive">{error}</p>
+          <Button variant="outline" size="sm" onClick={() => { setLoading(true); fetchOrders(); }}>
+            إعادة المحاولة
+          </Button>
+        </div>
       </div>
     );
   }
@@ -89,12 +177,25 @@ export default function Page() {
       <div className="grid gap-6 md:grid-cols-3">
         <Card className="hover:shadow-md transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">إجمالي الإيرادات</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">إيرادات الصفحة</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold tracking-tight text-foreground">
-              ${totalRevenue.toFixed(2)}
+            <div className="space-y-1">
+              {Object.entries(revenueByCurrency).length === 0 ? (
+                <div className="text-3xl font-bold tracking-tight text-foreground">—</div>
+              ) : (
+                Object.entries(revenueByCurrency)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([code, total]) => (
+                    <div key={code} className="text-2xl font-bold tracking-tight text-foreground">
+                      {formatMoney(total, code)}
+                    </div>
+                  ))
+              )}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              من {pagination.total.toLocaleString()} طلب{selectedStatus !== 'all' ? ` بحالة "${selectedStatus}"` : ''}
+            </p>
           </CardContent>
         </Card>
 
@@ -147,7 +248,12 @@ export default function Page() {
           })}
         </div>
 
-        <DataTable orders={orders} />
+        <DataTable
+          orders={orders}
+          onRefresh={fetchOrders}
+          pagination={pagination}
+          onPageChange={setPage}
+        />
       </div>
     </div>
   );
