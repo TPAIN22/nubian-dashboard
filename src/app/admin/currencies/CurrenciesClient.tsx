@@ -84,7 +84,7 @@ export default function CurrenciesClient() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [getToken]);
 
     useEffect(() => {
         loadData();

@@ -129,6 +129,23 @@ export default function MerchantOrdersPage() {
     setPage(1)
   }, [selectedStatus])
 
+  // Group merchant revenue by the order's selected currency. The backend
+  // stores order line prices in USD base + a converted snapshot — sum
+  // converted amounts per currency to avoid mixing units.
+  // NOTE: this hook must run before any early return so its position in the
+  // hook list stays stable across renders.
+  const revenueByCurrency = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const o of orders) {
+      const code = getOrderCurrency(o as any)
+      const amount = typeof (o as any).merchantRevenue === 'number'
+        ? (o as any).merchantRevenue
+        : getOrderTotal(o as any)
+      map[code] = (map[code] || 0) + (amount || 0)
+    }
+    return map
+  }, [orders])
+
   if (loading) {
     return (
       <div className="flex flex-col gap-4 h-full sm:mx-12 mx-2 py-4">
@@ -177,23 +194,6 @@ export default function MerchantOrdersPage() {
     if (status === selectedStatus) return pagination.total
     return orders.filter(order => matchesStatus(status, order.status)).length
   }
-
-  // Group merchant revenue by the order's selected currency. The backend
-  // stores order line prices in USD base + a converted snapshot — sum
-  // converted amounts per currency to avoid mixing units.
-  const revenueByCurrency = useMemo(() => {
-    const map: Record<string, number> = {}
-    for (const o of orders) {
-      const code = getOrderCurrency(o as any)
-      // merchantRevenue is stored in USD base; fall back to the order total
-      // when it's missing so the card never shows 0 for valid orders.
-      const amount = typeof (o as any).merchantRevenue === 'number'
-        ? (o as any).merchantRevenue
-        : getOrderTotal(o as any)
-      map[code] = (map[code] || 0) + (amount || 0)
-    }
-    return map
-  }, [orders])
 
   const pendingOrders = orders.filter(order => STATUS_GROUPS.PENDING.includes(order.status) || STATUS_GROUPS.AWAITING_PAYMENT_CONFIRMATION.includes(order.status)).length
   const todaysOrders = orders.filter(order => {

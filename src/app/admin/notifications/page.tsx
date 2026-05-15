@@ -42,7 +42,12 @@ export default function NotificationsOverviewPage() {
   const markRead = useMarkRead()
   const [active, setActive] = useState<NotificationRecord | null>(null)
 
-  const notifications = recent.data?.notifications ?? []
+  // Memoize so downstream useMemo hooks don't see a fresh array every
+  // render when recent.data hasn't actually changed.
+  const notifications = useMemo(
+    () => recent.data?.notifications ?? [],
+    [recent.data?.notifications],
+  )
 
   const totals = useMemo(() => {
     const out = { sent: 0, failed: 0, queued: 0, delivered: 0, total: notifications.length }
