@@ -126,7 +126,7 @@ const merchantNav = [
   },
   {
     title: "الدعم الفني",
-    url: "/admin/support",
+    url: "/merchant/support",
     icon: IconHelp,
   },
   {
@@ -165,11 +165,6 @@ const applyingNav = [
     url: "/merchant/apply",
     icon: IconUsers,
   },
-  {
-    title: "مركز المساعدة",
-    url: "/admin/support",
-    icon: IconHelp,
-  },
 ];
 
 const joinAffiliateNav = [
@@ -181,13 +176,12 @@ const joinAffiliateNav = [
   },
 ];
 
-const secondaryNav = [
-  {
-    title: "المساعدة",
-    url: "/admin/support",
-    icon: IconHelp,
-  },
-];
+const helpUrlForRole = (role: string, status: string) =>
+  role === "admin" || role === "support"
+    ? "/admin/support"
+    : role === "merchant" && status === "approved"
+    ? "/merchant/support"
+    : "/";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();
@@ -199,6 +193,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     : role === "support"
     ? adminNav
     : (role === "marketer" ? affiliateNav : (role === "merchant" && status === "approved" ? merchantNav : joinAffiliateNav));
+
+  const secondaryNav = [
+    {
+      title: "المساعدة",
+      url: helpUrlForRole(role, status),
+      icon: IconHelp,
+    },
+  ];
 
   return (
     <Sidebar collapsible="offcanvas" side="right" {...props}>
