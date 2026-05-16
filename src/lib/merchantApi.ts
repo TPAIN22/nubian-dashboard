@@ -15,4 +15,17 @@ export const merchantSupportApi = {
         const res = await api.post<{ data: any }>(`/tickets/${id}/messages`, { message, attachments });
         return res.data.data;
     },
+
+    createTicket: async (payload: {
+        type: "support" | "complaint" | "legal";
+        category: string;
+        subject: string;
+        description: string;
+        relatedOrderId?: string;
+        priority?: "low" | "medium" | "high";
+        attachments?: string[];
+    }) => {
+        const res = await api.post<{ data: any }>("/tickets", payload);
+        return res.data.data;
+    },
 };

@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Search, Inbox } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, Search, Inbox, Plus } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { merchantSupportApi } from "@/lib/merchantApi";
@@ -22,6 +24,8 @@ export default function MerchantSupportPage() {
 
     const [tickets, setTickets] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [reloadKey, setReloadKey] = useState(0);
+    const [createOpen, setCreateOpen] = useState(false);
 
     useEffect(() => {
         const fetchTickets = async () => {
@@ -45,7 +49,7 @@ export default function MerchantSupportPage() {
         if (isLoaded) {
             fetchTickets();
         }
-    }, [isLoaded, statusFilter, categoryFilter, searchTerm]);
+    }, [isLoaded, statusFilter, categoryFilter, searchTerm, reloadKey]);
 
     return (
         <div className="p-6 space-y-8 min-h-screen bg-background" dir="rtl">
@@ -54,6 +58,11 @@ export default function MerchantSupportPage() {
                     <h1 className="text-3xl font-bold tracking-tight text-foreground">تذاكر الدعم</h1>
                     <p className="text-muted-foreground mt-1">الشكاوى والطلبات المتعلقة بمتجرك.</p>
                 </div>
+                <CreateTicketDialog
+                    open={createOpen}
+                    onOpenChange={setCreateOpen}
+                    onCreated={() => setReloadKey((k) => k + 1)}
+                />
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-card p-4 rounded-lg border shadow-sm">
@@ -196,5 +205,142 @@ function TicketTable({ data }: { data: any[] }) {
                 </Table>
             </CardContent>
         </Card>
+    );
+}
+
+function CreateTicketDialog({
+    open,
+    onOpenChange,
+    onCreated,
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onCreated: () => void;
+}) {
+    const [type, setType] = useState<"support" | "complaint" | "legal">("support");
+    const [category, setCategory] = useState("payment_issue");
+    const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
+    const [subject, setSubject] = useState("");
+    const [description, setDescription] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+
+    const reset = () => {
+        setType("support");
+        setCategory("payment_issue");
+        setPriority("medium");
+        setSubject("");
+        setDescription("");
+    };
+
+    const handleSubmit = async () => {
+        if (!subject.trim() || !description.trim()) {
+            toast.error("الرجاء تعبئة الموضوع والوصف");
+            return;
+        }
+        setSubmitting(true);
+        try {
+            await merchantSupportApi.createTicket({
+                type,
+                category,
+                subject: subject.trim(),
+                description: description.trim(),
+                priority,
+            });
+            toast.success("تم إنشاء التذكرة بنجاح");
+            reset();
+            onOpenChange(false);
+            onCreated();
+        } catch (err: any) {
+            const msg =
+                err?.response?.data?.errors?.map((e: any) => e.msg || e.message).join(" — ") ||
+                err?.response?.data?.message ||
+                err?.message ||
+                "تعذر إنشاء التذكرة";
+            toast.error(msg);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogTrigger asChild>
+                <Button className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    تذكرة جديدة
+                </Button>
+            </DialogTrigger>
+            <DialogContent dir="rtl" className="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle className="text-right">إنشاء تذكرة دعم جديدة</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium">النوع</label>
+                            <Select value={type} onValueChange={(v) => setType(v as any)}>
+                                <SelectTrigger dir="rtl" className="text-right"><SelectValue /></SelectTrigger>
+                                <SelectContent dir="rtl">
+                                    <SelectItem value="support">طلب دعم</SelectItem>
+                                    <SelectItem value="complaint">شكوى</SelectItem>
+                                    <SelectItem value="legal">قانوني</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium">الأولوية</label>
+                            <Select value={priority} onValueChange={(v) => setPriority(v as any)}>
+                                <SelectTrigger dir="rtl" className="text-right"><SelectValue /></SelectTrigger>
+                                <SelectContent dir="rtl">
+                                    <SelectItem value="low">منخفضة</SelectItem>
+                                    <SelectItem value="medium">متوسطة</SelectItem>
+                                    <SelectItem value="high">عالية</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium">الفئة</label>
+                        <Select value={category} onValueChange={setCategory}>
+                            <SelectTrigger dir="rtl" className="text-right"><SelectValue /></SelectTrigger>
+                            <SelectContent dir="rtl">
+                                <SelectItem value="payment_issue">مشاكل الدفع</SelectItem>
+                                <SelectItem value="order_issue">مشاكل الطلب</SelectItem>
+                                <SelectItem value="product_report">بلاغ منتج</SelectItem>
+                                <SelectItem value="other">أخرى</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium">الموضوع</label>
+                        <Input
+                            value={subject}
+                            onChange={(e) => setSubject(e.target.value)}
+                            placeholder="ملخص قصير للمشكلة"
+                            className="text-right"
+                            maxLength={200}
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium">الوصف</label>
+                        <Textarea
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="اشرح المشكلة بالتفصيل..."
+                            className="text-right min-h-[120px]"
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+                        إلغاء
+                    </Button>
+                    <Button onClick={handleSubmit} disabled={submitting}>
+                        {submitting && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
+                        إرسال
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }
