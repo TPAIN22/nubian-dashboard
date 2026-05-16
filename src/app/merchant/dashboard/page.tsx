@@ -173,7 +173,7 @@ export default function MerchantDashboard() {
                 clearTimeout(statsTimeoutId)
                 statsTimeoutId = null
               }
-              setStats(statsResponse.data)
+              setStats(statsResponse.data?.data || statsResponse.data)
             } catch (statsError) {
               // Clear timeout on error
               if (statsTimeoutId) {
