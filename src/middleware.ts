@@ -85,9 +85,11 @@ export default clerkMiddleware(async (auth, req) => {
   let role = claims?.publicMetadata?.role?.toLowerCase();
   let merchantStatus = claims?.publicMetadata?.merchantStatus;
 
-  // 1. Robust role detection: If role is missing from session claims, fetch directly from Clerk
-  // This handles cases where publicMetadata hasn't been added to the session token yet
-  if (!role && userId) {
+  // Refetch from Clerk when session claims look stale: either role is missing, or
+  // role is "merchant" but merchantStatus isn't "approved" (admin may have just
+  // unsuspended/approved the merchant and the JWT hasn't caught up yet).
+  const needsRefetch = !role || (role === "merchant" && merchantStatus !== "approved");
+  if (needsRefetch && userId) {
     try {
       const client = await clerkClient();
       const user = await client.users.getUser(userId);
