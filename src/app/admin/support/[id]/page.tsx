@@ -129,16 +129,16 @@ export default function TicketDetails({ params }: { params: Promise<{ id: string
     const orderAmount = ticket.relatedOrderId?.totalAmount;
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen" dir="rtl">
+        <div className="p-6 bg-background min-h-screen" dir="rtl">
             <div className="flex justify-between items-start mb-6">
                 <div>
                     <div className="flex items-center gap-2">
-                        <h1 className="text-2xl font-bold text-gray-900">{ticket.subject}</h1>
+                        <h1 className="text-2xl font-bold text-foreground">{ticket.subject}</h1>
                         <Badge variant="outline" className="text-destructive border-destructive flex gap-1">
                             <ShieldAlert size={12} /> مخاطر عالية ({ticket.riskScore})
                         </Badge>
                     </div>
-                     <p className="text-gray-500 mt-1">تذكرة #{ticket.ticketNumber} • تم الإنشاء في {new Date(ticket.createdAt).toLocaleDateString("ar-EG")}</p>
+                     <p className="text-muted-foreground mt-1">تذكرة #{ticket.ticketNumber} • تم الإنشاء في {new Date(ticket.createdAt).toLocaleDateString("ar-EG")}</p>
                 </div>
                 <div className="flex gap-2">
                     <SelectStatus currentStatus={ticket.status} onUpdate={handleUpdateStatus} />
@@ -155,7 +155,7 @@ export default function TicketDetails({ params }: { params: Promise<{ id: string
                             <CardTitle>الوصف</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-gray-700">{ticket.description}</p>
+                            <p className="text-foreground">{ticket.description}</p>
                         </CardContent>
                     </Card>
 
@@ -183,7 +183,7 @@ export default function TicketDetails({ params }: { params: Promise<{ id: string
                                             ? 'bg-blue-500/10 border-blue-500/20 mr-auto rounded-tl-none'
                                             : 'bg-muted border-border ml-auto rounded-tr-none'
                                         }`}>
-                                            <p className={`text-xs font-bold mb-1 ${isSupport ? 'text-blue-600' : 'text-primary'}`}>
+                                            <p className={`text-xs font-bold mb-1 ${isSupport ? 'text-blue-600 dark:text-blue-400' : 'text-primary'}`}>
                                                 {msg.senderId?.fullName || msg.senderRole} {isSupport ? '(أنت)' : ''}
                                             </p>
                                             <p className="text-sm text-foreground">{msg.message}</p>
@@ -221,7 +221,7 @@ export default function TicketDetails({ params }: { params: Promise<{ id: string
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                            <p className="text-sm text-gray-500 mb-2">
+                            <p className="text-sm text-muted-foreground mb-2">
                                 درجة مخاطر هذه التذكرة <span className="font-bold text-destructive">{ticket.riskScore}/100</span>.
                             </p>
                             <Button variant="outline" className="w-full justify-start text-destructive border-destructive/20 hover:text-destructive hover:bg-transparent" onClick={handleFreezeMerchant}>
@@ -236,19 +236,19 @@ export default function TicketDetails({ params }: { params: Promise<{ id: string
                     {/* Dispute Actions */}
                     <Card className="border-r-4 border-r-orange-500 shadow-sm">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-orange-600 flex items-center gap-2 text-lg">
+                            <CardTitle className="text-orange-600 dark:text-orange-400 flex items-center gap-2 text-lg">
                                 <DollarSign size={20} /> تسوية النزاعات
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                             <div className="border border-orange-200 p-3 rounded-md mb-2">
-                                <p className="text-sm font-medium text-orange-900">المبلغ المتنازع عليه</p>
-                                <p className="text-2xl font-bold text-orange-700">${orderAmount?.toFixed(2) || "0.00"}</p>
+                             <div className="border border-orange-300/40 dark:border-orange-400/30 bg-orange-500/10 p-3 rounded-md mb-2">
+                                <p className="text-sm font-medium text-orange-900 dark:text-orange-200">المبلغ المتنازع عليه</p>
+                                <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">${orderAmount?.toFixed(2) || "0.00"}</p>
                             </div>
                             <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white border-none" disabled={!ticket.dispute} onClick={() => handleResolveDispute('refund_full')}>
                                 إصدار استرداد كامل
                             </Button>
-                            <Button variant="outline" className="w-full border-orange-200 text-orange-700 hover:text-orange-800 hover:bg-transparent" disabled={!ticket.dispute} onClick={() => handleResolveDispute('rejected')}>
+                            <Button variant="outline" className="w-full border-orange-300/40 dark:border-orange-400/30 text-orange-700 dark:text-orange-300 hover:text-orange-800 dark:hover:text-orange-200 hover:bg-transparent" disabled={!ticket.dispute} onClick={() => handleResolveDispute('rejected')}>
                                 رفض النزاع
                             </Button>
                         </CardContent>
@@ -264,16 +264,16 @@ export default function TicketDetails({ params }: { params: Promise<{ id: string
                         <CardContent>
                             <div className="space-y-2">
                                  <div className="flex justify-between">
-                                    <span className="text-gray-500">الاسم</span>
+                                    <span className="text-muted-foreground">الاسم</span>
                                     <span>{ownerName}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-gray-500">البريد الإلكتروني</span>
+                                    <span className="text-muted-foreground">البريد الإلكتروني</span>
                                     <span>{ownerEmail}</span>
                                 </div>
                                 <Separator className="my-2" />
                                  <div className="flex justify-between">
-                                    <span className="text-gray-500">رقم الطلب</span>
+                                    <span className="text-muted-foreground">رقم الطلب</span>
                                     <span className="font-mono">{orderNumber || "N/A"}</span>
                                 </div>
                                  </div>
@@ -287,17 +287,17 @@ export default function TicketDetails({ params }: { params: Promise<{ id: string
 
 function SelectStatus({ currentStatus, onUpdate }: { currentStatus: string, onUpdate: (s: string) => void }) {
     const statuses = [
-        { id: 'open', label: 'مفتوحة', color: 'text-blue-600' },
-        { id: 'under_review', label: 'قيد المراجعة', color: 'text-amber-600' },
-        { id: 'waiting_customer', label: 'بانتظار العميل', color: 'text-purple-600' },
+        { id: 'open', label: 'مفتوحة', color: 'text-blue-600 dark:text-blue-400' },
+        { id: 'under_review', label: 'قيد المراجعة', color: 'text-amber-600 dark:text-amber-400' },
+        { id: 'waiting_customer', label: 'بانتظار العميل', color: 'text-purple-600 dark:text-purple-400' },
         { id: 'escalated', label: 'مصعدة', color: 'text-destructive' },
-        { id: 'resolved_refund', label: 'تم الاسترداد', color: 'text-green-600' },
-        { id: 'resolved_rejected', label: 'مرفوضة', color: 'text-rose-600' },
-        { id: 'closed', label: 'مغلقة', color: 'text-gray-500' }
+        { id: 'resolved_refund', label: 'تم الاسترداد', color: 'text-green-600 dark:text-green-400' },
+        { id: 'resolved_rejected', label: 'مرفوضة', color: 'text-rose-600 dark:text-rose-400' },
+        { id: 'closed', label: 'مغلقة', color: 'text-muted-foreground' }
     ];
 
     return (
-        <div className="flex gap-1 bg-white border rounded-lg p-1 flex-wrap">
+        <div className="flex gap-1 bg-card border border-border rounded-lg p-1 flex-wrap">
             {statuses.map(s => (
                 <Button
                     key={s.id}

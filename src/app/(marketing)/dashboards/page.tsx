@@ -141,7 +141,7 @@ export default function DashboardsPage() {
             {/* Admin Dashboard Card */}
             {isAdmin && (
               <Card
-                className="group relative overflow-hidden border-2 hover:border-amber-500 transition-all duration-300 hover:shadow-2xl cursor-pointer bg-white"
+                className="group relative overflow-hidden border-2 hover:border-amber-500 transition-all duration-300 hover:shadow-2xl cursor-pointer bg-card"
                 onClick={() => handleDashboardClick('admin')}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -161,32 +161,32 @@ export default function DashboardsPage() {
                 </CardHeader>
                 <CardContent className="relative space-y-6">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                    <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                       <Package className="w-5 h-5 text-purple-600" />
                       <div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">المنتجات</p>
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">أضف، عدّل، احذف</p>
+                        <p className="text-xs text-muted-foreground">المنتجات</p>
+                        <p className="text-sm font-semibold text-foreground">أضف، عدّل، احذف</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                    <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                       <Users className="w-5 h-5 text-purple-600" />
                       <div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">التجار</p>
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">راقب ووافق</p>
+                        <p className="text-xs text-muted-foreground">التجار</p>
+                        <p className="text-sm font-semibold text-foreground">راقب ووافق</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                    <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                       <BarChart3 className="w-5 h-5 text-purple-600" />
                       <div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">الطلبات</p>
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">تتبع وإدارة</p>
+                        <p className="text-xs text-muted-foreground">الطلبات</p>
+                        <p className="text-sm font-semibold text-foreground">تتبع وإدارة</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                    <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                       <TrendingUp className="w-5 h-5 text-purple-600" />
                       <div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">التقارير</p>
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">عرض وتحليل</p>
+                        <p className="text-xs text-muted-foreground">التقارير</p>
+                        <p className="text-sm font-semibold text-foreground">عرض وتحليل</p>
                       </div>
                     </div>
                   </div>
@@ -211,7 +211,7 @@ export default function DashboardsPage() {
 
             {/* Merchant Dashboard Card */}
             <Card
-              className={`group relative overflow-hidden border-2 transition-all duration-300 hover:shadow-2xl cursor-pointer bg-white ${
+              className={`group relative overflow-hidden border-2 transition-all duration-300 hover:shadow-2xl cursor-pointer bg-card ${
                 isMerchantApproved ? 'hover:border-amber-500 border-amber-200' : 'hover:border-orange-500 border-orange-200'
               }`}
               onClick={() => handleDashboardClick('merchant')}
@@ -253,32 +253,32 @@ export default function DashboardsPage() {
                 {isMerchantApproved ? (
                   <>
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                      <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                         <Store className="w-5 h-5 text-amber-600" />
                         <div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">المنتجات</p>
-                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">أضف وعدّل</p>
+                          <p className="text-xs text-muted-foreground">المنتجات</p>
+                          <p className="text-sm font-semibold text-foreground">أضف وعدّل</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                      <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                         <Package className="w-5 h-5 text-amber-600" />
                         <div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">الطلبات</p>
-                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">تتبع ومعالجة</p>
+                          <p className="text-xs text-muted-foreground">الطلبات</p>
+                          <p className="text-sm font-semibold text-foreground">تتبع ومعالجة</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                      <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                         <BarChart3 className="w-5 h-5 text-amber-600" />
                         <div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">المبيعات</p>
-                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">عرض الإحصائيات</p>
+                          <p className="text-xs text-muted-foreground">المبيعات</p>
+                          <p className="text-sm font-semibold text-foreground">عرض الإحصائيات</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                      <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                         <TrendingUp className="w-5 h-5 text-amber-600" />
                         <div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">الأداء</p>
-                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">تتبع النمو</p>
+                          <p className="text-xs text-muted-foreground">الأداء</p>
+                          <p className="text-sm font-semibold text-foreground">تتبع النمو</p>
                         </div>
                       </div>
                     </div>
@@ -304,29 +304,29 @@ export default function DashboardsPage() {
                       <div className="flex items-start gap-4 p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 rounded-lg border border-amber-200 dark:border-amber-800">
                         <Zap className="w-6 h-6 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                         <div>
-                          <h3 className="font-semibold text-slate-900 mb-1">ابدأ البيع الآن</h3>
-                          <p className="text-sm text-slate-600">
+                          <h3 className="font-semibold text-foreground mb-1">ابدأ البيع الآن</h3>
+                          <p className="text-sm text-muted-foreground">
                             انضم إلى آلاف التجار على نوبيان. قدم طلبك واحصل على الموافقة خلال 1-2 يوم عمل.
                           </p>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                        <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
                           <CheckCircle2 className="w-4 h-4 text-green-600" />
-                          <span className="text-xs text-slate-600 dark:text-slate-300">مجاني تماماً</span>
+                          <span className="text-xs text-muted-foreground">مجاني تماماً</span>
                         </div>
-                        <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                        <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
                           <CheckCircle2 className="w-4 h-4 text-green-600" />
-                          <span className="text-xs text-slate-600 dark:text-slate-300">موافقة خلال يومين</span>
+                          <span className="text-xs text-muted-foreground">موافقة خلال يومين</span>
                         </div>
-                        <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                        <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
                           <CheckCircle2 className="w-4 h-4 text-green-600" />
-                          <span className="text-xs text-slate-600 dark:text-slate-300">دعم فني متواصل</span>
+                          <span className="text-xs text-muted-foreground">دعم فني متواصل</span>
                         </div>
-                        <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
+                        <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
                           <CheckCircle2 className="w-4 h-4 text-green-600" />
-                          <span className="text-xs text-slate-600 dark:text-slate-300">أدوات سهلة الاستخدام</span>
+                          <span className="text-xs text-muted-foreground">أدوات سهلة الاستخدام</span>
                         </div>
                       </div>
                     </div>
@@ -353,26 +353,26 @@ export default function DashboardsPage() {
 
           {/* Info Section */}
           <div className="mt-16 grid md:grid-cols-3 gap-6">
-            <div className="text-center p-6 bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="text-center p-6 bg-card rounded-xl border border-border shadow-sm">
               <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
                 <Globe className="w-6 h-6 text-white" />
               </div>
-              <h3 className="font-bold text-slate-900 mb-2">كل شيء في مكان واحد</h3>
-              <p className="text-sm text-slate-600">أدر كل شيء بسهولة</p>
+              <h3 className="font-bold text-foreground mb-2">كل شيء في مكان واحد</h3>
+              <p className="text-sm text-muted-foreground">أدر كل شيء بسهولة</p>
             </div>
-            <div className="text-center p-6 bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="text-center p-6 bg-card rounded-xl border border-border shadow-sm">
               <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
                 <Zap className="w-6 h-6 text-white" />
               </div>
-              <h3 className="font-bold text-slate-900 mb-2">سريع وسهل</h3>
-              <p className="text-sm text-slate-600">تجربة سلسة وسريعة</p>
+              <h3 className="font-bold text-foreground mb-2">سريع وسهل</h3>
+              <p className="text-sm text-muted-foreground">تجربة سلسة وسريعة</p>
             </div>
-            <div className="text-center p-6 bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="text-center p-6 bg-card rounded-xl border border-border shadow-sm">
               <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
                 <Shield className="w-6 h-6 text-white" />
               </div>
-              <h3 className="font-bold text-slate-900 mb-2">آمن ومحمي</h3>
-              <p className="text-sm text-slate-600">حماية كاملة لبياناتك</p>
+              <h3 className="font-bold text-foreground mb-2">آمن ومحمي</h3>
+              <p className="text-sm text-muted-foreground">حماية كاملة لبياناتك</p>
             </div>
           </div>
 

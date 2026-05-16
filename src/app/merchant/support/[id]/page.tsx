@@ -85,24 +85,24 @@ export default function MerchantTicketDetails({ params }: { params: Promise<{ id
     const status = ticket.status || "";
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen" dir="rtl">
+        <div className="p-6 bg-background min-h-screen" dir="rtl">
             <div className="flex justify-between items-start mb-6 gap-4 flex-wrap">
                 <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                        <h1 className="text-2xl font-bold text-gray-900">{ticket.subject}</h1>
+                        <h1 className="text-2xl font-bold text-foreground">{ticket.subject}</h1>
                         <Badge
                             variant="outline"
                             className={
-                                status === 'escalated' ? 'text-destructive border-destructive font-medium' :
-                                    status === 'open' ? 'text-blue-700 border-blue-200 font-medium' :
-                                        status === 'resolved_refund' ? 'text-green-700 border-green-200 font-medium' :
-                                            'text-gray-700 font-medium'
+                                status === 'escalated' ? 'text-destructive border-destructive/40 font-medium bg-destructive/10' :
+                                    status === 'open' ? 'text-blue-700 dark:text-blue-400 border-blue-300/40 dark:border-blue-400/40 font-medium bg-blue-500/10' :
+                                        status === 'resolved_refund' ? 'text-green-700 dark:text-green-400 border-green-300/40 dark:border-green-400/40 font-medium bg-green-500/10' :
+                                            'text-foreground border-border font-medium'
                             }
                         >
                             <span className="capitalize">{status?.replace('_', ' ') || "—"}</span>
                         </Badge>
                     </div>
-                    <p className="text-gray-500 mt-1">
+                    <p className="text-muted-foreground mt-1">
                         تذكرة #{ticket.ticketNumber} • تم الإنشاء في {ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString("ar-EG") : "—"}
                     </p>
                 </div>
@@ -118,7 +118,7 @@ export default function MerchantTicketDetails({ params }: { params: Promise<{ id
                             <CardTitle>الوصف</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-gray-700 whitespace-pre-line">{ticket.description}</p>
+                            <p className="text-foreground whitespace-pre-line">{ticket.description}</p>
                         </CardContent>
                     </Card>
 
@@ -149,7 +149,7 @@ export default function MerchantTicketDetails({ params }: { params: Promise<{ id
                                                     : 'bg-muted border-border mr-auto rounded-tl-none'
                                             }`}
                                         >
-                                            <p className={`text-xs font-bold mb-1 ${isMerchant ? 'text-blue-600' : 'text-primary'}`}>
+                                            <p className={`text-xs font-bold mb-1 ${isMerchant ? 'text-blue-600 dark:text-blue-400' : 'text-primary'}`}>
                                                 {msg.senderId?.fullName || msg.senderRole} {isMerchant ? '(أنت)' : ''}
                                             </p>
                                             <p className="text-sm text-foreground whitespace-pre-line">{msg.message}</p>
@@ -189,12 +189,12 @@ export default function MerchantTicketDetails({ params }: { params: Promise<{ id
                         <CardContent>
                             <div className="space-y-2">
                                 <div className="flex justify-between">
-                                    <span className="text-gray-500">رقم الطلب</span>
+                                    <span className="text-muted-foreground">رقم الطلب</span>
                                     <span className="font-mono">{orderNumber || "—"}</span>
                                 </div>
                                 <Separator className="my-2" />
                                 <div className="flex justify-between">
-                                    <span className="text-gray-500">قيمة الطلب</span>
+                                    <span className="text-muted-foreground">قيمة الطلب</span>
                                     <span className="font-semibold">
                                         {typeof orderAmount === "number" ? `$${orderAmount.toFixed(2)}` : "—"}
                                     </span>
@@ -212,7 +212,7 @@ export default function MerchantTicketDetails({ params }: { params: Promise<{ id
                         <CardContent>
                             <div className="space-y-2">
                                 <div className="flex justify-between">
-                                    <span className="text-gray-500">الاسم</span>
+                                    <span className="text-muted-foreground">الاسم</span>
                                     <span>{customerName}</span>
                                 </div>
                             </div>

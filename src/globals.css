@@ -1,48 +1,28 @@
 @import "tailwindcss";
-/* @import "tw-animate-css"; */
-/* @plugin "daisyui"; */
-/* @custom-variant dark (&:is(.dark *)); */
+
+@custom-variant dark (&:is(.dark *));
 
 /* ============================================
    NUBIAN DESIGN SYSTEM - MODERN AFRICAN LUXURY
+   Light + Dark mode via .dark class (next-themes)
    ============================================ */
 
 :root {
   /* Border Radius */
   --radius: 0.75rem;
 
-  /* Primary Colors - Nubian Gold */
+  /* Primary Colors - Nubian Gold (constant across themes) */
   --nubian-primary: #D4AF37;
   --nubian-primary-dark: #B59020;
   --nubian-primary-foreground: #000000;
 
   /* Secondary & Accent Colors */
   --nubian-secondary: #005b35;
-  /* Deep Green */
   --nubian-secondary-foreground: #FFFFFF;
   --nubian-accent: #E8DCC2;
-  /* Ivory */
   --nubian-accent-foreground: #1A2E22;
 
-  /* Background Colors */
-  --nubian-background: #0D0D0D;
-  --nubian-secondary-background: #141414;
-  --nubian-surface: #1E1E1E;
-  --nubian-card-background: rgba(30, 30, 30, 0.7);
-
-  /* Text Colors */
-  --nubian-text-primary: #F0F0F0;
-  --nubian-text-secondary: #A0A0A0;
-  --nubian-text-accent: #D4AF37;
-  --nubian-text-dark: #000000;
-
-  /* Button Colors */
-  --nubian-btn-primary: #D4AF37;
-  --nubian-btn-primary-foreground: #000000;
-  --nubian-btn-secondary: #2C2C2C;
-  --nubian-btn-secondary-foreground: #FFFFFF;
-
-  /* Status Colors */
+  /* Status Colors (constant) */
   --nubian-success: #10B981;
   --nubian-success-foreground: #FFFFFF;
   --nubian-error: #EF4444;
@@ -50,19 +30,33 @@
   --nubian-warning: #F59E0B;
   --nubian-warning-foreground: #FFFFFF;
 
-  /* Borders & Effects */
-  --nubian-border: rgba(212, 175, 55, 0.2);
-  --nubian-overlay: rgba(0, 0, 0, 0.7);
+  /* ===== LIGHT MODE ===== */
+  --nubian-background: #FAFAF7;
+  --nubian-secondary-background: #FFFFFF;
+  --nubian-surface: #F2F1EC;
+  --nubian-card-background: rgba(255, 255, 255, 0.85);
 
-  /* Glassmorphism Variables */
-  --glass-bg: rgba(255, 255, 255, 0.03);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  --nubian-text-primary: #1A1A1A;
+  --nubian-text-secondary: #555555;
+  --nubian-text-accent: #B59020;
+  --nubian-text-dark: #000000;
+
+  --nubian-btn-primary: #D4AF37;
+  --nubian-btn-primary-foreground: #000000;
+  --nubian-btn-secondary: #ECECEC;
+  --nubian-btn-secondary-foreground: #1A1A1A;
+
+  --nubian-border: rgba(0, 0, 0, 0.12);
+  --nubian-overlay: rgba(0, 0, 0, 0.5);
+
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(0, 0, 0, 0.08);
   --glass-blur: 12px;
 
   /* Semantic Mappings */
   --background: var(--nubian-background);
   --foreground: var(--nubian-text-primary);
-  --card: var(--nubian-card-background);
+  --card: var(--nubian-secondary-background);
   --card-foreground: var(--nubian-text-primary);
   --popover: var(--nubian-secondary-background);
   --popover-foreground: var(--nubian-text-primary);
@@ -77,14 +71,64 @@
   --destructive: var(--nubian-error);
   --destructive-foreground: var(--nubian-error-foreground);
   --border: var(--nubian-border);
-  --input: rgba(255, 255, 255, 0.1);
+  --input: rgba(0, 0, 0, 0.08);
   --ring: var(--nubian-primary);
+
+  --sidebar: var(--nubian-secondary-background);
+  --sidebar-foreground: var(--nubian-text-primary);
+  --sidebar-primary: var(--nubian-primary);
+  --sidebar-primary-foreground: var(--nubian-primary-foreground);
+  --sidebar-accent: var(--nubian-surface);
+  --sidebar-accent-foreground: var(--nubian-text-primary);
+  --sidebar-border: var(--nubian-border);
+  --sidebar-ring: var(--nubian-primary);
 
   --chart-1: var(--nubian-primary);
   --chart-2: var(--nubian-secondary);
   --chart-3: var(--nubian-accent);
   --chart-4: var(--nubian-btn-primary);
   --chart-5: var(--nubian-text-accent);
+}
+
+/* ===== DARK MODE ===== */
+.dark {
+  --nubian-background: #0D0D0D;
+  --nubian-secondary-background: #141414;
+  --nubian-surface: #1E1E1E;
+  --nubian-card-background: rgba(30, 30, 30, 0.7);
+
+  --nubian-text-primary: #F0F0F0;
+  --nubian-text-secondary: #A0A0A0;
+  --nubian-text-accent: #D4AF37;
+  --nubian-text-dark: #000000;
+
+  --nubian-btn-primary: #D4AF37;
+  --nubian-btn-primary-foreground: #000000;
+  --nubian-btn-secondary: #2C2C2C;
+  --nubian-btn-secondary-foreground: #FFFFFF;
+
+  --nubian-border: rgba(212, 175, 55, 0.2);
+  --nubian-overlay: rgba(0, 0, 0, 0.7);
+
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+
+  --background: var(--nubian-background);
+  --foreground: var(--nubian-text-primary);
+  --card: var(--nubian-card-background);
+  --card-foreground: var(--nubian-text-primary);
+  --popover: var(--nubian-secondary-background);
+  --popover-foreground: var(--nubian-text-primary);
+  --muted: var(--nubian-surface);
+  --muted-foreground: var(--nubian-text-secondary);
+  --border: var(--nubian-border);
+  --input: rgba(255, 255, 255, 0.1);
+
+  --sidebar: var(--nubian-secondary-background);
+  --sidebar-foreground: var(--nubian-text-primary);
+  --sidebar-accent: var(--nubian-surface);
+  --sidebar-accent-foreground: var(--nubian-text-primary);
+  --sidebar-border: var(--nubian-border);
 }
 
 @theme inline {
@@ -113,10 +157,20 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
   /* Nubian Exposed Colors */
   --color-nubian-primary: var(--nubian-primary);
   --color-nubian-secondary: var(--nubian-secondary);
   --color-nubian-accent: var(--nubian-accent);
+  --color-nubian-surface: var(--nubian-surface);
 
   --color-glass-bg: var(--glass-bg);
   --color-glass-border: var(--glass-border);

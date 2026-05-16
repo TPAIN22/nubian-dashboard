@@ -46,7 +46,7 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <div className="bg-white">
+    <div className="bg-background text-foreground">
       <MinimalHero />
       <MinimalFeatures />
       <HowItWorks />

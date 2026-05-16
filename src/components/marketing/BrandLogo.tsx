@@ -13,8 +13,8 @@ export function BrandLogo() {
           className="object-contain"
         />
       </div>
-      <span className="text-xl font-bold tracking-tight text-zinc-950">
-        نوبيان <span className="text-zinc-400 font-light ml-1">nubian</span>
+      <span className="text-xl font-bold tracking-tight text-foreground">
+        نوبيان <span className="text-muted-foreground font-light ml-1">nubian</span>
       </span>
     </Link>
   )

@@ -9,6 +9,7 @@ import { BrandLogo } from "./BrandLogo"
 import { IconMenu2, IconX } from "@tabler/icons-react"
 import { useUser, UserButton } from "@clerk/nextjs"
 import { LayoutDashboard } from "lucide-react"
+import ModeToggle from "@/components/mode-toggle"
 
 const GUEST_LINKS = [
   { name: "الرئيسية", href: "/" },
@@ -41,8 +42,8 @@ export function MinimalNavbar() {
 
   const userRole = (user?.publicMetadata?.role as string) || "marketer"
 
-  const navLinks = !isSignedIn 
-    ? GUEST_LINKS 
+  const navLinks = !isSignedIn
+    ? GUEST_LINKS
     : userRole === "admin" || userRole === "support"
     ? ADMIN_LINKS
     : userRole === "merchant"
@@ -61,8 +62,8 @@ export function MinimalNavbar() {
     <header
       className={cn(
         "sticky top-0 z-50 w-full transition-all duration-300 border-b",
-        isScrolled 
-          ? "bg-white/80 backdrop-blur-md border-zinc-200 py-3" 
+        isScrolled
+          ? "bg-background/80 backdrop-blur-md border-border py-3"
           : "bg-transparent border-transparent py-5"
       )}
     >
@@ -76,8 +77,8 @@ export function MinimalNavbar() {
               key={link.name}
               href={link.href}
               className={cn(
-                "text-sm font-bold transition-colors hover:text-zinc-950",
-                pathname === link.href ? "text-zinc-950" : "text-zinc-500"
+                "text-sm font-bold transition-colors hover:text-foreground",
+                pathname === link.href ? "text-foreground" : "text-muted-foreground"
               )}
             >
               {link.name}
@@ -86,8 +87,9 @@ export function MinimalNavbar() {
         </nav>
 
         <div className="hidden md:flex items-center gap-4">
+          <ModeToggle />
           {!isLoaded ? (
-            <div className="w-20 h-8 bg-zinc-100 animate-pulse rounded-full" />
+            <div className="w-20 h-8 bg-muted animate-pulse rounded-full" />
           ) : isSignedIn ? (
             <div className="flex items-center gap-4">
               <Link href={userRole === 'admin' ? '/admin' : userRole === 'merchant' ? '/merchant/dashboard' : '/affiliate'}>
@@ -106,7 +108,7 @@ export function MinimalNavbar() {
                 </Button>
               </Link>
               <Link href="/sign-up">
-                <Button className="bg-zinc-950 text-white hover:bg-zinc-800 rounded-full px-6 text-sm font-bold">
+                <Button className="bg-foreground text-background hover:bg-foreground/90 rounded-full px-6 text-sm font-bold">
                   انضم إلينا
                 </Button>
               </Link>
@@ -115,43 +117,46 @@ export function MinimalNavbar() {
         </div>
 
         {/* Mobile Toggle */}
-        <button
-          className="md:hidden p-2 text-zinc-950"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          {isMobileMenuOpen ? <IconX size={24} /> : <IconMenu2 size={24} />}
-        </button>
+        <div className="md:hidden flex items-center gap-2">
+          <ModeToggle />
+          <button
+            className="p-2 text-foreground"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? <IconX size={24} /> : <IconMenu2 size={24} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 w-full bg-white border-b border-zinc-200 p-6 flex flex-col gap-6 animate-in slide-in-from-top-4 duration-300">
+        <div className="md:hidden absolute top-full left-0 w-full bg-background border-b border-border p-6 flex flex-col gap-6 animate-in slide-in-from-top-4 duration-300">
           <div className="flex flex-col gap-4 text-right">
             {navLinks.map((link) => (
               <Link
                 key={link.name}
                 href={link.href}
-                className="text-lg font-bold text-zinc-950"
+                className="text-lg font-bold text-foreground"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 {link.name}
               </Link>
             ))}
           </div>
-          <div className="flex flex-col gap-3 pt-4 border-t border-zinc-100">
+          <div className="flex flex-col gap-3 pt-4 border-t border-border">
             {isSignedIn ? (
               <div className="flex flex-col gap-3">
-                 <Link 
+                 <Link
                   href={userRole === 'admin' ? '/admin' : userRole === 'merchant' ? '/merchant/dashboard' : '/affiliate'}
                   onClick={() => setIsMobileMenuOpen(false)}
                  >
-                  <Button className="w-full justify-center bg-zinc-950 text-white rounded-full h-12 gap-2 font-bold">
+                  <Button className="w-full justify-center bg-foreground text-background rounded-full h-12 gap-2 font-bold">
                     <LayoutDashboard className="w-4 h-4" />
                     انتقل للوحة التحكم
                   </Button>
                 </Link>
-                <div className="flex items-center justify-between px-4 py-2 bg-zinc-50 rounded-xl">
-                  <span className="text-sm font-bold text-zinc-600">ملفي الشخصي</span>
+                <div className="flex items-center justify-between px-4 py-2 bg-muted rounded-xl">
+                  <span className="text-sm font-bold text-muted-foreground">ملفي الشخصي</span>
                   <UserButton afterSignOutUrl="/" />
                 </div>
               </div>
@@ -163,7 +168,7 @@ export function MinimalNavbar() {
                   </Button>
                 </Link>
                 <Link href="/sign-up" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button className="w-full justify-center bg-zinc-950 text-white rounded-full h-12 font-bold">
+                  <Button className="w-full justify-center bg-foreground text-background rounded-full h-12 font-bold">
                     انضم إلينا
                   </Button>
                 </Link>

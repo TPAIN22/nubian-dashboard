@@ -83,18 +83,18 @@ const createColumns = (
         <span
           className={`px-2 py-1 rounded-full text-xs font-medium ${
             status === "DELIVERED" || status === "delivered"
-              ? "bg-green-100 text-green-800"
+              ? "bg-green-500/15 text-green-700 dark:text-green-300"
               : status === "SHIPPED" || status === "shipped"
               ? "bg-blue-100 text-blue-800"
               : status === "CONFIRMED" || status === "confirmed"
-              ? "bg-yellow-100 text-yellow-800"
+              ? "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300"
               : status === "CANCELLED" || status === "cancelled"
-              ? "bg-red-100 text-red-800"
+              ? "bg-red-500/15 text-red-700 dark:text-red-300"
               : status === "AWAITING_PAYMENT_CONFIRMATION"
-              ? "bg-purple-100 text-purple-800"
+              ? "bg-purple-500/15 text-purple-700 dark:text-purple-300"
               : status === "PAYMENT_FAILED"
-              ? "bg-red-100 text-red-800"
-              : "bg-gray-100 text-gray-800"
+              ? "bg-red-500/15 text-red-700 dark:text-red-300"
+              : "bg-muted text-muted-foreground"
           }`}
         >
           {getStatusInArabic(status)}
@@ -122,14 +122,14 @@ const createColumns = (
         <span
           className={`px-2 py-1 rounded-full text-xs font-medium ${
             s === "PAID" || s === "paid"
-              ? "bg-green-100 text-green-800"
+              ? "bg-green-500/15 text-green-700 dark:text-green-300"
               : s === "REJECTED"
-              ? "bg-red-100 text-red-800"
+              ? "bg-red-500/15 text-red-700 dark:text-red-300"
               : s === "PENDING_CONFIRMATION"
-              ? "bg-yellow-100 text-yellow-800"
+              ? "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300"
               : s === "FAILED" || s === "failed"
-              ? "bg-red-100 text-red-800"
-              : "bg-gray-100 text-gray-800"
+              ? "bg-red-500/15 text-red-700 dark:text-red-300"
+              : "bg-muted text-muted-foreground"
           }`}
         >
           {getPaymentStatusInArabic(s)}
@@ -231,17 +231,17 @@ const createColumns = (
                 </div>
                 {/* Show attributes inline */}
                 {product.attributes && typeof product.attributes === 'object' && Object.keys(product.attributes).length > 0 && (
-                  <div className="text-gray-500 truncate text-xs">
+                  <div className="text-muted-foreground truncate text-xs">
                     {Object.entries(product.attributes).map(([key, value]) => `${key}: ${value}`).join(', ')}
                   </div>
                 )}
                 {(!product.attributes || Object.keys(product.attributes || {}).length === 0) && product.size && (
-                  <div className="text-gray-500 text-xs">
+                  <div className="text-muted-foreground text-xs">
                     مقاس: {product.size}
                   </div>
                 )}
                 {product.color && (
-                  <div className="text-gray-500 text-xs">
+                  <div className="text-muted-foreground text-xs">
                     لون: {product.color}
                   </div>
                 )}
@@ -614,43 +614,43 @@ function ProductDetailsModal({ isOpen, onClose, product }: { isOpen: boolean; on
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-600">اسم المنتج</p>
+                  <p className="text-sm text-muted-foreground">اسم المنتج</p>
                   <p className="font-medium">{productData.name || 'غير محدد'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">السعر</p>
+                  <p className="text-sm text-muted-foreground">السعر</p>
                   <p className="font-medium">{formatMoney(productData.price || 0)}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-600">الكمية المطلوبة</p>
+                  <p className="text-sm text-muted-foreground">الكمية المطلوبة</p>
                   <p className="font-medium">{product.quantity}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">السعر الكلي</p>
+                  <p className="text-sm text-muted-foreground">السعر الكلي</p>
                   <p className="font-medium">{formatMoney((product.price || productData.price || 0) * product.quantity)}</p>
                 </div>
               </div>
 
               {productData.description && (
                 <div>
-                  <p className="text-sm text-gray-600">الوصف</p>
+                  <p className="text-sm text-muted-foreground">الوصف</p>
                   <p className="text-sm">{productData.description}</p>
                 </div>
               )}
 
               {productData.category && (
                 <div>
-                  <p className="text-sm text-gray-600">الفئة</p>
+                  <p className="text-sm text-muted-foreground">الفئة</p>
                   <p className="text-sm">{productData.category}</p>
                 </div>
               )}
 
               {productData.stock !== undefined && (
                 <div>
-                  <p className="text-sm text-gray-600">المخزون</p>
+                  <p className="text-sm text-muted-foreground">المخزون</p>
                   <p className="text-sm">{productData.stock}</p>
                 </div>
               )}
@@ -658,7 +658,7 @@ function ProductDetailsModal({ isOpen, onClose, product }: { isOpen: boolean; on
               {/* Product Attributes/Variants */}
               {(product.attributes || product.size || product.variantId || productData.variantId) && (
                 <div className="border-t pt-3">
-                  <p className="text-sm text-gray-600 mb-2">الخصائص والمتغيرات</p>
+                  <p className="text-sm text-muted-foreground mb-2">الخصائص والمتغيرات</p>
                   <div className="space-y-1">
                     {product.attributes && typeof product.attributes === 'object' && Object.keys(product.attributes).length > 0 && (
                       Object.entries(product.attributes).map(([key, value]) => (
@@ -700,7 +700,7 @@ function ProductDetailsModal({ isOpen, onClose, product }: { isOpen: boolean; on
               {/* Additional Pricing Info */}
               {(product.merchantPrice || product.nubianMarkup || product.dynamicMarkup) && (
                 <div className="border-t pt-3">
-                  <p className="text-sm text-gray-600 mb-2">تفاصيل التسعير</p>
+                  <p className="text-sm text-muted-foreground mb-2">تفاصيل التسعير</p>
                   <div className="space-y-1">
                     {product.merchantPrice && (
                       <div className="flex justify-between text-sm">

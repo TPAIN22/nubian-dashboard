@@ -63,19 +63,19 @@ export default function AboutPage() {
           <div className="space-y-4 pt-6">
             <h2 className="text-2xl font-bold text-foreground border-b pb-2">قيمنا | Our Values</h2>
             <div className="grid md:grid-cols-2 gap-4">
-              <div className="bg-slate-50 p-4 rounded-lg">
+              <div className="bg-muted p-4 rounded-lg">
                 <h3 className="font-semibold text-amber-600 mb-2">الجودة | Quality</h3>
                 <p className="text-foreground text-sm">نضمن جودة وأصالة جميع منتجاتنا</p>
               </div>
-              <div className="bg-slate-50 p-4 rounded-lg">
+              <div className="bg-muted p-4 rounded-lg">
                 <h3 className="font-semibold text-amber-600 mb-2">الثقة | Trust</h3>
                 <p className="text-foreground text-sm">نبني علاقات طويلة الأمد مع عملائنا</p>
               </div>
-              <div className="bg-slate-50 p-4 rounded-lg">
+              <div className="bg-muted p-4 rounded-lg">
                 <h3 className="font-semibold text-amber-600 mb-2">الشفافية | Transparency</h3>
                 <p className="text-foreground text-sm">شفافية كاملة في جميع معاملاتنا</p>
               </div>
-              <div className="bg-slate-50 p-4 rounded-lg">
+              <div className="bg-muted p-4 rounded-lg">
                 <h3 className="font-semibold text-amber-600 mb-2">الابتكار | Innovation</h3>
                 <p className="text-foreground text-sm">نطور باستمرار منصة التسوق لدينا</p>
               </div>

@@ -106,13 +106,13 @@ export type Order = {
 
 const getStatusColor = (status: string) => {
   const statusMap: Record<string, string> = {
-    pending: "bg-yellow-100 text-yellow-800",
-    confirmed: "bg-blue-100 text-blue-800",
-    shipped: "bg-purple-100 text-purple-800",
-    delivered: "bg-green-100 text-green-800",
-    cancelled: "bg-red-100 text-red-800",
+    pending: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300",
+    confirmed: "bg-blue-500/15 text-blue-700 dark:text-blue-300",
+    shipped: "bg-purple-500/15 text-purple-700 dark:text-purple-300",
+    delivered: "bg-green-500/15 text-green-700 dark:text-green-300",
+    cancelled: "bg-red-500/15 text-red-700 dark:text-red-300",
   }
-  return statusMap[status] || "bg-gray-100 text-gray-800"
+  return statusMap[status] || "bg-muted text-muted-foreground"
 }
 
 const formatDate = (dateString: string) => {
@@ -227,7 +227,7 @@ const createColumns = (
             {products.map((product, idx) => (
               <div key={idx} className="text-xs mb-1">
                 <div
-                  className="truncate cursor-pointer text-blue-600 hover:text-blue-800"
+                  className="truncate cursor-pointer text-primary hover:text-primary/80"
                   onClick={(e) => {
                     e.stopPropagation(); // Prevent row click
                     handleProductClick(product);
@@ -237,17 +237,17 @@ const createColumns = (
                 </div>
                 {/* Show attributes inline */}
                 {product.attributes && typeof product.attributes === 'object' && Object.keys(product.attributes).length > 0 && (
-                  <div className="text-gray-500 truncate text-xs">
+                  <div className="text-muted-foreground truncate text-xs">
                     {Object.entries(product.attributes).map(([key, value]) => `${key}: ${value}`).join(', ')}
                   </div>
                 )}
                 {(!product.attributes || Object.keys(product.attributes || {}).length === 0) && product.size && (
-                  <div className="text-gray-500 text-xs">
+                  <div className="text-muted-foreground text-xs">
                     مقاس: {product.size}
                   </div>
                 )}
                 {product.color && (
-                  <div className="text-gray-500 text-xs">
+                  <div className="text-muted-foreground text-xs">
                     لون: {product.color}
                   </div>
                 )}
@@ -282,7 +282,7 @@ const createColumns = (
       // the same currency context the order was placed in so the table is
       // visually consistent with the total column.
       const code = getOrderCurrency(row.original as any)
-      return <div className="font-medium text-green-600">{formatMoney(revenue, code)}</div>
+      return <div className="font-medium text-green-600 dark:text-green-400">{formatMoney(revenue, code)}</div>
     },
   },
   {
@@ -667,43 +667,43 @@ function ProductDetailsModal({ isOpen, onClose, product }: ProductDetailsModalPr
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-600">اسم المنتج</p>
+                  <p className="text-sm text-muted-foreground">اسم المنتج</p>
                   <p className="font-medium">{productData.name || 'غير محدد'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">السعر</p>
+                  <p className="text-sm text-muted-foreground">السعر</p>
                   <p className="font-medium">{formatMoney(productData.price || 0)}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-600">الكمية المطلوبة</p>
+                  <p className="text-sm text-muted-foreground">الكمية المطلوبة</p>
                   <p className="font-medium">{product.quantity}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">السعر الكلي</p>
+                  <p className="text-sm text-muted-foreground">السعر الكلي</p>
                   <p className="font-medium">{formatMoney((product.price || productData.price || 0) * product.quantity)}</p>
                 </div>
               </div>
 
               {productData.description && (
                 <div>
-                  <p className="text-sm text-gray-600">الوصف</p>
+                  <p className="text-sm text-muted-foreground">الوصف</p>
                   <p className="text-sm">{productData.description}</p>
                 </div>
               )}
 
               {productData.category && (
                 <div>
-                  <p className="text-sm text-gray-600">الفئة</p>
+                  <p className="text-sm text-muted-foreground">الفئة</p>
                   <p className="text-sm">{productData.category}</p>
                 </div>
               )}
 
               {productData.stock !== undefined && (
                 <div>
-                  <p className="text-sm text-gray-600">المخزون</p>
+                  <p className="text-sm text-muted-foreground">المخزون</p>
                   <p className="text-sm">{productData.stock}</p>
                 </div>
               )}
@@ -711,7 +711,7 @@ function ProductDetailsModal({ isOpen, onClose, product }: ProductDetailsModalPr
               {/* Product Attributes/Variants */}
               {(product.attributes || product.size || product.variantId || productData.variantId) && (
                 <div className="border-t pt-3">
-                  <p className="text-sm text-gray-600 mb-2">الخصائص والمتغيرات</p>
+                  <p className="text-sm text-muted-foreground mb-2">الخصائص والمتغيرات</p>
                   <div className="space-y-1">
                     {product.attributes && typeof product.attributes === 'object' && Object.keys(product.attributes).length > 0 && (
                       Object.entries(product.attributes).map(([key, value]) => (
@@ -753,7 +753,7 @@ function ProductDetailsModal({ isOpen, onClose, product }: ProductDetailsModalPr
               {/* Additional Pricing Info */}
               {(product.merchantPrice || product.nubianMarkup || product.dynamicMarkup) && (
                 <div className="border-t pt-3">
-                  <p className="text-sm text-gray-600 mb-2">تفاصيل التسعير</p>
+                  <p className="text-sm text-muted-foreground mb-2">تفاصيل التسعير</p>
                   <div className="space-y-1">
                     {product.merchantPrice && (
                       <div className="flex justify-between text-sm">
@@ -846,15 +846,15 @@ function OrderDetailsDialog({ isOpen, onClose, order, onProductClick }: OrderDet
                 {order.products.map((product, index) => (
                   <div
                     key={index}
-                    className="flex justify-between items-center border-b pb-2 cursor-pointer hover:bg-gray-50 p-2 rounded"
+                    className="flex justify-between items-center border-b pb-2 cursor-pointer hover:bg-muted/50 p-2 rounded"
                     onClick={() => onProductClick?.(product)}
                   >
                     <div className="flex-1">
-                      <p className="font-medium text-blue-600 hover:text-blue-800">{product.product?.name || product.name || 'منتج غير محدد'}</p>
-                      <p className="text-sm text-gray-600">الكمية: {product.quantity}</p>
+                      <p className="font-medium text-primary hover:text-primary/80">{product.product?.name || product.name || 'منتج غير محدد'}</p>
+                      <p className="text-sm text-muted-foreground">الكمية: {product.quantity}</p>
                       {/* Show attributes if available */}
                       {product.attributes && typeof product.attributes === 'object' && Object.keys(product.attributes).length > 0 && (
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-muted-foreground mt-1">
                           {Object.entries(product.attributes).map(([key, value]) => (
                             <span key={key} className="inline-block mr-2">
                               {key}: {String(value)}
@@ -863,12 +863,12 @@ function OrderDetailsDialog({ isOpen, onClose, order, onProductClick }: OrderDet
                         </div>
                       )}
                       {(!product.attributes || Object.keys(product.attributes || {}).length === 0) && product.size && (
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-muted-foreground mt-1">
                           مقاس: {product.size}
                         </div>
                       )}
                       {product.color && (
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-muted-foreground mt-1">
                           لون: {product.color}
                         </div>
                       )}
@@ -882,22 +882,22 @@ function OrderDetailsDialog({ isOpen, onClose, order, onProductClick }: OrderDet
                     </div>
                     <div className="text-left">
                       <p className="font-medium">{formatMoney(product.price || product.product?.price || 0, code)}</p>
-                      <p className="text-sm text-gray-500">الإجمالي: {formatMoney((product.price || product.product?.price || 0) * product.quantity, code)}</p>
+                      <p className="text-sm text-muted-foreground">الإجمالي: {formatMoney((product.price || product.product?.price || 0) * product.quantity, code)}</p>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
               <div className="space-y-2">
-                <p className="text-gray-500 text-sm">لا توجد منتجات لهذا الطلب</p>
-                <p className="text-xs text-gray-400">Products array: {JSON.stringify(order.products)}</p>
-                <p className="text-xs text-gray-400">Products count: {order.productsCount}</p>
+                <p className="text-muted-foreground text-sm">لا توجد منتجات لهذا الطلب</p>
+                <p className="text-xs text-muted-foreground">Products array: {JSON.stringify(order.products)}</p>
+                <p className="text-xs text-muted-foreground">Products count: {order.productsCount}</p>
               </div>
             )}
             <div className="mt-4 pt-3 border-t">
               <div className="flex justify-between items-center">
                 <span className="font-semibold">إيراد التاجر:</span>
-                <span className="font-bold text-green-600">
+                <span className="font-bold text-green-600 dark:text-green-400">
                   {formatMoney(order.merchantRevenue || 0, code)}
                 </span>
               </div>

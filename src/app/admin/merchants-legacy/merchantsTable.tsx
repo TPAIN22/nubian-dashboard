@@ -528,12 +528,12 @@ export const columns: ColumnDef<Merchant>[] = [
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
       const statusMap: Record<string, { label: string; className: string }> = {
-        PENDING: { label: "قيد المراجعة", className: "bg-yellow-100 text-yellow-800" },
-        APPROVED: { label: "موافق عليه", className: "bg-green-100 text-green-800" },
-        REJECTED: { label: "مرفوض", className: "bg-red-100 text-red-800" },
-        SUSPENDED: { label: "معلق", className: "bg-orange-100 text-orange-800" },
+        PENDING: { label: "قيد المراجعة", className: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300" },
+        APPROVED: { label: "موافق عليه", className: "bg-green-500/15 text-green-700 dark:text-green-300" },
+        REJECTED: { label: "مرفوض", className: "bg-red-500/15 text-red-700 dark:text-red-300" },
+        SUSPENDED: { label: "معلق", className: "bg-orange-500/15 text-orange-700 dark:text-orange-300" },
       };
-      const statusInfo = statusMap[status] || { label: status, className: "bg-gray-100 text-gray-800" };
+      const statusInfo = statusMap[status] || { label: status, className: "bg-muted text-muted-foreground" };
       
       return (
         <div className="capitalize">

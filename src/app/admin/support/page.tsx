@@ -59,9 +59,9 @@ export default function SupportDashboard() {
     }, [isLoaded, statusFilter, categoryFilter, searchTerm]);
 
     const getRiskColor = (score: number) => {
-        if (score >= 50) return "text-destructive border-destructive font-medium bg-red-500/10";
-        if (score >= 20) return "text-orange-600 border-orange-200 font-medium bg-orange-500/10";
-        return "text-green-600 border-green-200 font-medium bg-green-500/10";
+        if (score >= 50) return "text-destructive border-destructive/40 font-medium bg-destructive/10";
+        if (score >= 20) return "text-orange-600 dark:text-orange-400 border-orange-300/40 dark:border-orange-400/40 font-medium bg-orange-500/10";
+        return "text-green-600 dark:text-green-400 border-green-300/40 dark:border-green-400/40 font-medium bg-green-500/10";
     };
 
     const isOverdue = (dateString: string) => {
@@ -231,22 +231,22 @@ function TicketTable({ data, getRiskColor, isOverdue }: { data: any[], getRiskCo
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Badge variant="outline" className="capitalize font-normal text-gray-600">
+                                        <Badge variant="outline" className="capitalize font-normal text-muted-foreground">
                                             {ticket.type}
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <Badge variant="outline" className={
-                                            ticket.status === 'escalated' ? 'text-destructive border-destructive font-medium' :
-                                                ticket.status === 'open' ? 'text-blue-700 border-blue-200 font-medium' :
-                                                    ticket.status === 'resolved_refund' ? 'text-green-700 border-green-200 font-medium' :
-                                                        'text-gray-700 font-medium'
+                                            ticket.status === 'escalated' ? 'text-destructive border-destructive/40 font-medium bg-destructive/10' :
+                                                ticket.status === 'open' ? 'text-blue-700 dark:text-blue-400 border-blue-300/40 dark:border-blue-400/40 font-medium bg-blue-500/10' :
+                                                    ticket.status === 'resolved_refund' ? 'text-green-700 dark:text-green-400 border-green-300/40 dark:border-green-400/40 font-medium bg-green-500/10' :
+                                                        'text-foreground border-border font-medium'
                                         }>
                                             <span className="capitalize">{ticket.status.replace('_', ' ')}</span>
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <span className={`text-sm ${ticket.priority === 'high' ? 'text-destructive font-medium' : 'text-gray-600'}`}>
+                                        <span className={`text-sm ${ticket.priority === 'high' ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
                                             {ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)}
                                         </span>
                                     </TableCell>
@@ -264,7 +264,7 @@ function TicketTable({ data, getRiskColor, isOverdue }: { data: any[], getRiskCo
                                     </TableCell>
                                     <TableCell className="text-left">
                                         <Link href={`/admin/support/${ticket._id || ticket.ticketNumber}`}>
-                                            <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">عرض</Button>
+                                            <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/10">عرض</Button>
                                         </Link>
                                     </TableCell>
                                 </TableRow>

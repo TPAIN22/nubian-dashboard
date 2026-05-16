@@ -202,7 +202,7 @@ export default function SignInPage() {
 
   // Not signed in - show sign-in page
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50 dark:bg-gray-900">
+    <div className="flex items-center justify-center min-h-screen p-4 bg-muted">
       <div className="w-full max-w-md">
         <SignIn 
           routing="path"
