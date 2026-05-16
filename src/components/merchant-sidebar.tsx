@@ -10,6 +10,7 @@ import {
   IconShoppingBag,
   IconInnerShadowTop,
   IconTicket,
+  IconLifebuoy,
 } from "@tabler/icons-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -50,6 +51,11 @@ const merchantNavData = {
       title: "الكوبونات",
       url: "/merchant/coupons",
       icon: IconTicket,
+    },
+    {
+      title: "الدعم",
+      url: "/merchant/support",
+      icon: IconLifebuoy,
     },
     {
       title: "إعدادات المتجر",

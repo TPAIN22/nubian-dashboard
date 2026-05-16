@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertCircle, Clock, Loader2, Search, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { adminApi } from "@/lib/adminApi";
 
 export default function SupportDashboard() {
     const { isLoaded, userId } = useAuth();
@@ -19,13 +20,13 @@ export default function SupportDashboard() {
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [categoryFilter, setCategoryFilter] = useState("all");
-    
+
     const [tickets, setTickets] = useState<any[]>([]);
     const [stats, setStats] = useState({
-        totalOpen: 0,
-        highRiskCount: 0,
-        disputesCount: 0,
-        overdueCount: 0
+        openTickets: 0,
+        highRisk: 0,
+        activeDisputes: 0,
+        overdue: 0
     });
     const [isLoading, setIsLoading] = useState(true);
 
@@ -33,16 +34,17 @@ export default function SupportDashboard() {
         const fetchTickets = async () => {
             setIsLoading(true);
             try {
-                const params = new URLSearchParams();
-                if (statusFilter !== "all") params.append("status", statusFilter);
-                if (categoryFilter !== "all") params.append("category", categoryFilter);
-                if (searchTerm) params.append("query", searchTerm);
+                const params: Record<string, string> = {};
+                if (statusFilter !== "all") params.status = statusFilter;
+                if (categoryFilter !== "all") params.category = categoryFilter;
+                if (searchTerm) params.query = searchTerm;
 
-                const response = await fetch(`/api/admin/support?${params.toString()}`);
-                if (!response.ok) throw new Error("Failed to fetch tickets");
-                const data = await response.json();
-                setTickets(data.tickets);
-                setStats(data.stats);
+                const [ticketsRes, statsRes] = await Promise.all([
+                    adminApi.getTickets(params),
+                    adminApi.getStats()
+                ]);
+                setTickets(ticketsRes.data || []);
+                setStats(statsRes);
             } catch (error) {
                 console.error(error);
                 toast.error("حدث خطأ أثناء تحميل التذاكر");
@@ -87,7 +89,7 @@ export default function SupportDashboard() {
                         <Clock className="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-foreground">{stats.totalOpen}</div>
+                        <div className="text-2xl font-bold text-foreground">{stats.openTickets}</div>
                         <p className="text-xs text-muted-foreground mt-1">يتطلب استجابة</p>
                     </CardContent>
                 </Card>
@@ -97,7 +99,7 @@ export default function SupportDashboard() {
                         <ShieldAlert className="h-4 w-4 text-destructive" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-destructive">{stats.highRiskCount}</div>
+                        <div className="text-2xl font-bold text-destructive">{stats.highRisk}</div>
                         <p className="text-xs text-muted-foreground mt-1">تتطلب فحص دقيق</p>
                     </CardContent>
                 </Card>
@@ -107,7 +109,7 @@ export default function SupportDashboard() {
                         <AlertCircle className="h-4 w-4 text-orange-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-orange-600">{stats.disputesCount}</div>
+                        <div className="text-2xl font-bold text-orange-600">{stats.activeDisputes}</div>
                         <p className="text-xs text-muted-foreground mt-1">شكاوى حول الطلبات</p>
                     </CardContent>
                 </Card>
@@ -117,7 +119,7 @@ export default function SupportDashboard() {
                         <Clock className="h-4 w-4 text-destructive" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-destructive">{stats.overdueCount}</div>
+                        <div className="text-2xl font-bold text-destructive">{stats.overdue}</div>
                         <p className="text-xs text-muted-foreground mt-1">تجاوزت وقت الحل</p>
                     </CardContent>
                 </Card>
@@ -142,8 +144,12 @@ export default function SupportDashboard() {
                         <SelectContent dir="rtl">
                             <SelectItem value="all">جميع الحالات</SelectItem>
                             <SelectItem value="open">مفتوحة</SelectItem>
+                            <SelectItem value="under_review">قيد المراجعة</SelectItem>
+                            <SelectItem value="waiting_customer">بانتظار العميل</SelectItem>
                             <SelectItem value="escalated">مصعدة</SelectItem>
-                            <SelectItem value="resolved">تم الحل</SelectItem>
+                            <SelectItem value="resolved_refund">تم الاسترداد</SelectItem>
+                            <SelectItem value="resolved_rejected">مرفوضة</SelectItem>
+                            <SelectItem value="closed">مغلقة</SelectItem>
                         </SelectContent>
                     </Select>
                     <Select onValueChange={setCategoryFilter} value={categoryFilter}>
@@ -212,16 +218,16 @@ function TicketTable({ data, getRiskColor, isOverdue }: { data: any[], getRiskCo
                     </TableHeader>
                     <TableBody>
                         {data.map((ticket) => {
-                            const overdue = isOverdue(ticket.slaDue) && ticket.status !== 'resolved_refund';
+                            const overdue = isOverdue(ticket.slaDeadline) && ticket.status !== 'resolved_refund';
                             const highRisk = ticket.riskScore >= 50;
 
                             return (
-                                <TableRow key={ticket.ticketId || ticket._id} className="hover:bg-muted/50 border-b">
-                                    <TableCell className="font-medium text-foreground text-right">{ticket.ticketId}</TableCell>
+                                <TableRow key={ticket.ticketNumber || ticket._id} className="hover:bg-muted/50 border-b">
+                                    <TableCell className="font-medium text-foreground text-right">{ticket.ticketNumber}</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex flex-col">
                                             <span className="font-medium text-foreground">{ticket.subject}</span>
-                                            <span className="text-xs text-muted-foreground capitalize">{ticket.category.replace('_', ' ')}</span>
+                                            <span className="text-xs text-muted-foreground capitalize">{(ticket.category || '').replace('_', ' ')}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right">
@@ -253,11 +259,11 @@ function TicketTable({ data, getRiskColor, isOverdue }: { data: any[], getRiskCo
                                         </div>
                                     </TableCell>
                                     <TableCell className={`text-right ${overdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                                        {new Date(ticket.slaDue).toLocaleDateString("ar-EG")}
+                                        {new Date(ticket.slaDeadline).toLocaleDateString("ar-EG")}
                                         {overdue && <span className="mr-1 text-xs text-destructive font-bold">!</span>}
                                     </TableCell>
                                     <TableCell className="text-left">
-                                        <Link href={`/admin/support/${ticket.ticketId || ticket._id}`}>
+                                        <Link href={`/admin/support/${ticket._id || ticket.ticketNumber}`}>
                                             <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">عرض</Button>
                                         </Link>
                                     </TableCell>

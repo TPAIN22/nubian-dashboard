@@ -10,11 +10,12 @@ import { AlertTriangle, User, MessageCircle, DollarSign, Ban, ShieldAlert, Loade
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import Link from "next/link";
+import { adminApi } from "@/lib/adminApi";
 
 export default function TicketDetails({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const { isLoaded } = useAuth();
-    
+
     const [ticket, setTicket] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [replyText, setReplyText] = useState("");
@@ -24,10 +25,8 @@ export default function TicketDetails({ params }: { params: Promise<{ id: string
         const fetchTicket = async () => {
             setIsLoading(true);
             try {
-                const res = await fetch(`/api/admin/support/${id}`);
-                if (!res.ok) throw new Error("Ticket not found");
-                const data = await res.json();
-                setTicket(data.ticket);
+                const data = await adminApi.getTicket(id);
+                setTicket(data);
             } catch (error) {
                 console.error(error);
                 toast.error("خطأ في تحميل بيانات التذكرة");
@@ -43,14 +42,8 @@ export default function TicketDetails({ params }: { params: Promise<{ id: string
 
     const handleUpdateStatus = async (status: string) => {
         try {
-            const res = await fetch(`/api/admin/support/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status })
-            });
-            if (!res.ok) throw new Error("Update failed");
-            const data = await res.json();
-            setTicket(data.ticket);
+            const updated = await adminApi.updateTicketStatus(id, status);
+            setTicket((prev: any) => ({ ...prev, ...updated }));
             toast.success("تم تحديث الحالة بنجاح");
         } catch (error) {
             toast.error("فشل تحديث الحالة");
@@ -61,20 +54,52 @@ export default function TicketDetails({ params }: { params: Promise<{ id: string
         if (!replyText.trim()) return;
         setIsSending(true);
         try {
-            const res = await fetch(`/api/admin/support/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reply: replyText })
-            });
-            if (!res.ok) throw new Error("Reply failed");
-            const data = await res.json();
-            setTicket(data.ticket);
+            const newMessage = await adminApi.addMessage(id, replyText);
+            setTicket((prev: any) => ({
+                ...prev,
+                messages: [...(prev?.messages || []), newMessage]
+            }));
             setReplyText("");
             toast.success("تم إرسال الرد");
         } catch (error) {
             toast.error("فشل إرسال الرد");
         } finally {
             setIsSending(false);
+        }
+    };
+
+    const handleResolveDispute = async (resolution: 'refund_full' | 'rejected') => {
+        if (!ticket?.dispute?._id) {
+            toast.error("لا يوجد نزاع مرتبط بهذه التذكرة");
+            return;
+        }
+        try {
+            await adminApi.resolveDispute(ticket.dispute._id, resolution);
+            toast.success(resolution === 'refund_full' ? "تم إصدار الاسترداد" : "تم رفض النزاع");
+            const refreshed = await adminApi.getTicket(id);
+            setTicket(refreshed);
+        } catch (error) {
+            toast.error("فشل تنفيذ الإجراء");
+        }
+    };
+
+    const handleFreezeMerchant = async () => {
+        try {
+            const merchantId = ticket?.merchantId?._id || ticket?.merchantId;
+            await adminApi.freezeMerchant(merchantId);
+            toast.success("تم تجميد رصيد التاجر");
+        } catch (error) {
+            toast.error("فشل تجميد رصيد التاجر");
+        }
+    };
+
+    const handleSuspendProduct = async () => {
+        try {
+            const productId = ticket?.productId?._id || ticket?.productId;
+            await adminApi.suspendProduct(productId);
+            toast.success("تم تعليق المنتج");
+        } catch (error) {
+            toast.error("فشل تعليق المنتج");
         }
     };
 
@@ -98,6 +123,11 @@ export default function TicketDetails({ params }: { params: Promise<{ id: string
         );
     }
 
+    const ownerName = ticket.userId?.fullName || "—";
+    const ownerEmail = ticket.userId?.emailAddress || "—";
+    const orderNumber = ticket.relatedOrderId?.orderNumber;
+    const orderAmount = ticket.relatedOrderId?.totalAmount;
+
     return (
         <div className="p-6 bg-gray-50 min-h-screen" dir="rtl">
             <div className="flex justify-between items-start mb-6">
@@ -108,7 +138,7 @@ export default function TicketDetails({ params }: { params: Promise<{ id: string
                             <ShieldAlert size={12} /> مخاطر عالية ({ticket.riskScore})
                         </Badge>
                     </div>
-                     <p className="text-gray-500 mt-1">تذكرة #{ticket.ticketId} • تم الإنشاء في {new Date(ticket.createdAt).toLocaleDateString("ar-EG")}</p>
+                     <p className="text-gray-500 mt-1">تذكرة #{ticket.ticketNumber} • تم الإنشاء في {new Date(ticket.createdAt).toLocaleDateString("ar-EG")}</p>
                 </div>
                 <div className="flex gap-2">
                     <SelectStatus currentStatus={ticket.status} onUpdate={handleUpdateStatus} />
@@ -140,34 +170,37 @@ export default function TicketDetails({ params }: { params: Promise<{ id: string
                             <div className="space-y-4 mb-6 max-h-[500px] overflow-y-auto p-2">
                                 {/* Owner's original description as first message */}
                                 <div className="bg-muted p-4 rounded-lg rounded-tr-none max-w-[85%] border border-border">
-                                    <p className="text-xs font-bold text-primary mb-1">{ticket.userName} (صاحب التذكرة)</p>
+                                    <p className="text-xs font-bold text-primary mb-1">{ownerName} (صاحب التذكرة)</p>
                                     <p className="text-sm text-foreground">{ticket.description}</p>
                                     <p className="text-[10px] text-muted-foreground mt-2 text-left">{new Date(ticket.createdAt).toLocaleTimeString("ar-EG")}</p>
                                 </div>
 
-                                {ticket.messages?.map((msg: any, i: number) => (
-                                    <div key={i} className={`p-4 rounded-lg max-w-[85%] border ${
-                                        msg.role === 'support' 
-                                        ? 'bg-blue-500/10 border-blue-500/20 mr-auto rounded-tl-none' 
-                                        : 'bg-muted border-border ml-auto rounded-tr-none'
-                                    }`}>
-                                        <p className={`text-xs font-bold mb-1 ${msg.role === 'support' ? 'text-blue-600' : 'text-primary'}`}>
-                                            {msg.sender} {msg.role === 'support' ? '(أنت)' : ''}
-                                        </p>
-                                        <p className="text-sm text-foreground">{msg.text}</p>
-                                        <p className="text-[10px] text-muted-foreground mt-2 text-left">{new Date(msg.timestamp).toLocaleTimeString("ar-EG")}</p>
-                                    </div>
-                                ))}
+                                {ticket.messages?.map((msg: any, i: number) => {
+                                    const isSupport = msg.senderRole === 'support' || msg.senderRole === 'admin';
+                                    return (
+                                        <div key={i} className={`p-4 rounded-lg max-w-[85%] border ${
+                                            isSupport
+                                            ? 'bg-blue-500/10 border-blue-500/20 mr-auto rounded-tl-none'
+                                            : 'bg-muted border-border ml-auto rounded-tr-none'
+                                        }`}>
+                                            <p className={`text-xs font-bold mb-1 ${isSupport ? 'text-blue-600' : 'text-primary'}`}>
+                                                {msg.senderId?.fullName || msg.senderRole} {isSupport ? '(أنت)' : ''}
+                                            </p>
+                                            <p className="text-sm text-foreground">{msg.message}</p>
+                                            <p className="text-[10px] text-muted-foreground mt-2 text-left">{new Date(msg.createdAt).toLocaleTimeString("ar-EG")}</p>
+                                        </div>
+                                    );
+                                })}
                             </div>
                             <div className="flex gap-2 border-t pt-4">
-                                <Textarea 
-                                    placeholder="اكتب ردك هنا..." 
-                                    className="text-right resize-none min-h-[100px]" 
+                                <Textarea
+                                    placeholder="اكتب ردك هنا..."
+                                    className="text-right resize-none min-h-[100px]"
                                     value={replyText}
                                     onChange={(e) => setReplyText(e.target.value)}
                                 />
-                                <Button 
-                                    className="self-end px-8 py-6" 
+                                <Button
+                                    className="self-end px-8 py-6"
                                     onClick={handleSendReply}
                                     disabled={isSending || !replyText.trim()}
                                 >
@@ -189,12 +222,12 @@ export default function TicketDetails({ params }: { params: Promise<{ id: string
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <p className="text-sm text-gray-500 mb-2">
-                                درجة مخاطر هذه التذكرة <span className="font-bold text-destructive">80/100</span>.
+                                درجة مخاطر هذه التذكرة <span className="font-bold text-destructive">{ticket.riskScore}/100</span>.
                             </p>
-                            <Button variant="outline" className="w-full justify-start text-destructive border-destructive/20 hover:text-destructive hover:bg-transparent">
+                            <Button variant="outline" className="w-full justify-start text-destructive border-destructive/20 hover:text-destructive hover:bg-transparent" onClick={handleFreezeMerchant}>
                                 <Ban className="ml-2 h-4 w-4" /> تجميد رصيد التاجر
                             </Button>
-                            <Button variant="outline" className="w-full justify-start text-destructive border-destructive/20 hover:text-destructive hover:bg-transparent">
+                            <Button variant="outline" className="w-full justify-start text-destructive border-destructive/20 hover:text-destructive hover:bg-transparent" onClick={handleSuspendProduct}>
                                 <Ban className="ml-2 h-4 w-4" /> تعليق المنتج
                             </Button>
                         </CardContent>
@@ -210,12 +243,12 @@ export default function TicketDetails({ params }: { params: Promise<{ id: string
                         <CardContent className="space-y-3">
                              <div className="border border-orange-200 p-3 rounded-md mb-2">
                                 <p className="text-sm font-medium text-orange-900">المبلغ المتنازع عليه</p>
-                                <p className="text-2xl font-bold text-orange-700">${ticket.relatedOrder?.amount?.toFixed(2) || "0.00"}</p>
+                                <p className="text-2xl font-bold text-orange-700">${orderAmount?.toFixed(2) || "0.00"}</p>
                             </div>
-                            <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white border-none" disabled={!ticket.relatedOrder}>
+                            <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white border-none" disabled={!ticket.dispute} onClick={() => handleResolveDispute('refund_full')}>
                                 إصدار استرداد كامل
                             </Button>
-                            <Button variant="outline" className="w-full border-orange-200 text-orange-700 hover:text-orange-800 hover:bg-transparent" disabled={!ticket.relatedOrder}>
+                            <Button variant="outline" className="w-full border-orange-200 text-orange-700 hover:text-orange-800 hover:bg-transparent" disabled={!ticket.dispute} onClick={() => handleResolveDispute('rejected')}>
                                 رفض النزاع
                             </Button>
                         </CardContent>
@@ -232,16 +265,16 @@ export default function TicketDetails({ params }: { params: Promise<{ id: string
                             <div className="space-y-2">
                                  <div className="flex justify-between">
                                     <span className="text-gray-500">الاسم</span>
-                                    <span>{ticket.userName}</span>
+                                    <span>{ownerName}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-500">البريد الإلكتروني</span>
-                                    <span>{ticket.userEmail}</span>
+                                    <span>{ownerEmail}</span>
                                 </div>
                                 <Separator className="my-2" />
                                  <div className="flex justify-between">
                                     <span className="text-gray-500">رقم الطلب</span>
-                                    <span className="font-mono">{ticket.relatedOrder?.id || "N/A"}</span>
+                                    <span className="font-mono">{orderNumber || "N/A"}</span>
                                 </div>
                                  </div>
                         </CardContent>
@@ -255,16 +288,19 @@ export default function TicketDetails({ params }: { params: Promise<{ id: string
 function SelectStatus({ currentStatus, onUpdate }: { currentStatus: string, onUpdate: (s: string) => void }) {
     const statuses = [
         { id: 'open', label: 'مفتوحة', color: 'text-blue-600' },
+        { id: 'under_review', label: 'قيد المراجعة', color: 'text-amber-600' },
+        { id: 'waiting_customer', label: 'بانتظار العميل', color: 'text-purple-600' },
         { id: 'escalated', label: 'مصعدة', color: 'text-destructive' },
-        { id: 'resolved', label: 'تم الحل', color: 'text-green-600' },
+        { id: 'resolved_refund', label: 'تم الاسترداد', color: 'text-green-600' },
+        { id: 'resolved_rejected', label: 'مرفوضة', color: 'text-rose-600' },
         { id: 'closed', label: 'مغلقة', color: 'text-gray-500' }
     ];
 
     return (
-        <div className="flex gap-1 bg-white border rounded-lg p-1">
+        <div className="flex gap-1 bg-white border rounded-lg p-1 flex-wrap">
             {statuses.map(s => (
-                <Button 
-                    key={s.id} 
+                <Button
+                    key={s.id}
                     variant={currentStatus === s.id ? "secondary" : "ghost"}
                     size="sm"
                     className={`text-xs px-3 ${currentStatus === s.id ? s.color + " font-bold bg-muted" : "text-muted-foreground"}`}
