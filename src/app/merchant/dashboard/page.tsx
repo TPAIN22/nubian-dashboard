@@ -145,7 +145,7 @@ export default function MerchantDashboard() {
           const merchantData = statusData.merchant
           setMerchant(merchantData)
           
-          if (merchantData.status !== 'APPROVED') {
+          if (merchantData.status?.toUpperCase() !== 'APPROVED') {
             router.replace('/merchant/pending')
             if (maxLoadingTimer) {
               clearTimeout(maxLoadingTimer)
