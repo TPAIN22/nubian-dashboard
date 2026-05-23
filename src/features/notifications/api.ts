@@ -81,7 +81,12 @@ export const notificationsApi = {
   },
 
   async markManyRead(token: string, ids: string[]): Promise<void> {
-    await axiosInstance.post('/notifications/mark-read', { ids }, { headers: auth(token) })
+    // Backend reads `notificationIds`; the old `ids` field made this a silent no-op.
+    await axiosInstance.post(
+      '/notifications/mark-read',
+      { notificationIds: ids },
+      { headers: auth(token) },
+    )
   },
 
   async compose(token: string, payload: ComposePayload): Promise<ComposeResponse> {
