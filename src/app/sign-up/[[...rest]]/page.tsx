@@ -1,13 +1,20 @@
 'use client'
 
-import { useUser } from '@clerk/nextjs'
+import { SignUp, useUser } from '@clerk/nextjs'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
-import { SignIn } from '@clerk/nextjs'
 import { AuthShell } from '@/components/auth/AuthShell'
 import { nubianClerkAppearance } from '@/components/auth/clerkAppearance'
 
-export default function SignInPage() {
+/**
+ * Sign-up mirrors the sign-in page's resilience patterns:
+ *  - Detects missing/invalid Clerk publishable key on the client
+ *  - Surfaces a friendly error if Clerk fails to load
+ *  - On successful sign-up, role-based redirect (new accounts have no role yet,
+ *    so we send them to the homepage; admin/merchant elevation happens later
+ *    via Clerk publicMetadata)
+ */
+export default function SignUpPage() {
   const { user, isLoaded } = useUser()
   const pathname = usePathname()
   const router = useRouter()
@@ -19,7 +26,6 @@ export default function SignInPage() {
   const [redirectTimeoutWarning, setRedirectTimeoutWarning] = useState(false)
 
   useEffect(() => {
-    // Check if Clerk keys are configured (only on client side)
     if (typeof window !== 'undefined') {
       const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
       if (!publishableKey || publishableKey.includes('your_key') || publishableKey.trim() === '') {
@@ -27,7 +33,6 @@ export default function SignInPage() {
         return
       }
 
-      // Listen for Clerk load errors
       const handleClerkError = (event: ErrorEvent) => {
         if (event.message?.includes('Clerk') || event.message?.includes('clerk')) {
           setClerkLoadError('Failed to load Clerk. Please check your internet connection and try refreshing the page.')
@@ -35,28 +40,18 @@ export default function SignInPage() {
       }
 
       window.addEventListener('error', handleClerkError)
-
-      return () => {
-        window.removeEventListener('error', handleClerkError)
-      }
+      return () => window.removeEventListener('error', handleClerkError)
     }
   }, [])
 
-  // Helper function to determine redirect URL based on role
   const getRedirectUrl = (role: string | undefined): string => {
-    if (role === 'admin') {
-      return '/admin'
-    } else if (role === 'merchant') {
-      return '/merchant/dashboard'
-    }
-    // No role or other role - redirect to main site
+    if (role === 'admin') return '/admin'
+    if (role === 'merchant') return '/merchant/dashboard'
     return '/'
   }
 
   useEffect(() => {
-    if (!isLoaded || !pathname.startsWith('/sign-in')) {
-      return
-    }
+    if (!isLoaded || !pathname.startsWith('/sign-up')) return
 
     if (user && !hasRedirected.current) {
       hasRedirected.current = true
@@ -100,10 +95,9 @@ export default function SignInPage() {
     }
   }, [user])
 
-  // Clerk load error
   if (clerkLoadError) {
     return (
-      <AuthShell mode="signin">
+      <AuthShell mode="signup">
         <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-right">
           <h3 className="text-base font-bold text-destructive mb-2">تعذّر تحميل Clerk</h3>
           <p className="text-sm text-destructive/90 mb-4">{clerkLoadError}</p>
@@ -137,7 +131,7 @@ export default function SignInPage() {
 
   if (!isLoaded) {
     return (
-      <AuthShell mode="signin">
+      <AuthShell mode="signup">
         <div role="status" aria-live="polite" className="flex flex-col items-center justify-center py-10">
           <div aria-hidden="true" className="h-10 w-10 rounded-full border-2 border-primary/30 border-t-primary animate-spin motion-reduce:animate-none" />
           <p className="mt-4 text-sm text-muted-foreground">جاري التحميل…</p>
@@ -153,7 +147,7 @@ export default function SignInPage() {
 
   if (user) {
     return (
-      <AuthShell mode="signin">
+      <AuthShell mode="signup">
         <div role="status" aria-live="polite" className="flex flex-col items-center justify-center py-10">
           <div aria-hidden="true" className="h-10 w-10 rounded-full border-2 border-primary/30 border-t-primary animate-spin motion-reduce:animate-none" />
           <p className="mt-4 text-sm text-muted-foreground">جاري إعادة التوجيه…</p>
@@ -180,7 +174,7 @@ export default function SignInPage() {
 
   if (clerkError) {
     return (
-      <AuthShell mode="signin">
+      <AuthShell mode="signup">
         <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-right">
           <h3 className="text-base font-bold text-destructive mb-2">خطأ في الإعداد</h3>
           <p className="text-sm text-destructive/90 mb-3">{clerkError}</p>
@@ -193,11 +187,11 @@ export default function SignInPage() {
   }
 
   return (
-    <AuthShell mode="signin">
-      <SignIn
+    <AuthShell mode="signup">
+      <SignUp
         routing="path"
-        path="/sign-in"
-        signUpUrl="/sign-up"
+        path="/sign-up"
+        signInUrl="/sign-in"
         appearance={nubianClerkAppearance}
       />
     </AuthShell>

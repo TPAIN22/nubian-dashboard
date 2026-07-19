@@ -7,9 +7,9 @@ export function AppDownloadCTA() {
   return (
     <section className="py-24 md:py-32 bg-background">
       <div className="container max-w-7xl mx-auto px-6">
-        <div className="relative overflow-hidden rounded-[2rem] bg-foreground px-8 py-16 md:px-16 md:py-24">
-          <div className="absolute -top-32 -right-32 w-[28rem] h-[28rem] rounded-full bg-amber-500/10 blur-[120px] pointer-events-none" />
-          <div className="absolute -bottom-32 -left-32 w-[28rem] h-[28rem] rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none" />
+        <div className="relative overflow-hidden rounded-4xl bg-foreground px-8 py-16 md:px-16 md:py-24">
+          <div className="absolute -top-32 -right-32 w-md h-112 rounded-full bg-amber-500/10 blur-[120px] pointer-events-none" />
+          <div className="absolute -bottom-32 -left-32 w-md h-112 rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none" />
 
           <div className="relative z-10 flex flex-col items-center text-center max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-background/10 border border-background/15 mb-8">
