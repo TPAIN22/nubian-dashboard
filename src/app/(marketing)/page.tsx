@@ -8,6 +8,7 @@ import { MerchantSection } from "@/components/marketing/MerchantSection";
 import { ProductPreview } from "@/components/marketing/ProductPreview";
 import { TrustSection } from "@/components/marketing/TrustSection";
 import { AppDownloadCTA } from "@/components/marketing/AppDownloadCTA";
+import { HomeStructuredData } from "@/components/StructuredData";
 
 const baseUrl = "https://nubian-sd.com";
 
@@ -47,6 +48,7 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <div className="bg-background text-foreground">
+      <HomeStructuredData />
       <MinimalHero />
       <MinimalFeatures />
       <HowItWorks />
@@ -58,8 +60,8 @@ export default function Page() {
       {/* SEO brand glossary - visually hidden, indexable by search engines.
           NOTE: aria-hidden removed so the H1 still contributes to the accessibility tree.
           Content is truthful and on-topic, which keeps it within Google quality guidelines. */}
-      <section className="sr-only">
-        <h1>نوبيان | Nubian - السوق الإلكتروني الأول في السودان</h1>
+      <section className="sr-only" aria-label="نبذة عن نوبيان | About Nubian">
+        <h2>نوبيان | Nubian - السوق الإلكتروني الأول في السودان</h2>
         <p lang="ar" dir="rtl">
           نوبيان (بالإنجليزية: Nubian) هو متجر إلكتروني سوداني رائد ومنصة تجارة
           إلكترونية شاملة تربط التجار بالعملاء في جميع أنحاء السودان. يقدم نوبيان

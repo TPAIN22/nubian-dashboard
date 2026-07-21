@@ -3,9 +3,31 @@ import { FAQSection } from "@/components/marketing/FAQSection"
 import { CTASection } from "@/components/marketing/CTASection"
 import { PageHeader } from "@/components/dashboard/PageHeader" // Using shared header purely for SEO title structure if needed, but styling custom here
 
-export const metadata = {
+import type { Metadata } from "next"
+
+const baseUrl = "https://nubian-sd.com"
+
+export const metadata: Metadata = {
   title: "الباقات والأسعار | نوبيان",
-  description: "اختر الباقة المناسبة لتجارتك. ابدأ مجاناً وادفع مع النمو.",
+  description: "اختر الباقة المناسبة لتجارتك على نوبيان. ابدأ مجاناً وادفع مع النمو. خطط مرنة لبيع منتجاتك في السودان.",
+  alternates: {
+    canonical: `${baseUrl}/pricing`,
+  },
+  openGraph: {
+    title: "الباقات والأسعار | نوبيان",
+    description: "اختر الباقة المناسبة لتجارتك على نوبيان. ابدأ مجاناً وادفع مع النمو.",
+    url: `${baseUrl}/pricing`,
+    type: "website",
+    siteName: "نوبيان | Nubian",
+    images: [
+      {
+        url: `${baseUrl}/nubi.png`,
+        width: 1200,
+        height: 630,
+        alt: "الباقات والأسعار - نوبيان",
+      },
+    ],
+  },
 }
 
 export default function PricingPage() {
