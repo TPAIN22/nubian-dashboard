@@ -41,15 +41,80 @@ export interface OrderItem {
   merchantId?: string;
 }
 
+/**
+ * Immutable copy of the delivery address, frozen onto the order at checkout.
+ *
+ * This is where the order was actually sent. It is never affected by the
+ * customer later editing or deleting the saved address it came from, so support
+ * and fulfilment must read this in preference to anything else.
+ *
+ * Absent on orders placed before the field existed — always fall back to the
+ * flat `address` / `city` strings, which are still written on every order.
+ */
 export interface AddressSnapshot {
+  addressId?: string | null;
+
   name?: string;
-  city?: string;
-  area?: string;
-  street?: string;
-  building?: string;
   phone?: string;
   whatsapp?: string;
+
+  /** GeoJSON Point, **[longitude, latitude]**. Absent for legacy addresses. */
+  location?: {
+    type?: "Point";
+    coordinates?: [number, number];
+  };
+
+  /**
+   * The same point in human order. Prefer these over `location.coordinates` —
+   * they exist precisely so no consumer has to remember the GeoJSON flip.
+   * Null on orders placed from an un-pinned legacy address.
+   */
+  latitude?: number | null;
+  longitude?: number | null;
+
+  formattedAddress?: string;
+  placeId?: string;
+  /** Open Location Code, when the provider at checkout exposed one. */
+  plusCode?: string;
+  geoProvider?: string;
+  countryCode?: string;
+  country?: string;
+  administrativeArea?: string;
+  city?: string;
+  neighborhood?: string;
+  postalCode?: string;
+
+  street?: string;
+  building?: string;
+  floor?: string;
+  apartment?: string;
+  landmark?: string;
   notes?: string;
+
+  addressLabel?: "home" | "work" | "other";
+  locationSource?:
+    | "gps"
+    | "map_pin"
+    | "search"
+    | "geocoded"
+    | "migrated"
+    | "legacy"
+    | "manual";
+  /** How reliable this address was at checkout. Server-derived. */
+  addressConfidence?: "high" | "medium" | "low";
+  geocodeAccuracy?: "exact" | "interpolated" | "approximate" | "unknown";
+  /** Reported pin accuracy in metres; null when the platform gave none. */
+  locationAccuracyMeters?: number | null;
+
+  /** Legacy hierarchy ids, carried so existing reports keep resolving. */
+  countryId?: string | null;
+  cityId?: string | null;
+  subCityId?: string | null;
+
+  /** Kept for records written before the map migration. */
+  area?: string;
+
+  snapshotAt?: string;
 }
 
 export interface Order {
@@ -239,18 +304,26 @@ export const getMerchantNames = (o: Order) => {
 };
 
 export const getAddressText = (o: Order) => {
-  // new snapshot
-  if (o.addressSnapshot) {
-    const a = o.addressSnapshot;
+  const a = o.addressSnapshot;
+
+  if (a) {
+    // Map-first orders carry the geocoded line the shopper confirmed on the
+    // map. It is the whole address, so anything reassembled from parts would
+    // only be a worse version of it.
+    if (a.formattedAddress) return a.formattedAddress;
+
     const parts = [
-      a.city,
-      a.area,
       a.street,
+      a.neighborhood || a.area,
+      a.city,
       a.building,
     ].filter(Boolean);
-    return parts.length ? parts.join("، ") : "غير محدد";
+
+    if (parts.length) return parts.join("، ");
   }
-  // old
+
+  // Orders placed before the snapshot existed, and any snapshot with no
+  // geography at all: the flat strings are still written on every order.
   const old = [o.address, o.city].filter(Boolean).join("، ");
   return old || "غير محدد";
 };
