@@ -257,7 +257,7 @@ export default function MarketersAdminPage() {
                   <TableHead>الأرباح المعلقة</TableHead>
                   <TableHead>الطلبات</TableHead>
                   <TableHead>الحالة</TableHead>
-                  <TableHead className="text-left w-[100px]">إجراءات</TableHead>
+                  <TableHead className="text-end w-[100px]">إجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -293,7 +293,7 @@ export default function MarketersAdminPage() {
                           {m.status === 'active' ? 'نشط' : 'موقف'}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-end">
                         <DropdownMenu dir="rtl">
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">
@@ -474,10 +474,10 @@ export default function MarketersAdminPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-right">رقم الطلب</TableHead>
-                        <TableHead className="text-right">التاريخ</TableHead>
-                        <TableHead className="text-right">قيمة الطلب</TableHead>
-                        <TableHead className="text-right">العمولة</TableHead>
+                        <TableHead>رقم الطلب</TableHead>
+                        <TableHead>التاريخ</TableHead>
+                        <TableHead>قيمة الطلب</TableHead>
+                        <TableHead>العمولة</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

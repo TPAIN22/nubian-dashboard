@@ -460,12 +460,12 @@ export default function FxRatesClient() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-right pr-4">العملة</TableHead>
-                <TableHead className="text-right">السعر الحالي</TableHead>
-                <TableHead className="text-right">المصدر</TableHead>
-                <TableHead className="text-right">آخر تحديث</TableHead>
-                <TableHead className="text-right">الحالة</TableHead>
-                <TableHead className="text-left pl-4"> </TableHead>
+                <TableHead className="ps-4">العملة</TableHead>
+                <TableHead>السعر الحالي</TableHead>
+                <TableHead>المصدر</TableHead>
+                <TableHead>آخر تحديث</TableHead>
+                <TableHead>الحالة</TableHead>
+                <TableHead className="text-end pe-4"> </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -485,7 +485,7 @@ export default function FxRatesClient() {
                     className={!currency.isActive ? "opacity-50" : ""}
                   >
                     {/* Currency name */}
-                    <TableCell className="pr-4">
+                    <TableCell className="ps-4">
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-bold text-base">
                           {currency.code}
@@ -555,7 +555,7 @@ export default function FxRatesClient() {
                     </TableCell>
 
                     {/* Edit button */}
-                    <TableCell className="text-left pl-4">
+                    <TableCell className="text-end pe-4">
                       {currency.code !== "USD" && (
                         <Button
                           size="sm"

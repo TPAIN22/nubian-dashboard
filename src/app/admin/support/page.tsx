@@ -206,14 +206,14 @@ function TicketTable({ data, getRiskColor, isOverdue }: { data: any[], getRiskCo
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="text-right">المعرف</TableHead>
-                            <TableHead className="text-right">الموضوع</TableHead>
-                            <TableHead className="text-right">النوع</TableHead>
-                            <TableHead className="text-right">الحالة</TableHead>
-                            <TableHead className="text-right">الأولوية</TableHead>
-                            <TableHead className="text-right">درجة الخطر</TableHead>
-                            <TableHead className="text-right">SLA</TableHead>
-                            <TableHead className="text-left">إجراء</TableHead>
+                            <TableHead>المعرف</TableHead>
+                            <TableHead>الموضوع</TableHead>
+                            <TableHead>النوع</TableHead>
+                            <TableHead>الحالة</TableHead>
+                            <TableHead>الأولوية</TableHead>
+                            <TableHead>درجة الخطر</TableHead>
+                            <TableHead>SLA</TableHead>
+                            <TableHead className="text-end">إجراء</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -262,7 +262,7 @@ function TicketTable({ data, getRiskColor, isOverdue }: { data: any[], getRiskCo
                                         {new Date(ticket.slaDeadline).toLocaleDateString("ar-EG")}
                                         {overdue && <span className="mr-1 text-xs text-destructive font-bold">!</span>}
                                     </TableCell>
-                                    <TableCell className="text-left">
+                                    <TableCell className="text-end">
                                         <Link href={`/admin/support/${ticket._id || ticket.ticketNumber}`}>
                                             <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/10">عرض</Button>
                                         </Link>

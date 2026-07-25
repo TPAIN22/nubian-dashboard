@@ -144,13 +144,13 @@ function TicketTable({ data }: { data: any[] }) {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="text-right">المعرف</TableHead>
-                            <TableHead className="text-right">الموضوع</TableHead>
-                            <TableHead className="text-right">النوع</TableHead>
-                            <TableHead className="text-right">الحالة</TableHead>
-                            <TableHead className="text-right">الأولوية</TableHead>
-                            <TableHead className="text-right">التاريخ</TableHead>
-                            <TableHead className="text-left">إجراء</TableHead>
+                            <TableHead>المعرف</TableHead>
+                            <TableHead>الموضوع</TableHead>
+                            <TableHead>النوع</TableHead>
+                            <TableHead>الحالة</TableHead>
+                            <TableHead>الأولوية</TableHead>
+                            <TableHead>التاريخ</TableHead>
+                            <TableHead className="text-end">إجراء</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -193,7 +193,7 @@ function TicketTable({ data }: { data: any[] }) {
                                     <TableCell className="text-right text-muted-foreground">
                                         {ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString("ar-EG") : "—"}
                                     </TableCell>
-                                    <TableCell className="text-left">
+                                    <TableCell className="text-end">
                                         <Link href={`/merchant/support/${ticket._id || ticket.ticketNumber}`}>
                                             <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/10">عرض</Button>
                                         </Link>

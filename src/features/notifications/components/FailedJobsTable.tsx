@@ -152,9 +152,9 @@ export function FailedJobsTable({ queue }: { queue: QueueShortName }) {
                   </TableHead>
                   <TableHead>Job</TableHead>
                   <TableHead>Reason</TableHead>
-                  <TableHead className="text-right">Attempts</TableHead>
-                  <TableHead className="text-right">Failed</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
+                  <TableHead>Attempts</TableHead>
+                  <TableHead>Failed</TableHead>
+                  <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

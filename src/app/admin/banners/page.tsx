@@ -80,12 +80,16 @@ export default function BannersPage() {
         <table className="min-w-full divide-y divide-gray-500">
           <thead className="bg-gray-600">
             <tr>
-              <th className="px-4 py-2">الصورة</th>
-              <th className="px-4 py-2">العنوان</th>
-              <th className="px-4 py-2">الوصف</th>
-              <th className="px-4 py-2">الترتيب</th>
-              <th className="px-4 py-2">مفعل؟</th>
-              <th className="px-4 py-2">إجراءات</th>
+              {/* A bare <th> is centred by the UA stylesheet while a bare <td>
+                  aligns to `start`, so every header here sat off-centre from
+                  its own column. Alignment is now stated per column and
+                  matches the body cell below it. */}
+              <th className="px-4 py-2 text-start">الصورة</th>
+              <th className="px-4 py-2 text-start">العنوان</th>
+              <th className="px-4 py-2 text-start">الوصف</th>
+              <th className="px-4 py-2 text-center">الترتيب</th>
+              <th className="px-4 py-2 text-center">مفعل؟</th>
+              <th className="px-4 py-2 text-start">إجراءات</th>
             </tr>
           </thead>
           <tbody>

@@ -193,19 +193,19 @@ export default function ApplicationsPage() {
           <table className="min-w-full divide-y divide-border">
             <thead className="bg-muted/50">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <th scope="col" className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Store Name
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <th scope="col" className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Owner
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <th scope="col" className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Type
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <th scope="col" className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Status
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <th scope="col" className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Applied Date
                 </th>
                 <th scope="col" className="relative px-6 py-3">

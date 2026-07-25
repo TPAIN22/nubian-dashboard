@@ -110,7 +110,7 @@ export default function AdminProductsPage() {
                 <TableHead>السعر</TableHead>
                 <TableHead>المخزون</TableHead>
                 <TableHead>الحالة</TableHead>
-                <TableHead className="text-left">الإجراءات</TableHead>
+                <TableHead className="text-end">الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -148,7 +148,7 @@ export default function AdminProductsPage() {
                          <Badge variant="secondary">مخفي</Badge>
                        )}
                     </TableCell>
-                    <TableCell className="text-left">
+                    <TableCell className="text-end">
                        <div className="flex items-center gap-2 justify-end">
                           <Button variant="ghost" size="icon" title="عرض"><Eye className="w-4 h-4" /></Button>
                           {p.isFlagged ? (

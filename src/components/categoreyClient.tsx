@@ -132,7 +132,7 @@ export default function CategoryListClient({ categories: initialCategories }: Ca
               <TableHead>الاسم</TableHead>
               <TableHead className="hidden md:table-cell">الوصف</TableHead>
               <TableHead className="hidden sm:table-cell">الفئة الرئيسية</TableHead>
-              <TableHead className="text-right">الإجراءات</TableHead>
+              <TableHead>الإجراءات</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
