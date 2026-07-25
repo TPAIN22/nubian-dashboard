@@ -15,6 +15,9 @@ import logger from "@/lib/logger";
 import { Input } from "@/components/ui/input";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { useQuery } from "@tanstack/react-query";
+import MapThumbnail from "@/components/geo/MapThumbnail";
+import { fetchGeoConfig } from "@/lib/geo";
 
 import {
   Select,
@@ -102,32 +105,83 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow, onChanged }: Or
   const hasProof = !!selectedRow?.transferProof;
   const isPendingConfirmation = selectedRow?.paymentStatus === "PENDING_CONFIRMATION";
 
+  // Map config for the delivery-destination preview. Provider-neutral and
+  // cached for the session — it only changes when the backend is redeployed.
+  const { data: geoConfig } = useQuery({
+    queryKey: ["geo-config"],
+    queryFn: fetchGeoConfig,
+    staleTime: 60 * 60 * 1000,
+  });
+
   const canApproveReject = useMemo(() => {
     return !!selectedRow && isBankak && hasProof && isPendingConfirmation;
   }, [selectedRow, isBankak, hasProof, isPendingConfirmation]);
 
-  // ✅ Address block (new+old)
+  /**
+   * Delivery address block.
+   *
+   * Reads the order's immutable `addressSnapshot` when present — that is where
+   * the order was actually sent, frozen at checkout and unaffected by any later
+   * edit or deletion of the customer's saved address. Orders placed before the
+   * snapshot existed fall back to the flat `address` / `city` strings, which are
+   * still written on every order.
+   */
   const addressBlock = useMemo(() => {
     if (!selectedRow) return null;
 
     const snap: any = (selectedRow as any).addressSnapshot;
-    const fullName = snap?.name || selectedRow.customerInfo?.name;
-    const city = snap?.city || selectedRow.city;
-    const area = snap?.area;
-    const street = snap?.street || selectedRow.address;
-    const building = snap?.building;
 
+    const fullName = snap?.name || selectedRow.customerInfo?.name;
     const phone = snap?.phone || selectedRow.customerInfo?.phone || selectedRow.phoneNumber;
     const whatsapp = snap?.whatsapp;
 
-    const parts = [city, area, street, building].filter(Boolean);
-    const fullAddress = parts.length ? parts.join("، ") : safeText(`${selectedRow.address || ""}${selectedRow.city ? `، ${selectedRow.city}` : ""}`, "—");
+    // The snapshot's formattedAddress is the geocoded line the shopper
+    // confirmed on the map; prefer it over anything reassembled from parts.
+    const composed = [
+      snap?.formattedAddress,
+      !snap?.formattedAddress && snap?.street,
+      !snap?.formattedAddress && (snap?.neighborhood || snap?.area),
+      !snap?.formattedAddress && snap?.city,
+      !snap?.formattedAddress && snap?.country,
+    ]
+      .filter(Boolean)
+      .join("، ");
+
+    const fullAddress =
+      composed ||
+      safeText(
+        `${selectedRow.address || ""}${selectedRow.city ? `، ${selectedRow.city}` : ""}`,
+        "—",
+      );
+
+    // What actually gets a courier to the door.
+    const deliveryDetails = [
+      snap?.building && `مبنى ${snap.building}`,
+      snap?.floor && `طابق ${snap.floor}`,
+      snap?.apartment && `شقة ${snap.apartment}`,
+      snap?.landmark && `بالقرب من ${snap.landmark}`,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    // Prefer the denormalised lat/lng the snapshot carries for exactly this
+    // reason. Fall back to flipping the GeoJSON pair for orders snapshotted
+    // before those fields existed.
+    const coordinates: [number, number] | null =
+      typeof snap?.latitude === "number" && typeof snap?.longitude === "number"
+        ? [snap.latitude, snap.longitude]
+        : Array.isArray(snap?.location?.coordinates) && snap.location.coordinates.length === 2
+          ? [snap.location.coordinates[1], snap.location.coordinates[0]]
+          : null;
 
     return {
       fullName: safeText(fullName, "غير محدد"),
       phone: safeText(phone, "غير محدد"),
       whatsapp: safeText(whatsapp, "غير محدد"),
       fullAddress: safeText(fullAddress, "—"),
+      deliveryDetails,
+      coordinates,
+      notes: snap?.notes || "",
     };
   }, [selectedRow]);
 
@@ -631,15 +685,58 @@ function OrderDialog({ isModalOpen, setIsModalOpen, selectedRow, onChanged }: Or
               <p><span className="font-semibold">تاريخ الطلب:</span> {formatDate(selectedRow.createdAt || selectedRow.orderDate)}</p>
             </div>
 
-            {/* ✅ العنوان */}
+            {/* ✅ العنوان — لقطة ثابتة محفوظة وقت الطلب */}
             {addressBlock ? (
               <div className="mt-1 rounded-lg border p-4 bg-muted/30">
-                <div className="font-semibold mb-2">العنوان</div>
-                <div className="text-sm">
-                  <div><span className="text-muted-foreground">الاسم:</span> {addressBlock.fullName}</div>
-                  <div><span className="text-muted-foreground">الهاتف:</span> {addressBlock.phone}</div>
-                  <div><span className="text-muted-foreground">واتساب:</span> {addressBlock.whatsapp}</div>
-                  <div className="mt-2"><span className="text-muted-foreground">العنوان الكامل:</span> {addressBlock.fullAddress}</div>
+                <div className="font-semibold mb-2">وجهة التوصيل</div>
+
+                <div className="flex flex-col gap-4 md:flex-row">
+                  <div className="flex-1 text-sm">
+                    <div><span className="text-muted-foreground">الاسم:</span> {addressBlock.fullName}</div>
+                    <div><span className="text-muted-foreground">الهاتف:</span> {addressBlock.phone}</div>
+                    <div><span className="text-muted-foreground">واتساب:</span> {addressBlock.whatsapp}</div>
+
+                    <div className="mt-2">
+                      <span className="text-muted-foreground">العنوان الكامل:</span>{" "}
+                      {addressBlock.fullAddress}
+                    </div>
+
+                    {addressBlock.deliveryDetails ? (
+                      <div className="mt-1">
+                        <span className="text-muted-foreground">تفاصيل الوصول:</span>{" "}
+                        {addressBlock.deliveryDetails}
+                      </div>
+                    ) : null}
+
+                    {addressBlock.notes ? (
+                      <div className="mt-1">
+                        <span className="text-muted-foreground">ملاحظات:</span>{" "}
+                        {addressBlock.notes}
+                      </div>
+                    ) : null}
+
+                    {addressBlock.coordinates ? (
+                      <div className="mt-2 font-mono text-xs text-muted-foreground">
+                        {addressBlock.coordinates[0].toFixed(6)},{" "}
+                        {addressBlock.coordinates[1].toFixed(6)}
+                      </div>
+                    ) : (
+                      <div className="mt-2 text-xs text-amber-600">
+                        لا توجد إحداثيات لهذا الطلب (عنوان قديم)
+                      </div>
+                    )}
+                  </div>
+
+                  {addressBlock.coordinates && geoConfig ? (
+                    <MapThumbnail
+                      latitude={addressBlock.coordinates[0]}
+                      longitude={addressBlock.coordinates[1]}
+                      config={geoConfig}
+                      width={280}
+                      height={150}
+                      className="shrink-0"
+                    />
+                  ) : null}
                 </div>
               </div>
             ) : null}

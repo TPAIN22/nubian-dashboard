@@ -11,6 +11,7 @@ import {
   IconInnerShadowTop,
   IconListDetails,
   IconMapPin,
+  IconMap2,
   IconTooltip,
   IconMessageCircle,
   IconClock,
@@ -79,6 +80,14 @@ const adminNav = [
     icon: IconFileDescription,
   },
   {
+    title: "عناوين العملاء",
+    url: "/admin/addresses",
+    icon: IconMap2,
+  },
+  {
+    // Legacy country → city → sub-city hierarchy. Still administered here:
+    // existing addresses reference these ids and delivery zones can be seeded
+    // from them. New addresses are pinned on a map instead.
     title: "المناطق والشحن",
     url: "/admin/locations",
     icon: IconMapPin,

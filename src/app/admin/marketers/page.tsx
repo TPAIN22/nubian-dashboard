@@ -199,6 +199,17 @@ export default function MarketersAdminPage() {
     }).format(amount);
   };
 
+  const formatDate = (date?: string) => {
+    if (!date) return "—";
+    const parsed = new Date(date);
+    if (Number.isNaN(parsed.getTime())) return "—";
+    return parsed.toLocaleDateString("ar-SD", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   const filteredMarketers = marketers.filter(m =>
     m.name.toLowerCase().includes(search.toLowerCase()) ||
     m.code.toLowerCase().includes(search.toLowerCase())
@@ -241,6 +252,7 @@ export default function MarketersAdminPage() {
                 <TableRow>
                   <TableHead>المسوق</TableHead>
                   <TableHead>الكود</TableHead>
+                  <TableHead>تاريخ التسجيل</TableHead>
                   <TableHead>إجمالي الأرباح</TableHead>
                   <TableHead>الأرباح المعلقة</TableHead>
                   <TableHead>الطلبات</TableHead>
@@ -252,7 +264,7 @@ export default function MarketersAdminPage() {
                 {loading ? (
                   [1, 2, 3].map((i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={7}><div className="h-8 bg-muted animate-pulse rounded" /></TableCell>
+                      <TableCell colSpan={8}><div className="h-8 bg-muted animate-pulse rounded" /></TableCell>
                     </TableRow>
                   ))
                 ) : filteredMarketers.length > 0 ? (
@@ -270,6 +282,9 @@ export default function MarketersAdminPage() {
                         </div>
                       </TableCell>
                       <TableCell className="font-mono">{m.code}</TableCell>
+                      <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                        {formatDate(m.createdAt)}
+                      </TableCell>
                       <TableCell className="font-bold">{formatCurrency(m.totalEarnings)}</TableCell>
                       <TableCell className="text-amber-600">{formatCurrency(m.pendingEarnings)}</TableCell>
                       <TableCell>{m.totalOrders}</TableCell>
@@ -324,7 +339,7 @@ export default function MarketersAdminPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       لا يوجد مسوقين مطابقين للبحث.
                     </TableCell>
                   </TableRow>
