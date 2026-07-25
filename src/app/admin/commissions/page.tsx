@@ -164,7 +164,7 @@ export default function CommissionsAdminPage() {
                   <TableHead>العمولة</TableHead>
                   <TableHead>التاريخ</TableHead>
                   <TableHead>الحالة</TableHead>
-                  <TableHead className="text-left">إجراءات</TableHead>
+                  <TableHead className="text-end">إجراءات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -181,7 +181,7 @@ export default function CommissionsAdminPage() {
                         {new Date(c.createdAt).toLocaleDateString("ar-SD")}
                       </TableCell>
                       <TableCell>{getStatusBadge(c.status)}</TableCell>
-                      <TableCell className="text-left">
+                      <TableCell className="text-end">
                         {c.status === 'pending' ? (
                           <Button 
                             size="sm" 

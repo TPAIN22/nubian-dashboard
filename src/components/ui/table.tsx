@@ -70,7 +70,13 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        // `text-start`, not `text-left`: the dashboard renders under
+        // <html dir="rtl">, where `left` is the *trailing* edge. With
+        // `text-left` every header label pinned to the opposite side of its
+        // column from the body cell (which inherits `start`), so no header
+        // lined up with its own data. Logical alignment keeps both on the
+        // same side and stays correct if a subtree is ever switched to LTR.
+        "text-foreground h-10 px-2 text-start align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}
@@ -78,7 +84,8 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
   )
 }
 
-function TableCell({ className, ...props }: React.ComponentProps<"td">) {
+function TableCell({ className, ...props }: React.ComponentProps<"td">) 
+{
   return (
     <td
       data-slot="table-cell"

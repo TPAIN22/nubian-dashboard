@@ -101,7 +101,7 @@ export function NotificationTable({
               </TableHead>
               <TableHead>Channel</TableHead>
               <TableHead>Recipient</TableHead>
-              <TableHead className="text-right">
+              <TableHead>
                 <button
                   type="button"
                   onClick={() => handleSort('sentAt')}
