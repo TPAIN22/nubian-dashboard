@@ -204,11 +204,18 @@ export const getPaymentStatusInArabic = (s: string) => getPaymentStatusMeta(s).l
 
 export const getPaymentMethodArabic = (m?: string) => getPaymentMethodLabel(m);
 
+// Arabic month names, Western digits. Plain `ar-SD` formats dates with
+// Arabic-Indic numerals (٢٣ يوليو ٢٠٢٦) while `formatMoney` renders amounts
+// with Western ones, so an invoice ended up using two different digit systems
+// on the same page. `-u-nu-latn` pins the numbering system without giving up
+// the Arabic month names.
+const DATE_LOCALE = "ar-SD-u-nu-latn";
+
 export const formatDate = (dateString?: string) => {
   if (!dateString) return "—";
   const d = new Date(dateString);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("ar-SD", { year: "numeric", month: "short", day: "numeric" });
+  return d.toLocaleDateString(DATE_LOCALE, { year: "numeric", month: "short", day: "numeric" });
 };
 
 /** Date + time. Support needs the clock time when reconciling a transfer. */
@@ -216,7 +223,7 @@ export const formatDateTime = (dateString?: string) => {
   if (!dateString) return "—";
   const d = new Date(dateString);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("ar-SD", {
+  return d.toLocaleString(DATE_LOCALE, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -347,6 +354,44 @@ export interface OrderLine {
 
 const FALLBACK_PRODUCT_NAME = "منتج غير معروف";
 
+/**
+ * Variant attributes are stored as a free-form `Mixed` map, so the keys are
+ * whatever the merchant's product form used — almost always the English
+ * `size` / `color`. Printing them raw put "size: M · color: default" in front
+ * of Arabic-speaking staff and on the customer's invoice.
+ */
+const ATTRIBUTE_LABELS: Record<string, string> = {
+  size: "المقاس",
+  color: "اللون",
+  colour: "اللون",
+  style: "النمط",
+  material: "الخامة",
+  weight: "الوزن",
+  capacity: "السعة",
+  variant: "الإصدار",
+};
+
+/**
+ * Placeholder values the product form writes when a variant axis isn't really
+ * used. Showing "اللون: default" is worse than showing nothing.
+ */
+const PLACEHOLDER_VALUES = new Set([
+  "default",
+  "none",
+  "n/a",
+  "na",
+  "null",
+  "undefined",
+  "-",
+  "غير محدد",
+]);
+
+const isMeaningful = (value: unknown) => {
+  if (value === null || value === undefined) return false;
+  const s = String(value).trim();
+  return s !== "" && !PLACEHOLDER_VALUES.has(s.toLowerCase());
+};
+
 /** Flattens `attributes` / `size` / `color` into one readable variant line. */
 const buildVariantLabel = (source: any): string => {
   const attrs = source?.attributes;
@@ -354,17 +399,25 @@ const buildVariantLabel = (source: any): string => {
 
   if (attrs && typeof attrs === "object" && Object.keys(attrs).length > 0) {
     for (const [key, value] of Object.entries(attrs)) {
-      if (value === null || value === undefined || value === "") continue;
-      parts.push(`${key}: ${String(value)}`);
+      if (!isMeaningful(value)) continue;
+      const label = ATTRIBUTE_LABELS[key.toLowerCase()] ?? key;
+      parts.push(`${label}: ${String(value).trim()}`);
     }
-  } else if (source?.size) {
-    parts.push(`مقاس: ${source.size}`);
+  } else if (isMeaningful(source?.size)) {
+    parts.push(`${ATTRIBUTE_LABELS.size}: ${String(source.size).trim()}`);
   }
 
-  if (source?.color) parts.push(`لون: ${source.color}`);
+  // `color` can sit alongside an attributes map rather than inside it.
+  if (isMeaningful(source?.color) && !parts.some((p) => p.startsWith(ATTRIBUTE_LABELS.color))) {
+    parts.push(`${ATTRIBUTE_LABELS.color}: ${String(source.color).trim()}`);
+  }
 
   return parts.join(" · ");
 };
+
+/** Drops the "غير محدد" placeholders before joining address parts. */
+export const joinMeaningful = (parts: unknown[], separator = "، ") =>
+  parts.filter(isMeaningful).map((p) => String(p).trim()).join(separator);
 
 const toNumber = (v: any, fallback = 0) => {
   const n = Number(v);

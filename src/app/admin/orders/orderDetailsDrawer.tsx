@@ -12,8 +12,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +40,7 @@ import { cn } from "@/lib/utils";
 
 import { OrderStatusBadge, PaymentStatusBadge } from "./orderBadges";
 import { OrderItemThumbnail } from "./orderItemsCell";
+import { printOrderInvoice } from "./orderInvoice";
 import { getPaymentMethodLabel, isTerminalStatus } from "./orderStatus";
 import { ProductDetailsDialog } from "./productDetailsDialog";
 import {
@@ -294,11 +293,10 @@ export function OrderDetailsDrawer({ order, open, onOpenChange, onChanged }: Pro
     if (!order) return;
     setPending("print");
     try {
-      await printOrderPdf({ order, lines, totals, currency });
-      toast.success("تم تحميل ملف PDF بنجاح!");
+      await printOrderInvoice({ order, lines, totals, currency });
     } catch (error: any) {
-      logger.error("PDF generation failed", { orderId: order._id, error: error?.message });
-      toast.error("فشل في إنشاء ملف PDF. حاول مرة أخرى.");
+      logger.error("Invoice print failed", { orderId: order._id, error: error?.message });
+      toast.error("تعذّر فتح نافذة الطباعة. حاول مرة أخرى.");
     } finally {
       setPending(null);
     }
@@ -756,253 +754,6 @@ function Field({
       </dd>
     </div>
   );
-}
-
-// ─────────────────────────────────────────────────────────────
-// Print / PDF
-//
-// Rendered as an isolated RTL HTML document inside a hidden iframe, then
-// rasterised. jsPDF has no Arabic shaping of its own, so going through
-// html2canvas is what makes the receipt legible.
-// ─────────────────────────────────────────────────────────────
-
-function escapeHtml(input: string) {
-  return input
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-async function printOrderPdf({
-  order,
-  lines,
-  totals,
-  currency,
-}: {
-  order: Order;
-  lines: OrderLine[];
-  totals: { subtotal: number; shipping: number; discount: number; total: number };
-  currency: string;
-}) {
-  const e = escapeHtml;
-  const money = (n: number) => formatMoney(n, currency);
-  const orderId = order.orderNumber || order._id;
-  const created = formatDate(order.createdAt || order.orderDate);
-  const couponCode = getOrderCouponCode(order);
-
-  const htmlContent = `
-    <!DOCTYPE html>
-    <html dir="rtl" lang="ar">
-    <head>
-      <meta charset="UTF-8">
-      <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap" rel="stylesheet">
-      <style>
-        body { font-family: 'Noto Sans Arabic', Arial, sans-serif; margin: 0; padding: 0; background: white; color: black; direction: rtl; }
-        .container { width: 800px; margin: 0 auto; padding: 20px; box-sizing: border-box; }
-        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #333333; padding-bottom: 10px; }
-        .header h1 { margin: 0; color: #333333; font-size: 24px; }
-        .order-info { position: absolute; top: 20px; left: 20px; font-size: 10px; color: #666666; }
-        .section { margin-bottom: 20px; padding: 15px; border-radius: 8px; }
-        .customer-info { background: #f9f9f9; }
-        .order-status { background: #f0f8ff; }
-        .totals { background: #fff8dc; border: 2px solid #ffa500; }
-        .section h2 { margin: 0 0 10px 0; color: #333333; font-size: 16px; border-bottom: 1px solid #dddddd; padding-bottom: 5px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
-        th, td { border: 1px solid #dddddd; padding: 8px; }
-        th { background: #f0f0f0; font-weight: bold; }
-        .text-center { text-align: center; }
-        .flex { display: flex; justify-content: space-between; align-items: center; }
-        .discount { color: #d32f2f; }
-        .total { font-size: 18px; font-weight: bold; color: #2e7d32; }
-        .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #dddddd; color: #666666; font-size: 10px; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>نوبيان • ملخص الطلب</h1>
-          <div class="order-info">
-            <div>رقم الطلب: ${e(String(orderId))}</div>
-            <div>التاريخ: ${e(created)}</div>
-          </div>
-        </div>
-
-        <div class="section customer-info">
-          <h2>معلومات العميل</h2>
-          <div class="grid">
-            <div><strong>الاسم:</strong> ${e(order.customerInfo?.name || "غير محدد")}</div>
-            <div><strong>البريد:</strong> ${e(order.customerInfo?.email || "—")}</div>
-            <div><strong>الهاتف:</strong> ${e(order.customerInfo?.phone || order.phoneNumber || "غير محدد")}</div>
-            <div><strong>واتساب:</strong> ${e(order.addressSnapshot?.whatsapp || "غير محدد")}</div>
-          </div>
-          <div style="margin-top: 10px;">
-            <strong>العنوان:</strong> ${e(
-              order.addressSnapshot?.formattedAddress ||
-                [order.address, order.city].filter(Boolean).join("، ") ||
-                "—",
-            )}
-          </div>
-        </div>
-
-        <div class="section order-status">
-          <h2>حالة الطلب</h2>
-          <div class="grid">
-            <div><strong>حالة الطلب:</strong> ${e(getStatusInArabic(String(order.status || "")))}</div>
-            <div><strong>طريقة الدفع:</strong> ${e(getPaymentMethodLabel(order.paymentMethod))}</div>
-            <div><strong>حالة الدفع:</strong> ${e(getPaymentStatusInArabic(String(order.paymentStatus || "")))}</div>
-            ${couponCode ? `<div><strong>كوبون الخصم:</strong> ${e(couponCode)}</div>` : "<div></div>"}
-          </div>
-        </div>
-
-        <div class="section">
-          <h2>المنتجات (${lines.length})</h2>
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 5%;" class="text-center">#</th>
-                <th>المنتج</th>
-                <th style="width: 15%;" class="text-center">الكمية</th>
-                <th style="width: 20%;" class="text-center">السعر</th>
-                <th style="width: 20%;" class="text-center">الإجمالي</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${lines
-                .map(
-                  (line, index) => `
-                <tr>
-                  <td class="text-center">${index + 1}</td>
-                  <td>${e(line.name)}${line.variantLabel ? ` <small>(${e(line.variantLabel)})</small>` : ""}</td>
-                  <td class="text-center">${line.quantity}</td>
-                  <td class="text-center">${e(money(line.unitPrice))}</td>
-                  <td class="text-center">${e(money(line.lineTotal))}</td>
-                </tr>`,
-                )
-                .join("")}
-            </tbody>
-          </table>
-        </div>
-
-        <div class="section totals">
-          <h2 style="text-align: center;">ملخص المبالغ</h2>
-          <div class="flex" style="margin-bottom: 10px;">
-            <span><strong>المجموع الفرعي:</strong></span><span>${e(money(totals.subtotal))}</span>
-          </div>
-          <div class="flex" style="margin-bottom: 10px;">
-            <span><strong>الشحن:</strong></span><span>${e(money(totals.shipping))}</span>
-          </div>
-          ${
-            totals.discount > 0
-              ? `<div class="flex discount" style="margin-bottom: 10px;">
-                   <span><strong>الخصم:</strong></span><span>-${e(money(totals.discount))}</span>
-                 </div>`
-              : ""
-          }
-          <hr style="border: none; border-top: 2px solid #333333; margin: 10px 0;">
-          <div class="flex total">
-            <span><strong>الإجمالي النهائي:</strong></span><span>${e(money(totals.total))}</span>
-          </div>
-        </div>
-
-        <div class="footer">
-          تم إنشاء هذا التقرير بواسطة نظام نوبيان • Order: ${e(String(orderId))}
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
-
-  const iframe = document.createElement("iframe");
-  iframe.style.cssText =
-    "position:absolute;left:-9999px;top:-9999px;width:800px;height:2000px;border:none;visibility:hidden";
-  document.body.appendChild(iframe);
-
-  try {
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-    if (!iframeDoc) throw new Error("Unable to access iframe document");
-
-    iframeDoc.open();
-    iframeDoc.write(htmlContent);
-    iframeDoc.close();
-
-    // Wait for `complete`, then for the FontFaceSet to settle. Event-driven
-    // rather than a fixed delay — a warm cache finishes in ~200ms. The 3s cap
-    // stops a dead font CDN from hanging the export.
-    await new Promise<void>((resolve) => {
-      const onReady = async () => {
-        try {
-          const fonts: FontFaceSet | undefined = (iframeDoc as any).fonts;
-          if (fonts && typeof fonts.ready?.then === "function") {
-            await Promise.race([fonts.ready, new Promise((r) => setTimeout(r, 3000))]);
-          }
-        } catch {
-          // Older browsers without FontFaceSet — proceed anyway.
-        }
-        resolve();
-      };
-      if (iframeDoc.readyState === "complete") onReady();
-      else iframe.addEventListener("load", onReady, { once: true });
-    });
-
-    const contentElement = iframeDoc.querySelector(".container") as HTMLElement | null;
-    if (!contentElement) throw new Error("Container element not found");
-
-    // scale 1.5 keeps text crisp on A4 at roughly half the canvas memory of 2.
-    const canvas = await html2canvas(contentElement, {
-      scale: 1.5,
-      useCORS: true,
-      allowTaint: false,
-      backgroundColor: "#ffffff",
-      logging: false,
-      width: 800,
-      height: contentElement.scrollHeight,
-      scrollX: 0,
-      scrollY: 0,
-      windowWidth: 800,
-      windowHeight: contentElement.scrollHeight,
-    });
-
-    // JPEG @ 0.9 is indistinguishable from PNG for a text receipt and ~70%
-    // smaller — this gets emailed to customers.
-    const imgData = canvas.toDataURL("image/jpeg", 0.9);
-    const pdf = new jsPDF("p", "mm", "a4");
-
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-    const margin = 10;
-    const imgWidth = pdfWidth - margin * 2;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    const usablePageHeight = pdfHeight - margin * 2;
-
-    // Multi-page: place the full image once per page with a negative Y offset
-    // so each page shows the correct slice of the same canvas.
-    let heightLeft = imgHeight;
-    pdf.addImage(imgData, "JPEG", margin, margin, imgWidth, imgHeight, undefined, "FAST");
-    heightLeft -= usablePageHeight;
-
-    while (heightLeft > 0) {
-      pdf.addPage();
-      pdf.addImage(
-        imgData,
-        "JPEG",
-        margin,
-        margin - (imgHeight - heightLeft),
-        imgWidth,
-        imgHeight,
-        undefined,
-        "FAST",
-      );
-      heightLeft -= usablePageHeight;
-    }
-
-    pdf.save(`Order-${orderId}.pdf`);
-  } finally {
-    // Always reclaim the iframe, including on the throw paths above.
-    iframe.remove();
-  }
 }
 
 export default OrderDetailsDrawer;
