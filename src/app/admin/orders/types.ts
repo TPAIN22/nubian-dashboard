@@ -2,6 +2,12 @@
 // Shared Types and Interfaces
 // ─────────────────────────────────────────────────────────────
 
+import {
+  getOrderStatusMeta,
+  getPaymentMethodLabel,
+  getPaymentStatusMeta,
+} from "./orderStatus";
+
 export type OrderStatus =
   | "PENDING"
   | "AWAITING_PAYMENT_CONFIRMATION"
@@ -156,6 +162,14 @@ export interface Order {
   paymentStatus?: PaymentStatus;
   transferProof?: string;
 
+  /** Bankak review trail — the only per-transition timestamps the order stores. */
+  bankakApproval?: {
+    status?: "pending" | "approved" | "rejected";
+    approvedAt?: string;
+    rejectedAt?: string;
+    reason?: string;
+  };
+
   status: OrderStatus;
   orderNumber?: string;
   createdAt?: string;
@@ -181,60 +195,34 @@ export interface Order {
 // Helper Functions
 // ─────────────────────────────────────────────────────────────
 
-const isUpper = (s?: string) => (s ? s === s.toUpperCase() : false);
+// Label lookups now delegate to `orderStatus.ts`, which owns the label *and*
+// the colour for each status. Kept as functions so existing call sites and the
+// PDF template don't have to change.
+export const getStatusInArabic = (status: string) => getOrderStatusMeta(status).label;
 
-export const getStatusInArabic = (status: string) => {
-  const map: Record<string, string> = {
-    // new
-    PENDING: "بانتظار التأكيد",
-    AWAITING_PAYMENT_CONFIRMATION: "بانتظار موافقة التحويل",
-    CONFIRMED: "مؤكد",
-    PROCESSING: "قيد التجهيز",
-    SHIPPED: "تم الشحن",
-    DELIVERED: "تم التسليم",
-    CANCELLED: "ملغي",
-    PAYMENT_FAILED: "فشل الدفع",
+export const getPaymentStatusInArabic = (s: string) => getPaymentStatusMeta(s).label;
 
-    // old
-    pending: "بانتظار التأكيد",
-    confirmed: "مؤكد",
-    shipped: "تم الشحن",
-    delivered: "تم التسليم",
-    cancelled: "ملغي",
-  };
-  return map[status] || status;
-};
-
-export const getPaymentStatusInArabic = (s: string) => {
-  const map: Record<string, string> = {
-    UNPAID: "غير مدفوع",
-    PENDING_CONFIRMATION: "بانتظار موافقة التحويل",
-    PAID: "مدفوع",
-    REJECTED: "مرفوض",
-    FAILED: "فشل",
-
-    pending: "بانتظار",
-    paid: "مدفوع",
-    failed: "فشل",
-  };
-  return map[s] || s;
-};
-
-export const getPaymentMethodArabic = (m?: string) => {
-  const map: Record<string, string> = {
-    CASH: "كاش",
-    BANKAK: "بنكك",
-    cash: "كاش",
-    card: "بطاقة",
-  };
-  return m ? map[m] || m : "—";
-};
+export const getPaymentMethodArabic = (m?: string) => getPaymentMethodLabel(m);
 
 export const formatDate = (dateString?: string) => {
   if (!dateString) return "—";
   const d = new Date(dateString);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleDateString("ar-SD", { year: "numeric", month: "short", day: "numeric" });
+};
+
+/** Date + time. Support needs the clock time when reconciling a transfer. */
+export const formatDateTime = (dateString?: string) => {
+  if (!dateString) return "—";
+  const d = new Date(dateString);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("ar-SD", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -326,4 +314,235 @@ export const getAddressText = (o: Order) => {
   // geography at all: the flat strings are still written on every order.
   const old = [o.address, o.city].filter(Boolean).join("، ");
   return old || "غير محدد";
+};
+
+// ─────────────────────────────────────────────────────────────
+// Line items
+//
+// An order can arrive carrying its products under any of three keys, and the
+// admin list endpoint returns two of them at once (`products`, the raw
+// populated array, alongside `productsDetails`, the currency-converted display
+// copy). Every consumer used to re-derive this on its own, which is how the
+// table ended up reading `items[].name` while the dialog read
+// `products[].product.name` and neither ever showed a thumbnail.
+//
+// `getOrderLines` is now the only place that knows about those shapes.
+// ─────────────────────────────────────────────────────────────
+
+export interface OrderLine {
+  /** Stable key for React lists; index-suffixed because the same product can appear twice with different variants. */
+  key: string;
+  productId?: string;
+  name: string;
+  quantity: number;
+  /** Unit price in the order's display currency. */
+  unitPrice: number;
+  lineTotal: number;
+  image?: string;
+  /** Pre-joined variant summary, e.g. "مقاس: L · لون: أسود". Empty when the product has no variant. */
+  variantLabel: string;
+  /** Original payload, so the product detail dialog can show fields this shape doesn't model. */
+  raw: any;
+}
+
+const FALLBACK_PRODUCT_NAME = "منتج غير معروف";
+
+/** Flattens `attributes` / `size` / `color` into one readable variant line. */
+const buildVariantLabel = (source: any): string => {
+  const attrs = source?.attributes;
+  const parts: string[] = [];
+
+  if (attrs && typeof attrs === "object" && Object.keys(attrs).length > 0) {
+    for (const [key, value] of Object.entries(attrs)) {
+      if (value === null || value === undefined || value === "") continue;
+      parts.push(`${key}: ${String(value)}`);
+    }
+  } else if (source?.size) {
+    parts.push(`مقاس: ${source.size}`);
+  }
+
+  if (source?.color) parts.push(`لون: ${source.color}`);
+
+  return parts.join(" · ");
+};
+
+const toNumber = (v: any, fallback = 0) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+export const getOrderLines = (o?: Order | null): OrderLine[] => {
+  if (!o) return [];
+
+  const build = (
+    source: any[],
+    pick: (item: any) => { name?: string; image?: string; unitPrice: number; lineTotal?: number },
+  ): OrderLine[] =>
+    source.map((item, idx) => {
+      const { name, image, unitPrice, lineTotal } = pick(item);
+      const quantity = Math.max(0, toNumber(item?.quantity, 1));
+
+      return {
+        key: `${item?.productId ?? item?.product?._id ?? name ?? "line"}-${item?.variantId ?? ""}-${idx}`,
+        productId: item?.productId ?? item?.product?._id,
+        name: String(name || "").trim() || FALLBACK_PRODUCT_NAME,
+        quantity,
+        unitPrice,
+        lineTotal: lineTotal ?? unitPrice * quantity,
+        image,
+        variantLabel: buildVariantLabel(item),
+        raw: item,
+      };
+    });
+
+  // New checkout shape.
+  if (Array.isArray(o.items) && o.items.length) {
+    return build(o.items, (it) => ({
+      name: it?.name,
+      image: it?.image,
+      unitPrice: toNumber(it?.price),
+    }));
+  }
+
+  // What `/orders/admin` actually returns today: prices already converted into
+  // the shopper's currency, and the populated product's image list.
+  if (Array.isArray(o.productsDetails) && o.productsDetails.length) {
+    return build(o.productsDetails as any[], (p: any) => ({
+      name: p?.name,
+      image: Array.isArray(p?.images) ? p.images[0] : undefined,
+      unitPrice: toNumber(p?.finalPrice ?? p?.price),
+      lineTotal: typeof p?.totalPrice === "number" ? p.totalPrice : undefined,
+    }));
+  }
+
+  // Raw populated array from `order.toObject()` — base-currency prices, so only
+  // used when the formatted copy is missing entirely.
+  if (Array.isArray(o.products) && o.products.length) {
+    return build(o.products, (p: any) => ({
+      name: p?.product?.name ?? p?.name,
+      image: Array.isArray(p?.product?.images) ? p.product.images[0] : undefined,
+      unitPrice: toNumber(p?.price ?? p?.product?.price),
+    }));
+  }
+
+  return [];
+};
+
+/**
+ * Shipping charged on the order.
+ *
+ * The order model has no shipping field yet, so for every order placed so far
+ * this resolves to whatever is left over once the discount is applied to the
+ * subtotal — i.e. zero. Deriving it rather than hard-coding `0` means the
+ * totals block always reconciles: subtotal − discount + shipping === total,
+ * even for an order whose amounts were adjusted upstream.
+ */
+export const getOrderShipping = (o: Order) => {
+  if (typeof o.shippingFee === "number") return o.shippingFee;
+  const residual = getOrderTotal(o) - (getOrderSubtotal(o) - getOrderDiscount(o));
+  return residual > 0.009 ? residual : 0;
+};
+
+export const getOrderCouponCode = (o: Order) => o.couponDetails?.code || "";
+
+// ─────────────────────────────────────────────────────────────
+// Timeline
+// ─────────────────────────────────────────────────────────────
+
+export type TimelineState = "done" | "current" | "upcoming" | "failed";
+
+export interface TimelineStep {
+  key: string;
+  label: string;
+  /** ISO string, present only where the backend actually records a timestamp. */
+  at?: string;
+  state: TimelineState;
+}
+
+/**
+ * Derives a fulfilment timeline from the fields the order actually carries.
+ *
+ * The backend stores no per-transition history — only `createdAt`, `updatedAt`
+ * and the Bankak approval/rejection stamps. So each step's *state* comes from
+ * the status funnel, and a timestamp is attached only where one genuinely
+ * exists: the moment the order was placed, the moment a transfer was approved
+ * or rejected, and `updatedAt` against whichever step the order is sitting on
+ * now. Intermediate steps are deliberately left without a time rather than
+ * given a made-up one.
+ */
+export const getOrderTimeline = (o: Order): TimelineStep[] => {
+  const status = String(o.status || "");
+  const rank = getOrderStatusMeta(status).rank;
+  const isCancelled = rank === -1;
+  const updatedAt = o.updatedAt;
+
+  const payment = getPaymentStatusMeta(String(o.paymentStatus || ""));
+  const approval = o.bankakApproval;
+
+  const steps: TimelineStep[] = [
+    {
+      key: "placed",
+      label: "تم استلام الطلب",
+      at: o.createdAt || o.orderDate,
+      state: "done",
+    },
+  ];
+
+  if (payment.rank === 2) {
+    steps.push({
+      key: "paid",
+      label: "تم تأكيد الدفع",
+      at: approval?.approvedAt,
+      state: "done",
+    });
+  } else if (payment.rank === -1) {
+    steps.push({
+      key: "payment-failed",
+      label: approval?.rejectedAt ? "تم رفض التحويل" : "فشل الدفع",
+      at: approval?.rejectedAt,
+      state: "failed",
+    });
+  } else {
+    steps.push({
+      key: "payment-pending",
+      label: "بانتظار تأكيد الدفع",
+      state: isCancelled ? "upcoming" : "current",
+    });
+  }
+
+  const funnel: { key: string; label: string; rank: number }[] = [
+    { key: "confirmed", label: "تم التأكيد والتجهيز", rank: 2 },
+    { key: "shipped", label: "تم الشحن", rank: 3 },
+    { key: "delivered", label: "تم التسليم", rank: 4 },
+  ];
+
+  for (const step of funnel) {
+    const state: TimelineState = isCancelled
+      ? "upcoming"
+      : rank > step.rank
+        ? "done"
+        : rank === step.rank
+          ? "current"
+          : "upcoming";
+
+    // `updatedAt` is the only timestamp that maps to a transition, and it maps
+    // to the most recent one — so it belongs on the step the order is on now.
+    steps.push({
+      key: step.key,
+      label: step.label,
+      at: state === "current" ? updatedAt : undefined,
+      state,
+    });
+  }
+
+  if (isCancelled) {
+    steps.push({
+      key: "cancelled",
+      label: status === "PAYMENT_FAILED" ? "فشل الدفع وأُلغي الطلب" : "تم إلغاء الطلب",
+      at: updatedAt,
+      state: "failed",
+    });
+  }
+
+  return steps;
 };
