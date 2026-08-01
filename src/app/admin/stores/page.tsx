@@ -2,7 +2,7 @@ import { axiosInstance } from '@/lib/axiosInstance';
 import { auth } from '@clerk/nextjs/server';
 import { PageHeader } from '@/components/dashboard/PageHeader';
 import { StoresTable, type Store } from './StoresTable';
-import { CreateStoreDialog } from './CreateStoreDialog';
+import { StoreFormDialog } from './StoreFormDialog';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +29,7 @@ export default async function StoresPage() {
         title="المتاجر المُنشأة بواسطة الإدارة"
         description="أنشئ متجراً نيابة عن التاجر، أضف منتجاته، ثم اربطه بحسابه عندما يسجّل."
       >
-        <CreateStoreDialog />
+        <StoreFormDialog />
       </PageHeader>
 
       {awaitingConfirmation > 0 && (

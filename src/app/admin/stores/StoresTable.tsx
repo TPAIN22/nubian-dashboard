@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { LinkOwnerDialog } from "./LinkOwnerDialog";
+import { StoreFormDialog } from "./StoreFormDialog";
 
 export type Store = {
   _id: string;
@@ -23,6 +24,11 @@ export type Store = {
   email: string;
   phone?: string;
   city?: string;
+  description?: string;
+  merchantType?: "individual" | "business";
+  nationalId?: string;
+  crNumber?: string;
+  iban?: string;
   status: string;
   claimStatus: "unclaimed" | "claimed";
   claimRequestedBy?: string | null;
@@ -74,6 +80,7 @@ export function StoresTable({ stores }: { stores: Store[] }) {
               <TableCell>
                 <div className="flex items-center gap-2">
                   <LinkOwnerDialog store={store} />
+                  <StoreFormDialog store={store} />
                   <Button asChild variant="ghost" size="sm">
                     <Link href="/admin/products-advanced/new">
                       <PackagePlus className="h-4 w-4 ms-1" />
