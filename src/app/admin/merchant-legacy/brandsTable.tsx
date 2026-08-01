@@ -131,7 +131,7 @@ export const columns: ColumnDef<Merchant>[] = [
     cell: ({ row }) => {
       const merchant = row.original;
       return (
-        <Link href={`/business/merchants/${merchant._id}`}>
+        <Link href={`/admin/merchants-legacy/${merchant._id}`}>
           <Button variant="ghost" className="h-8 w-8 p-0">
             <span className="sr-only">عرض التفاصيل</span>
             <Eye className="h-4 w-4" />

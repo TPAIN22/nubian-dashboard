@@ -95,7 +95,7 @@ export default async function MerchantDetailsPage({ params }: PageProps) {
     <div className="flex flex-col gap-6 h-full sm:mx-12 mx-2 py-6">
       {/* Breadcrumb Navigation */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/business/merchants" className="hover:text-foreground transition-colors">
+        <Link href="/admin/merchants-legacy" className="hover:text-foreground transition-colors">
           التجار
         </Link>
         <ArrowRight className="h-4 w-4 rotate-180" />
@@ -104,7 +104,7 @@ export default async function MerchantDetailsPage({ params }: PageProps) {
 
       {/* Back Button */}
       <div>
-        <Link href="/business/merchants">
+        <Link href="/admin/merchants-legacy">
           <Button variant="ghost" className="gap-2">
             <ArrowRight className="h-4 w-4 rotate-180" />
             العودة إلى قائمة التجار

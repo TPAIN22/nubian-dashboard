@@ -58,7 +58,9 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: 'Googlebot-Image',
         allow: ['/'],
-        disallow: ['/api/', '/business/', '/merchant/', '/shop/'],
+        // '/business/' is the pre-rewrite path; middleware sends it to '/admin/',
+        // so both need listing or dashboard imagery stays crawlable.
+        disallow: ['/api/', '/business/', '/admin/', '/merchant/', '/shop/'],
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
