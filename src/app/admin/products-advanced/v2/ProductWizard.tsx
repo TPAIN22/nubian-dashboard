@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { useForm, useFieldArray, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -90,6 +90,11 @@ const productSchema = z.object({
     images: z.array(z.string()).min(1, "يجب رفع صورة واحدة على الأقل"),
     productType: z.enum(["simple", "with_variants"]),
 
+    // Admin-only: which store the product belongs to. Merchants never see this —
+    // the backend derives their merchant from the auth context. Required for
+    // admins, enforced in onSubmit since the requirement depends on role.
+    merchant: z.string().optional(),
+
     // Simple product fields
     merchantPrice: z.number().min(0).optional(),
     stock: z.number().min(0).optional(),
@@ -118,8 +123,14 @@ interface Props {
 export default function ProductWizard({ productId, redirectPath = "/business/products", addCategoryPath = "/admin/categories/new" }: Props) {
     const router = useRouter();
     const { getToken } = useAuth();
+    const { user } = useUser();
     const queryClient = useQueryClient();
     const [currentStep, setCurrentStep] = useState(1);
+
+    // Same wizard serves /admin and /merchant. Admins must pick a store because
+    // the backend has no merchant to infer from their token; merchants must not,
+    // because it would let them post into someone else's store.
+    const isAdmin = user?.publicMetadata?.role === "admin";
 
     // Form Initialization
     const form = useForm<ProductFormData>({
@@ -133,6 +144,7 @@ export default function ProductWizard({ productId, redirectPath = "/business/pro
             productType: "simple",
             merchantPrice: 1,
             stock: 1,
+            merchant: "",
             attributes: [],
             variants: [],
             colorImages: {},
@@ -154,6 +166,21 @@ export default function ProductWizard({ productId, redirectPath = "/business/pro
                 headers: { Authorization: `Bearer ${token}` }
             });
             return res.data || [];
+        }
+    });
+
+    // Fetch Stores (admin only — /merchants is an admin-gated endpoint)
+    const { data: merchants = [], isLoading: loadingMerchants } = useQuery({
+        queryKey: ["admin-merchants"],
+        enabled: isAdmin,
+        queryFn: async () => {
+            const token = await getToken();
+            const res = await axiosInstance.get("/merchants", {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const list = res.data?.data || res.data || [];
+            // Only approved stores can hold sellable products.
+            return (Array.isArray(list) ? list : []).filter((m: any) => m.status === "approved");
         }
     });
 
@@ -217,6 +244,8 @@ export default function ProductWizard({ productId, redirectPath = "/business/pro
                 productType: isVar ? "with_variants" : "simple",
                 merchantPrice: p.merchantPrice || p.price || 0,
                 stock: p.stock || 0,
+                // merchant comes back populated on GET — keep only the id.
+                merchant: p.merchant?._id || p.merchant || "",
                 attributes: normAttrs,
                 variants: normVars,
                 colorImages: {},
@@ -284,6 +313,14 @@ export default function ProductWizard({ productId, redirectPath = "/business/pro
             status: data.isActive ? "active" : "draft",
             images: data.images,
         };
+
+        // `...existingProduct` above carries a populated merchant object on edit,
+        // which the backend would reject as an ObjectId. Always collapse it to an id.
+        if (data.merchant) {
+            payload.merchant = data.merchant;
+        } else {
+            delete payload.merchant;
+        }
 
         if (data.productType === "simple") {
             // Backend requires a variant-first approach
@@ -406,6 +443,13 @@ export default function ProductWizard({ productId, redirectPath = "/business/pro
             return;
         }
 
+        // Zod cannot express "required only for admins", so gate it here rather
+        // than letting the backend reject the whole wizard at the final step.
+        if (isAdmin && currentStep === 1 && !watch("merchant")) {
+            toast.warning("يرجى اختيار المتجر");
+            return;
+        }
+
         if (productType === "simple" && currentStep === 1) {
             setCurrentStep(6);
             return;
@@ -513,7 +557,7 @@ export default function ProductWizard({ productId, redirectPath = "/business/pro
                 <main className="min-h-[500px]">
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                         <div className="md:col-span-12">
-                            {currentStep === 1 && <BasicInfoStep categories={categories} onUpload={handleImageUpload} addCategoryPath={addCategoryPath} />}
+                            {currentStep === 1 && <BasicInfoStep categories={categories} onUpload={handleImageUpload} addCategoryPath={addCategoryPath} showMerchantPicker={isAdmin} merchants={merchants} loadingMerchants={loadingMerchants} />}
                             {currentStep === 2 && productType === "with_variants" && <VariantSetupStep generate={generateVariants} />}
                             {currentStep === 3 && productType === "with_variants" && <VariantMatrixStep />}
                             {currentStep === 4 && productType === "with_variants" && <VariantImagesStep onUpload={handleImageUpload} />}
@@ -568,7 +612,7 @@ export default function ProductWizard({ productId, redirectPath = "/business/pro
 // SUB-COMPONENTS (STEPS)
 // ==========================================
 
-function BasicInfoStep({ categories, onUpload, addCategoryPath }: { categories: any[]; onUpload: any; addCategoryPath: string }) {
+function BasicInfoStep({ categories, onUpload, addCategoryPath, showMerchantPicker = false, merchants = [], loadingMerchants = false }: { categories: any[]; onUpload: any; addCategoryPath: string; showMerchantPicker?: boolean; merchants?: any[]; loadingMerchants?: boolean }) {
     const { control, watch } = useFormContext<ProductFormData>();
     const productType = watch("productType");
 
@@ -580,6 +624,39 @@ function BasicInfoStep({ categories, onUpload, addCategoryPath }: { categories: 
                     <CardDescription>أدخل البيانات الأساسية التي ستظهر للعملاء</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                    {showMerchantPicker && (
+                        <FormField
+                            control={control}
+                            name="merchant"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="font-semibold">المتجر</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger className="h-11">
+                                                <SelectValue placeholder={loadingMerchants ? "جاري تحميل المتاجر..." : "اختر المتجر"} />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {merchants.map((m: any) => (
+                                                <SelectItem key={m._id} value={m._id}>
+                                                    {m.storeName}
+                                                    {m.claimStatus === "unclaimed" ? " — غير مرتبط بمستخدم" : ""}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-muted-foreground mt-1.5">
+                                        المنتج سيُنسب إلى هذا المتجر.{" "}
+                                        <Link href="/admin/stores" className="inline-flex items-center gap-1 text-primary font-medium hover:underline">
+                                            إنشاء متجر جديد
+                                        </Link>
+                                    </p>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
                     <FormField
                         control={control}
                         name="name"

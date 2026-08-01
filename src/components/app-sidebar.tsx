@@ -23,6 +23,7 @@ import {
   IconUsers,
   IconArrowsExchange,
   IconBell,
+  IconBuildingStore,
 } from "@tabler/icons-react";
 import { useUser } from "@clerk/nextjs";
 
@@ -48,6 +49,11 @@ const adminNav = [
     title: "طلبات الانضمام",
     url: "/admin/applications",
     icon: IconUsers,
+  },
+  {
+    title: "متاجر الإدارة",
+    url: "/admin/stores",
+    icon: IconBuildingStore,
   },
   {
     title: "الدعم والنزاعات",
