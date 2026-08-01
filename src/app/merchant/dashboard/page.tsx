@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import logger from '@/lib/logger'
+import { formatCurrency } from '@/lib/currency'
 
 
 interface Merchant {
@@ -320,13 +321,6 @@ export default function MerchantDashboard() {
     return null
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ar-SD', {
-      style: 'currency',
-      currency: 'SDG',
-    }).format(amount)
-  }
-
   return (
     <div className="flex flex-col gap-6 h-full sm:mx-12 mx-2 py-6 bg-background min-h-screen">
       <div className="space-y-1">
@@ -355,7 +349,7 @@ export default function MerchantDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-green-600 dark:text-green-500">
-              {stats ? formatCurrency(stats.totalRevenue) : '0.00 ج.س'}
+              {stats ? formatCurrency(stats.totalRevenue) : formatCurrency(0)}
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               من جميع الطلبات

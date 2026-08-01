@@ -227,7 +227,7 @@ export function buildInvoiceHtml({ order, lines, totals, currency }: InvoiceInpu
   td { padding: 7px 8px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
   td.c, th.c { text-align: center; }
   td.e, th.e { text-align: end; }
-  /* An amount is one atom. Without this "86,762.00 ج.س" breaks between the
+  /* An amount is one atom. Without this "$86,762.00" breaks between the
      digits and the currency symbol and every price occupies two lines. */
   .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
   .strong { font-weight: 700; }

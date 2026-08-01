@@ -20,6 +20,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { formatCurrency } from "@/lib/currency";
+
 import {
   Table,
   TableBody,
@@ -70,12 +72,6 @@ export default function AffiliateDashboard() {
     toast.success("تم النسخ إلى الحافظة");
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("ar-SD", {
-      style: "currency",
-      currency: "SDG",
-    }).format(amount);
-  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {

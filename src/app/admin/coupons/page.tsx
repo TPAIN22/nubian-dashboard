@@ -28,6 +28,8 @@ import CouponForm from "./couponForm";
 
 
 
+import { formatCurrency } from "@/lib/currency";
+
 // Date formatting utility
 const formatDate = (dateString: string) => {
   try {
@@ -153,12 +155,6 @@ export default function CouponsPage() {
     return matchesSearch;
   });
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("ar-SA", {
-      style: "currency",
-      currency: "SDG",
-    }).format(amount);
-  };
 
   return (
     <div className="container mx-auto py-6 space-y-6">

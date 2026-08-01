@@ -5,6 +5,7 @@ import { axiosInstance } from '@/lib/axiosInstance'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import logger from '@/lib/logger'
+import { formatCurrency } from '@/lib/currency'
 
 
 interface Stats {
@@ -52,13 +53,6 @@ export default function MerchantAnalyticsPage() {
         <div className="text-lg">جاري التحميل...</div>
       </div>
     )
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ar-SD', {
-      style: 'currency',
-      currency: 'SDG',
-    }).format(amount)
   }
 
   return (

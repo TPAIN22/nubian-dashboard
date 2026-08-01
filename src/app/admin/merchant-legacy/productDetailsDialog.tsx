@@ -15,6 +15,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
+import { formatCurrency } from "@/lib/currency";
+
 interface Product {
   _id: string;
   name: string;
@@ -63,12 +65,6 @@ export function ProductDetailsDialog({ product }: ProductDetailsDialogProps) {
     });
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("ar-SA", {
-      style: "currency",
-      currency: "SDG",
-    }).format(amount);
-  };
 
   // Smart pricing: finalPrice > discountPrice > price
   const merchantPrice = product.merchantPrice || product.price || 0;

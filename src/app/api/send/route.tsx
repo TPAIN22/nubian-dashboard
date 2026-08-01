@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
           oldStatus={normalizedOldStatus}
           paymentStatus={normalizedPaymentStatus}
           paymentMethod={paymentMethod}
-          currency={currency || "ج.س"}
+          currency={currency || "$"}
           totalAmount={Number(totalAmount)}
           subtotal={isFiniteNumber(subtotal) ? Number(subtotal) : undefined}
           shippingFee={isFiniteNumber(shippingFee) ? Number(shippingFee) : undefined}

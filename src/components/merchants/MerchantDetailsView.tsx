@@ -22,6 +22,8 @@ import {
 import { toast } from "sonner";
 import type { Merchant } from "@/app/admin/merchants-legacy/[merchantId]/page";
 
+import { formatCurrency } from "@/lib/currency";
+
 interface Product {
   _id: string;
   name: string;
@@ -339,10 +341,7 @@ function ProductCard({ product, onUpdate, getToken }: ProductCardProps) {
                     const merchantPrice = product.merchantPrice || product.price || 0;
                     const finalPrice = product.finalPrice || product.discountPrice || product.price || 0;
                     const originalPrice = merchantPrice;
-                    return new Intl.NumberFormat("ar-SA", {
-                      style: "currency",
-                      currency: "SDG",
-                    }).format(finalPrice);
+                    return formatCurrency(finalPrice);
                   })()}
                 </span>
                 {(() => {
@@ -353,10 +352,7 @@ function ProductCard({ product, onUpdate, getToken }: ProductCardProps) {
                   const hasDiscount = finalPrice < merchantPrice;
                   return hasDiscount ? (
                     <span className="text-xs text-muted-foreground line-through">
-                      {new Intl.NumberFormat("ar-SA", {
-                        style: "currency",
-                        currency: "SDG",
-                      }).format(originalPrice)}
+                      {formatCurrency(originalPrice)}
                     </span>
                   ) : null;
                 })()}

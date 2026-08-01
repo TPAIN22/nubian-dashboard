@@ -19,6 +19,8 @@ import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
 import type { Merchant } from "./page";
 
+import { formatCurrency } from "@/lib/currency";
+
 interface Product {
   _id: string;
   name: string;
@@ -285,10 +287,7 @@ function ProductCard({ product }: { product: Product }) {
                     // Smart pricing: finalPrice > discountPrice > price
                     const merchantPrice = product.merchantPrice || product.price || 0;
                     const finalPrice = product.finalPrice || product.discountPrice || product.price || 0;
-                    return new Intl.NumberFormat("ar-SA", {
-                      style: "currency",
-                      currency: "SDG",
-                    }).format(finalPrice);
+                    return formatCurrency(finalPrice);
                   })()}
                 </span>
                 {(() => {
@@ -298,10 +297,7 @@ function ProductCard({ product }: { product: Product }) {
                   const hasDiscount = finalPrice < merchantPrice;
                   return hasDiscount ? (
                     <span className="text-xs text-muted-foreground line-through">
-                      {new Intl.NumberFormat("ar-SA", {
-                        style: "currency",
-                        currency: "SDG",
-                      }).format(merchantPrice)}
+                      {formatCurrency(merchantPrice)}
                     </span>
                   ) : null;
                 })()}

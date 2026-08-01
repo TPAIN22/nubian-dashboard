@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Info } from "lucide-react";
 import { FormVariant, getMinVariantPrice, getResolvedVariantPrice } from "@/lib/products/normalizeProductPayload";
 
+import { formatCurrency } from "@/lib/currency";
+
 interface VariantPricingPreviewProps {
   variants: FormVariant[];
   defaultVariantMerchantPrice?: number | "";
@@ -57,14 +59,6 @@ export function VariantPricingPreview({
     return { custom, usingDefault, missing };
   }, [variants, defaultVariantMerchantPrice]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("ar-SA", {
-      style: "currency",
-      currency: "SDG",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  };
 
   if (variants.length === 0) {
     return null;

@@ -2,6 +2,8 @@
 // Shared Types and Interfaces
 // ─────────────────────────────────────────────────────────────
 
+import { BASE_CURRENCY, formatCurrency } from "@/lib/currency";
+
 import {
   getOrderStatusMeta,
   getPaymentMethodLabel,
@@ -232,22 +234,13 @@ export const formatDateTime = (dateString?: string) => {
   });
 };
 
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  SDG: "ج.س",
-  USD: "$",
-  EUR: "€",
-  GBP: "£",
-  AED: "د.إ",
-  SAR: "ر.س",
-  EGP: "ج.م",
-};
-
-export const formatMoney = (amount?: number, currency = "USD") => {
-  const v = typeof amount === "number" && isFinite(amount) ? amount : 0;
-  const formatted = new Intl.NumberFormat("en", { minimumFractionDigits: 2 }).format(v);
-  const symbol = CURRENCY_SYMBOLS[String(currency || "").toUpperCase()] || currency || "";
-  return `${formatted} ${symbol}`.trim();
-};
+/**
+ * Orders are the one place that legitimately carries a non-USD currency:
+ * `currencyCodeSelected` + `*Converted` totals record what the customer actually
+ * paid. Pass that code explicitly; everything else on the platform is USD.
+ */
+export const formatMoney = (amount?: number, currency = BASE_CURRENCY) =>
+  formatCurrency(amount, currency);
 
 // ─────────────────────────────────────────────────────────────
 // Money / currency accessors — always prefer the backend's converted

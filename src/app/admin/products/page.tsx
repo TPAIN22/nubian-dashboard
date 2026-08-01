@@ -25,6 +25,8 @@ import {
 import { toast } from 'sonner';
 import Image from 'next/image';
 
+import { formatCurrency } from "@/lib/currency";
+
 interface Product {
   _id: string;
   name: string;
@@ -137,7 +139,7 @@ export default function AdminProductsPage() {
                     </TableCell>
                     <TableCell>{p.merchantId.storeName}</TableCell>
                     <TableCell><Badge variant="outline">{p.category?.name || 'عام'}</Badge></TableCell>
-                    <TableCell>{new Intl.NumberFormat('ar-SD', { style: 'currency', currency: 'SDG' }).format(p.price)}</TableCell>
+                    <TableCell>{formatCurrency(p.price)}</TableCell>
                     <TableCell>{p.stock}</TableCell>
                     <TableCell>
                        {p.isFlagged ? (

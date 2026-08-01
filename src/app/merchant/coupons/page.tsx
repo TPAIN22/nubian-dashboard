@@ -26,6 +26,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
+import { formatCurrency } from "@/lib/currency";
+
 interface Coupon {
   _id: string;
   code: string;
@@ -132,12 +134,6 @@ export default function MerchantCouponsPage() {
     fetchCoupons();
   }, [fetchCoupons]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("ar-SA", {
-      style: "currency",
-      currency: "SDG",
-    }).format(amount);
-  };
 
   const filteredCoupons = React.useMemo(() => {
     let filtered = coupons.filter((coupon) => {

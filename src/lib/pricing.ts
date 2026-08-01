@@ -1,4 +1,5 @@
 import { ProductDTO, ProductVariantDTO } from "@/types/shop";
+import { BASE_CURRENCY } from "@/lib/currency";
 
 export interface ResolvedPrice {
   final: number;
@@ -37,7 +38,7 @@ export interface PricingOptions {
 export function resolvePrice({
   product,
   selectedVariant,
-  currency = "SDG",
+  currency = BASE_CURRENCY,
 }: PricingOptions): ResolvedPrice {
   if (!product) {
     return { final: 0, merchant: 0, original: 0, currency, source: "simple" };
@@ -95,7 +96,7 @@ function resolveFromPrice(
 }
 
 // ── Variant product, variant selected ────────────────────────────────────────
-function resolveVariant(variant: ProductVariantDTO, currency = "SDG"): ResolvedPrice {
+function resolveVariant(variant: ProductVariantDTO, currency = BASE_CURRENCY): ResolvedPrice {
   const merchant = variant.merchantPrice ?? variant.basePrice ?? 0;
 
   // Trust the backend pricing block when present.
@@ -134,7 +135,7 @@ function resolveVariant(variant: ProductVariantDTO, currency = "SDG"): ResolvedP
 }
 
 // ── Simple product (no variants) ─────────────────────────────────────────────
-function resolveSimple(product: ProductDTO, currency = "SDG"): ResolvedPrice {
+function resolveSimple(product: ProductDTO, currency = BASE_CURRENCY): ResolvedPrice {
   const merchant = product.merchantPrice ?? product.basePrice ?? 0;
 
   if (product.finalPrice !== undefined && product.finalPrice > 0) {

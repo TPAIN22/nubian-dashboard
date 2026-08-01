@@ -94,6 +94,8 @@ import { Label } from "@/components/ui/label"
 
 import type { Product, ProductFilters } from '../types/product'
 
+import { formatCurrency } from "@/lib/currency";
+
 interface ProductsTableProps {
   productsData: Product[]
   getToken?: () => Promise<string | null>
@@ -533,10 +535,7 @@ export function ProductsTable({
         const product = row.original
         const finalPrice = product.finalPrice || product.discountPrice || product.price || 0
         const validFinalPrice = !isNaN(finalPrice) && isFinite(finalPrice) ? finalPrice : 0
-        const formatted = new Intl.NumberFormat("ar-SD", {
-          style: "currency",
-          currency: "SDG",
-        }).format(validFinalPrice)
+        const formatted = formatCurrency(validFinalPrice)
 
         return <div className="text-right font-medium">{formatted}</div>
       },
@@ -553,10 +552,7 @@ export function ProductsTable({
 
         const hasDiscount = validFinalPrice < validOriginalPrice
         if (hasDiscount) {
-          const formatted = new Intl.NumberFormat("ar-SD", {
-            style: "currency",
-            currency: "SDG",
-          }).format(validOriginalPrice)
+          const formatted = formatCurrency(validOriginalPrice)
 
           return (
             <div className="text-right font-medium">

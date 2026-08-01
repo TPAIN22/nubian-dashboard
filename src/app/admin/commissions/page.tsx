@@ -34,6 +34,8 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 
+import { formatCurrency } from "@/lib/currency";
+
 export default function CommissionsAdminPage() {
   const [commissions, setCommissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,12 +93,6 @@ export default function CommissionsAdminPage() {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("ar-SD", {
-      style: "currency",
-      currency: "SDG",
-    }).format(amount);
-  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {

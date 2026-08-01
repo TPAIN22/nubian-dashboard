@@ -30,7 +30,7 @@ interface OrderStatusUpdateEmailProps {
   paymentMethod?: string;
 
   totalAmount: number;
-  currency?: string; // default: "ج.س"
+  currency?: string; // default: "$" (USD is the platform base currency)
 
   products: { name: string; quantity: number; price: number }[];
 
@@ -212,7 +212,7 @@ export const OrderStatusUpdateEmail = ({
   paymentMethod,
 
   totalAmount,
-  currency = "ج.س",
+  currency = "$",
 
   products,
 

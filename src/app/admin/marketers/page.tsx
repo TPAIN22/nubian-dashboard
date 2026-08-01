@@ -23,6 +23,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { formatCurrency } from "@/lib/currency";
+
 import {
   Dialog,
   DialogContent,
@@ -192,12 +194,6 @@ export default function MarketersAdminPage() {
     setIsEditOpen(true);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("ar-SD", {
-      style: "currency",
-      currency: "SDG",
-    }).format(amount);
-  };
 
   const formatDate = (date?: string) => {
     if (!date) return "—";

@@ -61,6 +61,8 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 
+import { formatCurrency } from "@/lib/currency";
+
 export type Product = {
   _id: string
   name: string
@@ -130,10 +132,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
                 const finalPrice = typeof product.discountPrice === 'number' && !isNaN(product.discountPrice) && isFinite(product.discountPrice) && product.discountPrice > 0
                   ? product.discountPrice 
                   : originalPrice
-                return new Intl.NumberFormat("ar-SD", {
-                  style: "currency",
-                  currency: "SDG",
-                }).format(finalPrice)
+                return formatCurrency(finalPrice)
               })()}
             </p>
           </div>
@@ -151,10 +150,7 @@ function ProductDetailsDialog({ product }: { product: Product }) {
               <div>
                 <h3 className="font-semibold mb-1">السعر الأصلي</h3>
                 <p className="text-muted-foreground line-through">
-                  {new Intl.NumberFormat("ar-SD", {
-                    style: "currency",
-                    currency: "SDG",
-                  }).format(originalPrice)}
+                  {formatCurrency(originalPrice)}
                 </p>
               </div>
             ) : null
@@ -373,10 +369,7 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
           ? discountPriceValue
           : originalPrice
         const validFinalPrice = !isNaN(finalPrice) && isFinite(finalPrice) ? finalPrice : 0
-        const formatted = new Intl.NumberFormat("ar-SD", {
-          style: "currency",
-          currency: "SDG",
-        }).format(validFinalPrice)
+        const formatted = formatCurrency(validFinalPrice)
         return <div className="text-right font-medium">{formatted}</div>
       },
     },
@@ -401,10 +394,7 @@ export function ProductsTable({ productsData, getToken, onProductUpdate }: Produ
         // Show original price (strikethrough) if there's a discount
         const hasDiscount = validFinalPrice < validOriginalPrice && discountPriceValue && typeof discountPriceValue === 'number' && discountPriceValue > 0
         if (hasDiscount) {
-          const formatted = new Intl.NumberFormat("ar-SD", {
-            style: "currency",
-            currency: "SDG",
-          }).format(validOriginalPrice)
+          const formatted = formatCurrency(validOriginalPrice)
           
           return (
             <div className="text-right font-medium">

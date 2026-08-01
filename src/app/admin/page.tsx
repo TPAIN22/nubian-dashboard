@@ -16,6 +16,8 @@ import {
 import Link from 'next/link';
 import { toast } from 'sonner';
 
+import { formatCurrency } from "@/lib/currency";
+
 interface Analytics {
   totalMerchants: number;
   pendingMerchants: number;
@@ -47,12 +49,6 @@ export default function AdminDashboard() {
     fetchStats();
   }, []);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ar-SD', {
-      style: 'currency',
-      currency: 'SDG',
-    }).format(amount);
-  };
 
   if (loading) {
      return <div className="flex items-center justify-center min-h-[400px]">جاري التحميل...</div>;

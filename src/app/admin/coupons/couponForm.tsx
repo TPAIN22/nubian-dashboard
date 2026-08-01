@@ -28,6 +28,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+import { formatCurrency } from "@/lib/currency";
+
 const couponSchema = z.object({
   code: z.string().min(1, "الكود مطلوب").max(50, "الكود طويل جداً"),
   type: z.enum(["percentage", "fixed"], {
@@ -251,7 +253,7 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="percentage">نسبة مئوية (%)</SelectItem>
-                    <SelectItem value="fixed">قيمة ثابتة (ج.س)</SelectItem>
+                    <SelectItem value="fixed">قيمة ثابتة ($)</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -278,7 +280,7 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
                 <FormDescription>
                   {form.watch("type") === "percentage"
                     ? "النسبة المئوية (0-100%)"
-                    : "القيمة بالجنيه السوداني"}
+                    : "القيمة بالدولار الأمريكي"}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -327,7 +329,7 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
                   />
                 </FormControl>
                 <FormDescription>
-                  الحد الأقصى للخصم بالجنيه السوداني (اتركه فارغاً لعدم وجود حد)
+                  الحد الأقصى للخصم بالدولار الأمريكي (اتركه فارغاً لعدم وجود حد)
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -419,18 +421,18 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">مبلغ الطلب (مثال):</span>
-                <span>1,000 ج.س</span>
+                <span>{formatCurrency(1000)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">الخصم:</span>
                 <span className="text-green-600 font-semibold">
-                  -{discountPreview.discountAmount.toFixed(2)} ج.س
+                  -{formatCurrency(discountPreview.discountAmount)}
                 </span>
               </div>
               <div className="flex justify-between pt-2 border-t font-bold">
                 <span>المبلغ النهائي:</span>
                 <span className="text-primary">
-                  {discountPreview.finalAmount.toFixed(2)} ج.س
+                  {formatCurrency(discountPreview.finalAmount)}
                 </span>
               </div>
             </div>

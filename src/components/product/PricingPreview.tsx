@@ -6,6 +6,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertTriangle, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
+import { formatCurrency } from "@/lib/currency";
+
 interface PricingPreviewProps {
   merchantPrice?: number;
   nubianMarkup?: number;
@@ -34,14 +36,6 @@ export function PricingPreview({
     return 0;
   }, [merchantPrice, nubianMarkup, dynamicMarkup, finalPrice]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("ar-SA", {
-      style: "currency",
-      currency: "SDG",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  };
 
   // Calculate markup percentage
   const totalMarkupPercentage = nubianMarkup + dynamicMarkup;

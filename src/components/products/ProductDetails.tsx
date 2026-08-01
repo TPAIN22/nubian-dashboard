@@ -9,6 +9,8 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import Link from "next/link";
 
+import { formatCurrency } from "@/lib/currency";
+
 export interface Product {
   _id: string;
   name: string;
@@ -73,12 +75,6 @@ export function ProductDetails({ product, showActions = false, onEdit, onToggleA
     });
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("ar-SA", {
-      style: "currency",
-      currency: "SDG",
-    }).format(amount);
-  };
 
   const handleCopyId = () => {
     navigator.clipboard.writeText(product._id);
