@@ -125,7 +125,49 @@ const productSchema = z.object({
     // UI Helpers (Transient)
     colorImages: z.record(z.array(z.string())),
     colorPrices: z.record(z.number()),
+}).superRefine((data, ctx) => {
+    // A "simple" product is still persisted as a single variant, and the backend
+    // requires every variant to have merchantPrice > 0 and a non-negative integer
+    // stock (product.model.js variantSchema: `merchantPrice` min 1; and
+    // products.controller.js validateVariants). Enforce it here so the user gets
+    // an inline field error instead of a 400 after clicking save.
+    if (data.productType !== "simple") return;
+
+    if (typeof data.merchantPrice !== "number" || data.merchantPrice < 1) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["merchantPrice"],
+            message: "السعر مطلوب ويجب ألا يقل عن 1",
+        });
+    }
+
+    if (
+        typeof data.stock !== "number" ||
+        data.stock < 0 ||
+        !Number.isInteger(data.stock)
+    ) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["stock"],
+            message: "الكمية مطلوبة ويجب أن تكون عدداً صحيحاً غير سالب",
+        });
+    }
 });
+
+/**
+ * Placeholder attributes the wizard writes for a product that has no real
+ * variant axes — `{ size: "os", color: "default" }`. Recognising them is what
+ * lets a round-trip tell "simple" apart from "one-variant product".
+ */
+const isPlaceholderVariantAttrs = (attrs: any) => {
+    const entries = Object.entries(attrs || {}).filter(([k]) => k !== "_id");
+    if (entries.length === 0) return true;
+    return entries.every(([k, v]) => {
+        const key = k.toLowerCase();
+        const val = String(v ?? "").toLowerCase();
+        return (key === "size" && val === "os") || (key === "color" && val === "default");
+    });
+};
 
 type ProductFormData = z.infer<typeof productSchema>;
 
@@ -233,9 +275,6 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
             });
             const p = res.data.data || res.data;
 
-            // Map backend product to form data
-            const isVar = p.variants && p.variants.length > 0;
-
             // Normalize Arabic legacy attributes to prevent duplication in DB
             let normAttrs = (p.attributes || []).map((a: any) => {
                 const options = a.options || a.values || [];
@@ -273,15 +312,31 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
                 })).filter(a => a.options.length > 0);
             }
 
+            // EVERY product is stored variant-first — `variants` is required and
+            // must be non-empty (product.model.js), so a simple product is one
+            // variant carrying the placeholder attributes. Testing
+            // `variants.length > 0` therefore classified *every* product as
+            // "with_variants", which is why editing a simple product dropped the
+            // user into the variant flow and then failed to save.
+            const soleVariant = normVars.length === 1 ? normVars[0] : null;
+            const isSimple =
+                normAttrs.length === 0 &&
+                !!soleVariant &&
+                isPlaceholderVariantAttrs(soleVariant.attributes);
+
+            // There is no top-level `merchantPrice`/`price` on the product schema —
+            // price and stock live on the variant. Reading them off the root gave
+            // 0, which the backend then rejected with
+            // "Variant merchantPrice is required and must be > 0".
             const mapped: ProductFormData = {
                 name: p.name,
                 description: p.description,
                 category: p.category?._id || p.category,
                 isActive: p.isActive ?? true,
                 images: p.images || [],
-                productType: isVar ? "with_variants" : "simple",
-                merchantPrice: p.merchantPrice || p.price || 0,
-                stock: p.stock || 0,
+                productType: isSimple ? "simple" : "with_variants",
+                merchantPrice: Number(soleVariant?.merchantPrice ?? 0) || 1,
+                stock: Number(soleVariant?.stock ?? p.stock ?? 0),
                 // merchant comes back populated on GET — keep only the id.
                 merchant: p.merchant?._id || p.merchant || "",
                 attributes: normAttrs,
@@ -345,8 +400,13 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
 
     // Helper: Build Payload for API
     const buildPayload = (data: ProductFormData) => {
+        // Only the fields the wizard actually owns are sent. The previous version
+        // spread the whole raw document (`_id`, `__v`, `slug`, `createdAt`,
+        // `finalPrice`, the populated `merchant`…) back into the PUT body. The
+        // update controller does `product.set(req.body)` — a partial merge — so
+        // omitting a field preserves it. Echoing server-managed fields back was
+        // pure risk with no benefit.
         const payload: any = {
-            ...(existingProduct || {}),
             name: data.name,
             description: data.description,
             category: data.category,
@@ -355,24 +415,34 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
             images: data.images,
         };
 
-        // `...existingProduct` above carries a populated merchant object on edit,
-        // which the backend would reject as an ObjectId. Always collapse it to an id.
         if (data.merchant) {
             payload.merchant = data.merchant;
-        } else {
-            delete payload.merchant;
         }
 
         if (data.productType === "simple") {
-            // Backend requires a variant-first approach
+            // Backend requires a variant-first approach, so a simple product is
+            // persisted as one placeholder variant.
+            const existingSimple = (existingProduct as any)?.variants?.[0];
+
             payload.variants = [{
-                sku: `${data.name.substring(0, 3).toUpperCase()}-${Date.now().toString().slice(-4)}`,
-                merchantPrice: data.merchantPrice || 0,
-                stock: data.stock || 0,
+                // Keep the stored SKU on edit. Minting a fresh
+                // `NAM-1234` on every save silently rotated the product's SKU and
+                // risked colliding with the unique sparse index on variants.sku.
+                sku:
+                    existingSimple?.sku ||
+                    `${data.name.substring(0, 3).toUpperCase()}-${Date.now().toString().slice(-4)}`,
+                // Preserve the subdocument id so this updates the existing variant
+                // rather than replacing it with a new one.
+                ...(existingSimple?._id ? { _id: existingSimple._id } : {}),
+                merchantPrice: Number(data.merchantPrice) || 0,
+                stock: Number(data.stock) || 0,
                 isActive: true,
                 images: data.images,
                 attributes: { size: "os", color: "default" }
             }];
+            // A simple product has no variant axes; clear any left over from a
+            // product that was previously edited as a variant product.
+            payload.attributes = [];
         } else {
             // Apply normalization on save payload to prevent DB duplicates
             payload.attributes = data.attributes.map(a => {
@@ -471,7 +541,13 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
 
     const nextStep = async () => {
         const stepFields: Record<number, (keyof ProductFormData)[]> = {
-            1: ["name", "description", "category", "images", "productType"],
+            // A simple product enters its price and stock on step 1 and then
+            // jumps straight to review, so those two fields must be validated
+            // here — otherwise the only thing that catches an empty price is the
+            // backend, as a 400 on the very last click.
+            1: productType === "simple"
+                ? ["name", "description", "category", "images", "productType", "merchantPrice", "stock"]
+                : ["name", "description", "category", "images", "productType"],
             2: ["attributes", "merchantPrice", "stock"],
             3: ["variants"],
             4: ["colorImages"],

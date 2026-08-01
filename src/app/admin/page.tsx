@@ -12,7 +12,6 @@ import {
 } from 'lucide-react'
 
 import {
-  Alert,
   Button,
   EmptyState,
   ErrorState,
@@ -27,6 +26,7 @@ import {
 } from '@/components/admin'
 import { useAdminOverview } from '@/components/admin/shell/use-admin-counts'
 import { formatCurrency } from '@/lib/currency'
+import { OverviewTrend } from './OverviewTrend'
 
 /* ============================================================================
    Overview
@@ -205,11 +205,7 @@ export default function AdminOverviewPage() {
               </Section>
             </div>
 
-            <Alert tone="neutral" title="الرسوم البيانية الزمنية">
-              لوحة الاتجاهات عبر الزمن تحتاج نقطة نهاية تُرجع سلاسل زمنية
-              (إيرادات/طلبات يومية). حتى تتوفر، تعرض هذه الصفحة الأرقام الفعلية فقط
-              بدل رسم بياني وهمي.
-            </Alert>
+            <OverviewTrend />
           </Stack>
         )}
       </PageBody>

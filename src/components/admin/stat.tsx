@@ -83,7 +83,12 @@ export function Stat({
         <div className="mt-2 h-7 w-24 animate-pulse rounded bg-canvas-hover" />
       ) : (
         <div className="mt-1.5 flex items-baseline gap-2">
-          <span className="truncate text-[24px] font-semibold leading-8 tracking-[-0.02em] text-foreground nums">
+          {/*
+            Proportional figures, deliberately not `nums`. Equal-width digits
+            make a large standalone number like 121 read loose; tabular figures
+            are for columns that align vertically (table rows, axis ticks).
+          */}
+          <span className="truncate text-[24px] font-semibold leading-8 tracking-[-0.02em] text-foreground">
             {value}
           </span>
           <Delta value={delta} positiveIsGood={positiveIsGood} />
