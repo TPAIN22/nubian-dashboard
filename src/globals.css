@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./styles/admin.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -174,6 +175,43 @@
 
   --color-glass-bg: var(--glass-bg);
   --color-glass-border: var(--glass-border);
+
+  /* ---- Admin design system (see src/styles/admin.css) ---- */
+  --color-canvas: var(--canvas);
+  --color-canvas-hover: var(--canvas-hover);
+  --color-brand: var(--brand);
+  --color-brand-bright: var(--brand-bright);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-border: var(--brand-border);
+  --color-border-strong: var(--border-strong);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+
+  --color-tone-neutral-fg: var(--tone-neutral-fg);
+  --color-tone-neutral-bg: var(--tone-neutral-bg);
+  --color-tone-neutral-border: var(--tone-neutral-border);
+  --color-tone-success-fg: var(--tone-success-fg);
+  --color-tone-success-bg: var(--tone-success-bg);
+  --color-tone-success-border: var(--tone-success-border);
+  --color-tone-warning-fg: var(--tone-warning-fg);
+  --color-tone-warning-bg: var(--tone-warning-bg);
+  --color-tone-warning-border: var(--tone-warning-border);
+  --color-tone-danger-fg: var(--tone-danger-fg);
+  --color-tone-danger-bg: var(--tone-danger-bg);
+  --color-tone-danger-border: var(--tone-danger-border);
+  --color-tone-info-fg: var(--tone-info-fg);
+  --color-tone-info-bg: var(--tone-info-bg);
+  --color-tone-info-border: var(--tone-info-border);
+  --color-tone-brand-fg: var(--tone-brand-fg);
+  --color-tone-brand-bg: var(--tone-brand-bg);
+  --color-tone-brand-border: var(--tone-brand-border);
+
+  --shadow-menu: var(--elev-menu);
+  --shadow-dialog: var(--elev-dialog);
+  --shadow-bar: var(--elev-bar);
+
+  --spacing-topbar: var(--topbar-h);
+  --spacing-subbar: var(--subbar-h);
 }
 
 @layer base {

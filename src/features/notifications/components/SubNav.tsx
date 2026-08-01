@@ -1,36 +1,37 @@
 'use client'
 
-import { cn } from '@/lib/utils'
-import { Activity, BellRing, Inbox, Send, SlidersHorizontal } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { cn } from '@/lib/utils'
 
+/**
+ * Section tabs for the notification centre.
+ *
+ * Rendered inside the admin `PageHeader`'s `tabs` slot, so it must be a flush
+ * underline strip rather than a self-positioning sticky bar — the page header
+ * already handles stickiness. Labels are Arabic to match the rest of /admin.
+ */
 type NavItem = {
   href: string
   label: string
-  icon: typeof Activity
   exact?: boolean
 }
 
 const ITEMS: readonly NavItem[] = [
-  { href: '/admin/notifications', label: 'Overview', icon: Activity, exact: true },
-  { href: '/admin/notifications/history', label: 'History', icon: Inbox },
-  { href: '/admin/notifications/compose', label: 'Compose', icon: Send },
-  { href: '/admin/notifications/queues', label: 'Queues', icon: BellRing },
-  { href: '/admin/notifications/preferences', label: 'Preferences', icon: SlidersHorizontal },
+  { href: '/admin/notifications', label: 'نظرة عامة', exact: true },
+  { href: '/admin/notifications/history', label: 'السجل' },
+  { href: '/admin/notifications/compose', label: 'إنشاء إشعار' },
+  { href: '/admin/notifications/queues', label: 'الطوابير' },
+  { href: '/admin/notifications/preferences', label: 'التفضيلات' },
 ]
 
 export function NotificationsSubNav() {
   const pathname = usePathname()
 
   return (
-    <nav
-      aria-label="Notification sections"
-      className="sticky top-0 z-10 -mx-4 mb-4 border-b border-border/60 bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:-mx-6 sm:px-6 md:-mx-8 md:px-8"
-    >
-      <ul className="flex items-center gap-1 overflow-x-auto py-2">
+    <nav aria-label="أقسام الإشعارات" className="-mb-px">
+      <ul className="flex items-center gap-4 overflow-x-auto quiet-scroll">
         {ITEMS.map((item) => {
-          const Icon = item.icon
           const active = item.exact
             ? pathname === item.href
             : pathname === item.href || pathname?.startsWith(`${item.href}/`)
@@ -40,13 +41,12 @@ export function NotificationsSubNav() {
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'inline-flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+                  'flex h-9 shrink-0 items-center whitespace-nowrap border-b-2 text-[13px] transition-colors focus-ring',
                   active
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                    ? 'border-brand font-medium text-foreground'
+                    : 'border-transparent text-text-muted hover:text-foreground',
                 )}
               >
-                <Icon className="size-4" />
                 {item.label}
               </Link>
             </li>

@@ -1,7 +1,14 @@
 import React from "react";
-import { cn } from "@/lib/utils";
-import { IconPackage } from "@tabler/icons-react";
+import { EmptyState as AdminEmptyState } from "@/components/admin/feedback";
 
+/**
+ * Adapter over the admin design system's `EmptyState`.
+ *
+ * The old version was a 400px-tall dashed box with a 80px circle in it — on a
+ * list page that mostly renders when something has gone quiet, it shouted. The
+ * system version is compact, uses a hairline instead of a dashed border, and
+ * puts the action next to the message rather than 32px below it.
+ */
 interface EmptyStateProps {
   title: string;
   description: string;
@@ -18,13 +25,13 @@ export function EmptyState({
   className,
 }: EmptyStateProps) {
   return (
-    <div className={cn("flex flex-col items-center justify-center p-8 text-center rounded-xl border border-dashed hover:bg-muted/50 transition-colors bg-card/50 min-h-[400px]", className)}>
-      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted shadow-sm mb-6">
-        {icon || <IconPackage className="h-10 w-10 text-muted-foreground" />}
-      </div>
-      <h3 className="text-xl font-semibold tracking-tight">{title}</h3>
-      <p className="text-muted-foreground mt-2 mb-8 max-w-sm text-sm/6">{description}</p>
-      {action && <div>{action}</div>}
-    </div>
+    <AdminEmptyState
+      size="page"
+      icon={icon}
+      title={title}
+      description={description}
+      action={action}
+      className={className}
+    />
   );
 }

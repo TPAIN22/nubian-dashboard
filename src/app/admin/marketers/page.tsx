@@ -212,14 +212,19 @@ export default function MarketersAdminPage() {
   );
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">إدارة المسوقين</h1>
-          <p className="text-muted-foreground mt-1 text-base">إدارة جميع المسوقين المشتركين في برنامج الإحالة.</p>
+    <div className="mx-auto w-full max-w-(--page-max) space-y-5 px-6 py-5">
+      {/* Header — matches the standard admin PageHeader treatment. */}
+      <div className="flex items-start justify-between gap-6 border-b border-border pb-4">
+        <div className="min-w-0">
+          <h1 className="text-[20px] font-semibold leading-7 tracking-[-0.011em] text-foreground">
+            المسوقون
+          </h1>
+          <p className="mt-1 max-w-2xl text-[13px] leading-5 text-text-muted">
+            كل المشتركين في برنامج الإحالة وأرباحهم.
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="h-8 px-3">إجمالي المسوقين: {marketers.length}</Badge>
+        <div className="shrink-0 rounded-[5px] border border-border px-2 py-1 text-[12px] text-text-muted">
+          الإجمالي: <span className="font-medium text-foreground nums">{marketers.length}</span>
         </div>
       </div>
 
@@ -236,9 +241,9 @@ export default function MarketersAdminPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <Button variant="outline" className="flex gap-2">
-              <IconFilter size={18} /> تصفية
-            </Button>
+            {/* The former "تصفية" button had no handler — a filter control that
+                filtered nothing. Removed rather than left as decoration; the
+                search box above is the working filter. */}
           </div>
         </CardHeader>
         <CardContent>

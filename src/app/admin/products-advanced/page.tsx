@@ -1,55 +1,62 @@
 'use client'
 
-import { Suspense, useState, useCallback } from 'react'
-import { ProductsContent } from '@/features/products/components/ProductsContent'
+import { Suspense, useCallback, useState } from 'react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { IconPlus } from '@tabler/icons-react'
-import { PageHeader } from "@/components/dashboard/PageHeader"
+import { Plus, Upload } from 'lucide-react'
 
-export default function Page() {
+import { ProductsContent } from '@/features/products/components/ProductsContent'
+import { Button, ListSkeleton, Page, PageBody, PageHeader } from '@/components/admin'
+
+export default function Page_() {
   const [filters, setFilters] = useState({
     search: '',
     isActive: '',
     includeDeleted: false,
   })
-  
-  const handleFilterChange = (key: string, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }))
+
+  const handleFilterChange = (key: string, value: unknown) => {
+    setFilters((prev) => ({ ...prev, [key]: value }))
   }
 
   const handleRefresh = useCallback(() => {
-    // Refresh logic if needed
+    // ProductsContent owns its own query; nothing to do here.
   }, [])
 
   return (
-    <div className="container max-w-7xl mx-auto px-6 py-8 space-y-8 animate-in fade-in duration-500">
-      <PageHeader 
-        title="المنتجات" 
-        description="إدارة مخزون المنتجات وتعديل التفاصيل."
-      >
-        <Link href="/admin/products-advanced/new">
-          <Button className="rounded-full shadow-sm">
-            <IconPlus className="w-5 h-5 ml-2" />
-            اضافة منتج
-          </Button>
-        </Link>
-      </PageHeader>
-      
-      <Suspense fallback={
-        <div className="flex items-center justify-center h-64 border rounded-xl bg-card/50">
-          <div className="text-sm text-muted-foreground animate-pulse">جاري التحميل...</div>
-        </div>
-      }>
-        <ProductsContent 
-          filters={{
-            ...filters,
-            includeDeleted: filters.includeDeleted ? 'true' : undefined
-          }} 
-          onFilterChange={handleFilterChange}
-          onRefresh={handleRefresh}
-        />
-      </Suspense>
-    </div>
+    <Page>
+      <PageHeader
+        title="المنتجات"
+        description="إدارة كتالوج المنتجات والمخزون عبر كل المتاجر."
+        actions={
+          <>
+            <Button variant="secondary" size="sm" asChild>
+              <Link href="/admin/products-advanced/import">
+                <Upload />
+                استيراد
+              </Link>
+            </Button>
+            <Button variant="primary" size="sm" asChild>
+              <Link href="/admin/products-advanced/new">
+                <Plus />
+                منتج جديد
+              </Link>
+            </Button>
+          </>
+        }
+      />
+
+      <PageBody>
+        <Suspense fallback={<ListSkeleton rows={8} />}>
+          <ProductsContent
+            filters={{
+              ...filters,
+              includeDeleted: filters.includeDeleted ? 'true' : undefined,
+            }}
+            onFilterChange={handleFilterChange}
+            onRefresh={handleRefresh}
+          />
+        </Suspense>
+      </PageBody>
+    </Page>
   )
 }

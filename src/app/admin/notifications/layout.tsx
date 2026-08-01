@@ -1,21 +1,21 @@
 import type { ReactNode } from 'react'
 
+import { Page, PageBody, PageHeader } from '@/components/admin'
 import { NotificationsSubNav } from '@/features/notifications/components/SubNav'
 
+/**
+ * The notification centre owns one header for all five sub-pages; each child
+ * renders only its own content into `PageBody`.
+ */
 export default function NotificationsLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-full flex-col gap-6 p-4 sm:p-6 md:p-8">
-      <header className="space-y-1.5">
-        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
-          Notification center
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Compose, monitor, and operate every notification surface — push, email, in-app,
-          and broadcast pipelines.
-        </p>
-      </header>
-      <NotificationsSubNav />
-      <div className="flex-1">{children}</div>
-    </div>
+    <Page>
+      <PageHeader
+        title="مركز الإشعارات"
+        description="إنشاء ومتابعة وتشغيل كل قنوات الإشعارات — الدفع، البريد، داخل التطبيق والبث الجماعي."
+        tabs={<NotificationsSubNav />}
+      />
+      <PageBody>{children}</PageBody>
+    </Page>
   )
 }

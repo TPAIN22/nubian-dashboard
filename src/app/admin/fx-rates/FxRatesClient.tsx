@@ -333,16 +333,16 @@ export default function FxRatesClient() {
   }
 
   return (
-    <div className="p-6 space-y-6" dir="rtl">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            إدارة أسعار الصرف
+    <div className="mx-auto w-full max-w-(--page-max) space-y-5 px-6 py-5" dir="rtl">
+      {/* Header — matches the admin PageHeader treatment (20px title, hairline). */}
+      <div className="flex items-start justify-between gap-6 border-b border-border pb-4">
+        <div className="min-w-0">
+          <h1 className="text-[20px] font-semibold leading-7 tracking-[-0.011em] text-foreground">
+            أسعار الصرف
           </h1>
-          <p className="text-muted-foreground mt-1">
-            اضغط <strong>تعديل السعر</strong> على أي عملة لتعيين سعر يدوي
-            يستخدمه التطبيق
+          <p className="mt-1 max-w-2xl text-[13px] leading-5 text-text-muted">
+            اضغط <strong className="font-medium text-foreground">تعديل السعر</strong> على أي
+            عملة لتعيين سعر يدوي يستخدمه التطبيق.
           </p>
         </div>
         <Button

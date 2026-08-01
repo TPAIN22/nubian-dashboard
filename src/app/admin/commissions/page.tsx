@@ -1,29 +1,27 @@
-"use client";
+'use client'
 
-import { useEffect, useState } from "react";
-import { 
-  IconCash, 
-  IconFilter, 
-  IconUsers, 
-  IconCheck, 
-  IconAlertCircle,
-  IconLoader2,
-  IconClock,
-  IconX
-} from "@tabler/icons-react";
-import { toast } from "sonner";
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { AlertCircle, Banknote } from 'lucide-react'
+import { toast } from 'sonner'
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Alert,
+  Button,
+  Code,
+  DataTable,
+  EmptyState,
+  Page,
+  PageBody,
+  PageHeader,
+  Section,
+  Stack,
+  Stat,
+  StatRow,
+  StatusBadge,
+  type Column,
+  type Tone,
+} from '@/components/admin'
+import { Field, Textarea } from '@/components/admin/form'
 import {
   Dialog,
   DialogContent,
@@ -31,217 +29,340 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
+} from '@/components/ui/dialog'
+import { formatCurrency } from '@/lib/currency'
 
-import { formatCurrency } from "@/lib/currency";
+/* ============================================================================
+   Affiliate commissions
+   ----------------------------------------------------------------------------
+   Endpoints unchanged: GET /api/admin/commissions and
+   PATCH /api/admin/commissions/:id/pay with optional notes.
+
+   Fixed while rebuilding:
+     · The "تصفية" button had no handler — a filter control that filtered
+       nothing. Replaced with a working status filter.
+     · The "تم دفعه (الشهر الحالي)" card summed every paid commission ever, not
+       the current month. Relabelled to match what it actually computes rather
+       than faking a date range the endpoint doesn't provide.
+   ========================================================================== */
+
+type Commission = {
+  _id: string
+  amount: number
+  orderAmount: number
+  status: string
+  createdAt: string
+  notes?: string
+  marketer?: { code?: string; name?: string }
+  order?: { orderNumber?: string }
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  paid: 'تم الدفع',
+  pending: 'قيد الانتظار',
+  approved: 'معتمد',
+  rejected: 'مرفوض',
+}
+
+const STATUS_TONE: Record<string, Tone> = {
+  paid: 'success',
+  pending: 'warning',
+  approved: 'info',
+  rejected: 'danger',
+}
+
+const dateFmt = new Intl.DateTimeFormat('ar-SD-u-nu-latn', {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+})
 
 export default function CommissionsAdminPage() {
-  const [commissions, setCommissions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [payoutDialog, setPayoutDialog] = useState<{ open: boolean; commission: any | null }>({
-    open: false,
-    commission: null
-  });
-  const [notes, setNotes] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [commissions, setCommissions] = useState<Commission[]>([])
+  const [loading, setLoading] = useState(true)
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [payoutDialog, setPayoutDialog] = useState<{
+    open: boolean
+    commission: Commission | null
+  }>({ open: false, commission: null })
+  const [notes, setNotes] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  const fetchCommissions = useCallback(async () => {
+    try {
+      setLoading(true)
+      const res = await fetch('/api/admin/commissions')
+      const data = await res.json()
+      if (res.ok) {
+        setCommissions(data.data || [])
+      } else {
+        toast.error('فشل تحميل قائمة العمولات')
+      }
+    } catch {
+      toast.error('خطأ في الاتصال بالخادم')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    fetchCommissions();
-  }, []);
-
-  const fetchCommissions = async () => {
-    try {
-      const res = await fetch("/api/admin/commissions");
-      const data = await res.json();
-      if (res.ok) {
-        setCommissions(data.data || []);
-      } else {
-        toast.error("فشل تحميل قائمة العمولات");
-      }
-    } catch (error) {
-      toast.error("خطأ في الاتصال بالخادم");
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchCommissions()
+  }, [fetchCommissions])
 
   const handlePayout = async () => {
-    if (!payoutDialog.commission) return;
-    
-    setSubmitting(true);
+    if (!payoutDialog.commission) return
+
+    setSubmitting(true)
     try {
       const res = await fetch(`/api/admin/commissions/${payoutDialog.commission._id}/pay`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notes })
-      });
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes }),
+      })
 
       if (res.ok) {
-        toast.success("تم تأكيد دفع العمولة بنجاح");
-        setPayoutDialog({ open: false, commission: null });
-        setNotes("");
-        fetchCommissions();
+        toast.success('تم تأكيد دفع العمولة بنجاح')
+        setPayoutDialog({ open: false, commission: null })
+        setNotes('')
+        fetchCommissions()
       } else {
-        const err = await res.json();
-        toast.error(err.message || "فشل تأكيد الدفع");
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.message || 'فشل تأكيد الدفع')
       }
-    } catch (error) {
-      toast.error("خطأ أثناء معالجة الطلب");
+    } catch {
+      toast.error('خطأ أثناء معالجة الطلب')
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
-  };
+  }
 
+  const pendingTotal = useMemo(
+    () =>
+      commissions
+        .filter((c) => c.status === 'pending')
+        .reduce((acc, c) => acc + (c.amount || 0), 0),
+    [commissions],
+  )
+  const paidTotal = useMemo(
+    () =>
+      commissions.filter((c) => c.status === 'paid').reduce((acc, c) => acc + (c.amount || 0), 0),
+    [commissions],
+  )
+  const pendingCount = commissions.filter((c) => c.status === 'pending').length
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "paid": return <Badge className="bg-green-500">تم الدفع</Badge>;
-      case "pending": return <Badge variant="outline" className="text-amber-600 border-amber-600">قيد الانتظار</Badge>;
-      case "approved": return <Badge variant="secondary">معتمد</Badge>;
-      case "rejected": return <Badge variant="destructive">مرفوض</Badge>;
-      default: return <Badge variant="outline">{status}</Badge>;
-    }
-  };
+  const rows = useMemo(
+    () => (statusFilter === 'all' ? commissions : commissions.filter((c) => c.status === statusFilter)),
+    [commissions, statusFilter],
+  )
+
+  const columns = useMemo<Column<Commission>[]>(
+    () => [
+      {
+        id: 'marketer',
+        header: 'المسوق',
+        width: '180px',
+        cell: (c) => (
+          <span className="font-medium text-foreground">
+            {c.marketer?.name || `@${c.marketer?.code ?? '—'}`}
+          </span>
+        ),
+      },
+      {
+        id: 'order',
+        header: 'رقم الطلب',
+        width: '130px',
+        cell: (c) => <Code>{c.order?.orderNumber ?? '—'}</Code>,
+      },
+      {
+        id: 'orderAmount',
+        header: 'قيمة الطلب',
+        width: '120px',
+        align: 'end',
+        cell: (c) => formatCurrency(c.orderAmount),
+      },
+      {
+        id: 'amount',
+        header: 'العمولة',
+        width: '120px',
+        align: 'end',
+        sortable: true,
+        cell: (c) => <span className="font-semibold">{formatCurrency(c.amount)}</span>,
+      },
+      {
+        id: 'createdAt',
+        header: 'التاريخ',
+        width: '120px',
+        cell: (c) => (
+          <span className="whitespace-nowrap text-text-muted">
+            {c.createdAt ? dateFmt.format(new Date(c.createdAt)) : '—'}
+          </span>
+        ),
+      },
+      {
+        id: 'status',
+        header: 'الحالة',
+        width: '120px',
+        cell: (c) => (
+          <StatusBadge
+            tone={STATUS_TONE[c.status] ?? 'neutral'}
+            label={STATUS_LABEL[c.status] ?? c.status}
+          />
+        ),
+      },
+      {
+        id: 'actions',
+        header: '',
+        width: '110px',
+        align: 'end',
+        hideable: false,
+        truncate: false,
+        cell: (c) =>
+          c.status === 'pending' ? (
+            <Button
+              variant="secondary"
+              size="xs"
+              onClick={(e) => {
+                e.stopPropagation()
+                setPayoutDialog({ open: true, commission: c })
+              }}
+            >
+              تأكيد الدفع
+            </Button>
+          ) : (
+            <span className="text-text-faint">—</span>
+          ),
+      },
+    ],
+    [],
+  )
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">العمولات والمدفوعات</h1>
-          <p className="text-muted-foreground mt-1 text-base">إدارة صرف العمولات للمسوقين ومعالجة طلبات السحب.</p>
-        </div>
-      </div>
+    <Page>
+      <PageHeader
+        title="العمولات والمدفوعات"
+        description="صرف عمولات المسوقين ومتابعة طلبات السحب."
+      />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-         <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-               <CardTitle className="text-sm font-medium">بانتظار الصرف</CardTitle>
-               <IconClock className="h-4 w-4 text-amber-500" />
-            </CardHeader>
-            <CardContent>
-               <div className="text-2xl font-bold text-amber-600">
-                  {formatCurrency(commissions.filter(c => c.status === 'pending').reduce((acc, c) => acc + c.amount, 0))}
-               </div>
-               <p className="text-xs text-muted-foreground mt-1">تتطلب مراجعة أو تأكيد دفع</p>
-            </CardContent>
-         </Card>
-         <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-               <CardTitle className="text-sm font-medium">تم دفعه (الشهر الحالي)</CardTitle>
-               <IconCheck className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-               <div className="text-2xl font-bold text-green-600">
-                  {formatCurrency(commissions.filter(c => c.status === 'paid').reduce((acc, c) => acc + c.amount, 0))}
-               </div>
-               <p className="text-xs text-muted-foreground mt-1">مدفوعات ناجحة للمسوقين</p>
-            </CardContent>
-         </Card>
-      </div>
+      <PageBody>
+        <Stack gap="lg">
+          <StatRow columns={3}>
+            <Stat
+              label="بانتظار الصرف"
+              value={formatCurrency(pendingTotal)}
+              hint={`${pendingCount} عمولة تتطلب تأكيد دفع`}
+              emphasis={pendingTotal > 0}
+              loading={loading}
+            />
+            <Stat
+              label="إجمالي المدفوع"
+              value={formatCurrency(paidTotal)}
+              hint="كل المدفوعات المسجَّلة"
+              loading={loading}
+            />
+            <Stat
+              label="عدد العمولات"
+              value={commissions.length}
+              hint="في السجل الحالي"
+              loading={loading}
+            />
+          </StatRow>
 
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>سجل العمولات</CardTitle>
-            <Button variant="outline" size="sm" className="flex gap-2">
-              <IconFilter size={16} /> تصفية
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>المسوق</TableHead>
-                  <TableHead>رقم الطلب</TableHead>
-                  <TableHead>قيمة الطلب</TableHead>
-                  <TableHead>العمولة</TableHead>
-                  <TableHead>التاريخ</TableHead>
-                  <TableHead>الحالة</TableHead>
-                  <TableHead className="text-end">إجراءات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-10">جاري التحميل...</TableCell></TableRow>
-                ) : commissions.length > 0 ? (
-                  commissions.map((c) => (
-                    <TableRow key={c._id}>
-                      <TableCell className="font-medium text-primary">@{c.marketer?.code}</TableCell>
-                      <TableCell className="text-xs">#{c.order?.orderNumber}</TableCell>
-                      <TableCell>{formatCurrency(c.orderAmount)}</TableCell>
-                      <TableCell className="font-bold">{formatCurrency(c.amount)}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {new Date(c.createdAt).toLocaleDateString("ar-SD")}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(c.status)}</TableCell>
-                      <TableCell className="text-end">
-                        {c.status === 'pending' ? (
-                          <Button 
-                            size="sm" 
-                            variant="secondary" 
-                            className="bg-primary/10 text-primary hover:bg-primary/20 h-8"
-                            onClick={() => setPayoutDialog({ open: true, commission: c })}
-                          >
-                            تأكيد الدفع
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">مكتمل</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow><TableCell colSpan={7} className="text-center py-10 italic">لا توجد بيانات متاحة حالياً.</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+          <Section
+            title="سجل العمولات"
+            variant="panel"
+            flush
+            actions={
+              <div className="flex items-center gap-1">
+                {[
+                  { id: 'all', label: 'الكل' },
+                  { id: 'pending', label: 'قيد الانتظار' },
+                  { id: 'paid', label: 'مدفوعة' },
+                ].map((f) => (
+                  <Button
+                    key={f.id}
+                    size="xs"
+                    variant={statusFilter === f.id ? 'primary' : 'ghost'}
+                    onClick={() => setStatusFilter(f.id)}
+                  >
+                    {f.label}
+                  </Button>
+                ))}
+              </div>
+            }
+          >
+            <DataTable
+              data={rows}
+              columns={columns}
+              getRowId={(c) => c._id}
+              loading={loading}
+              empty={
+                <EmptyState
+                  icon={<Banknote className="size-4" />}
+                  title={statusFilter === 'all' ? 'لا توجد عمولات' : 'لا نتائج بهذه الحالة'}
+                  description={
+                    statusFilter === 'all'
+                      ? 'ستظهر العمولات هنا فور تسجيل أول عملية بيع عبر مسوق.'
+                      : 'جرّب حالة أخرى لعرض بقية السجل.'
+                  }
+                />
+              }
+            />
+          </Section>
+        </Stack>
+      </PageBody>
 
-      {/* Payout Dialog */}
-      <Dialog open={payoutDialog.open} onOpenChange={(open) => !open && setPayoutDialog({ open, commission: null })}>
+      <Dialog
+        open={payoutDialog.open}
+        onOpenChange={(open) => !open && setPayoutDialog({ open, commission: null })}
+      >
         <DialogContent dir="rtl">
           <DialogHeader>
             <DialogTitle>تأكيد صرف العمولة</DialogTitle>
             <DialogDescription>
-              سيتم تسجيل أنك قمت بتحويل العمولة للمسوق <strong>{payoutDialog.commission?.marketer?.name}</strong>.
+              سيُسجَّل أنك حوّلت العمولة للمسوق{' '}
+              <strong>{payoutDialog.commission?.marketer?.name}</strong>.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-             <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg flex justify-between items-center">
-                <span className="text-sm font-medium">المبلغ المستحق:</span>
-                <span className="text-2xl font-bold text-primary">{formatCurrency(payoutDialog.commission?.amount || 0)}</span>
-             </div>
-             
-             <div className="space-y-2">
-                <label className="text-sm font-medium">ملاحظات (اختياري)</label>
-                <Textarea 
-                  placeholder="أدخل تفاصيل التحويل أو ملاحظات إضافية..." 
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                />
-             </div>
 
-             <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg text-xs text-amber-700">
-                <IconAlertCircle className="shrink-0 mt-0.5" size={16} />
-                <p>تأكد من قيامك بالتحويل الفعلي للمبلغ قبل النقر على زر التأكيد.</p>
-             </div>
+          <div className="space-y-4 py-2">
+            <div className="flex items-center justify-between rounded-lg border border-border bg-canvas px-3.5 py-3">
+              <span className="text-[12px] text-text-muted">المبلغ المستحق</span>
+              <span className="text-[20px] font-semibold text-foreground nums">
+                {formatCurrency(payoutDialog.commission?.amount || 0)}
+              </span>
+            </div>
+
+            <Field label="ملاحظات (اختياري)">
+              <Textarea
+                placeholder="تفاصيل التحويل أو ملاحظات إضافية…"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </Field>
+
+            <Alert tone="warning">
+              <span className="flex items-start gap-2">
+                <AlertCircle className="mt-px size-3.5 shrink-0" />
+                تأكد من إتمام التحويل الفعلي للمبلغ قبل الضغط على زر التأكيد — لا يمكن التراجع
+                عن هذا التسجيل.
+              </span>
+            </Alert>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="ghost" onClick={() => setPayoutDialog({ open: false, commission: null })}>إلغاء</Button>
-            <Button onClick={handlePayout} disabled={submitting}>
-               {submitting && <IconLoader2 className="ml-2 h-4 w-4 animate-spin" />}
-               تأكيد الصرف
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              variant="ghost"
+              size="md"
+              onClick={() => setPayoutDialog({ open: false, commission: null })}
+            >
+              إلغاء
+            </Button>
+            <Button variant="primary" size="md" loading={submitting} onClick={handlePayout}>
+              تأكيد الصرف
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  );
+    </Page>
+  )
 }

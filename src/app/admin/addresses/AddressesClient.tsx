@@ -141,11 +141,16 @@ export default function AddressesClient() {
   const totalPages = data?.totalPages ?? 0;
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6" dir="rtl">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">العناوين</h1>
-        <p className="text-sm text-muted-foreground">
-          عناوين التوصيل المحفوظة للعملاء، مع الموقع على الخريطة والإحداثيات
+    <div
+      className="mx-auto flex w-full max-w-(--page-max) flex-col gap-5 px-6 py-5"
+      dir="rtl"
+    >
+      <header className="border-b border-border pb-4">
+        <h1 className="text-[20px] font-semibold leading-7 tracking-[-0.011em] text-foreground">
+          عناوين العملاء
+        </h1>
+        <p className="mt-1 max-w-2xl text-[13px] leading-5 text-text-muted">
+          عناوين التوصيل المحفوظة للعملاء، مع الموقع على الخريطة والإحداثيات.
         </p>
       </header>
 

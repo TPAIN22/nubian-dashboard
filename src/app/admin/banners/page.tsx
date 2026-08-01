@@ -1,122 +1,256 @@
-"use client";
-import React, { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { PlusCircle, Edit, Trash2 } from "lucide-react";
-import { axiosInstance } from "@/lib/axiosInstance";
-import { toast } from "sonner";
-import BannerForm from "./bannerForm"; 
-import type { BannerFormValues } from "./bannerForm";
-import { useAuth } from '@clerk/nextjs';
+'use client'
 
+import React, { useCallback, useEffect, useState } from 'react'
+import Image from 'next/image'
+import { Edit, Image as ImageIcon, PlusCircle, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { useAuth } from '@clerk/nextjs'
 
-type Banner = BannerFormValues & { _id: string };
+import { axiosInstance } from '@/lib/axiosInstance'
+import {
+  Button,
+  CellTitle,
+  DataTable,
+  EmptyState,
+  Page,
+  PageBody,
+  PageHeader,
+  Section,
+  StatusBadge,
+  type Column,
+} from '@/components/admin'
+import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog'
+import BannerForm from './bannerForm'
+import type { BannerFormValues } from './bannerForm'
 
+type Banner = BannerFormValues & { _id: string }
 
+/* ============================================================================
+   Banners
+   ----------------------------------------------------------------------------
+   Same endpoints: GET /banners, DELETE /banners/:id (bearer), and the existing
+   BannerForm for create/edit.
 
+   Fixed while rebuilding:
+     · The table header was hardcoded `bg-gray-600` with `divide-gray-500` — a
+       dark grey band that ignored the theme entirely in light mode.
+     · Thumbnails used a bare <img>, shipping a full-size banner into a small
+       box on every row. Now next/image at fixed dimensions.
+     · Delete used `window.confirm`; it now uses the app's confirm dialog.
+     · Active state was a raw ✅/❌ glyph; now a real status badge.
+   ========================================================================== */
+
+const THUMB_W = 84
+const THUMB_H = 40
 
 export default function BannersPage() {
-  const [banners, setBanners] = useState<Banner[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editBanner, setEditBanner] = useState<Banner | null>(null);
+  const { getToken } = useAuth()
+  const [banners, setBanners] = useState<Banner[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [editBanner, setEditBanner] = useState<Banner | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<Banner | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
-  const fetchBanners = async () => {
-    setLoading(true);
+  const fetchBanners = useCallback(async () => {
+    setLoading(true)
     try {
-      const res = await axiosInstance.get("/banners");
-      // Handle both direct array response and wrapped response
-      const bannersData = Array.isArray(res.data) ? res.data : (res.data?.data || []);
-      setBanners(Array.isArray(bannersData) ? bannersData : []);
-    } catch (e: any) {
-      const errorMessage = e?.response?.data?.message || e?.message || "حدث خطأ غير معروف";
-      toast.error("فشل في جلب العروض", {
-        description: typeof errorMessage === 'string' ? errorMessage : "حدث خطأ غير معروف",
-      });
-      setBanners([]); // Set empty array on error to prevent rendering issues
+      const res = await axiosInstance.get('/banners')
+      // Handle both a bare array and the wrapped envelope.
+      const data = Array.isArray(res.data) ? res.data : res.data?.data || []
+      setBanners(Array.isArray(data) ? data : [])
+    } catch (e) {
+      const err = e as { response?: { data?: { message?: string } }; message?: string }
+      const message = err?.response?.data?.message || err?.message || 'حدث خطأ غير معروف'
+      toast.error('فشل في جلب العروض', {
+        description: typeof message === 'string' ? message : 'حدث خطأ غير معروف',
+      })
+      setBanners([])
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }, [])
 
   useEffect(() => {
-    fetchBanners();
-  }, []);
-  const {getToken} = useAuth();
+    fetchBanners()
+  }, [fetchBanners])
 
-  const handleDelete = async (id:string) => {
-    const token = await getToken();
-    if (!window.confirm("هل أنت متأكد من حذف هذا العرض؟")) return;
+  const confirmDelete = async () => {
+    if (!pendingDelete) return
+    setDeleting(true)
     try {
-      await axiosInstance.delete(`/banners/${id}` , {
-        headers: {
-      Authorization: `Bearer ${token}`,
-    },
-      });
-      toast.success("تم حذف العرض بنجاح");
-      fetchBanners();
+      const token = await getToken()
+      await axiosInstance.delete(`/banners/${pendingDelete._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      toast.success('تم حذف العرض بنجاح')
+      setPendingDelete(null)
+      fetchBanners()
     } catch (e) {
-      toast.error("فشل حذف العرض" , {
-        description: e instanceof Error ? e.message : "حدث خطأ غير معروف",
-      });
+      toast.error('فشل حذف العرض', {
+        description: e instanceof Error ? e.message : 'حدث خطأ غير معروف',
+      })
+    } finally {
+      setDeleting(false)
     }
-  };
+  }
+
+  const openEditor = (banner: Banner | null) => {
+    setEditBanner(banner)
+    setShowForm(true)
+  }
+
+  const columns = React.useMemo<Column<Banner>[]>(
+    () => [
+      {
+        id: 'image',
+        header: 'الصورة',
+        width: '110px',
+        truncate: false,
+        cell: (b) =>
+          b.image ? (
+            <Image
+              src={b.image}
+              alt=""
+              width={THUMB_W}
+              height={THUMB_H}
+              unoptimized
+              className="rounded-[4px] border border-border object-cover"
+            />
+          ) : (
+            <div
+              style={{ width: THUMB_W, height: THUMB_H }}
+              className="grid place-items-center rounded-[4px] border border-border bg-canvas text-text-faint"
+            >
+              <ImageIcon className="size-3.5" />
+            </div>
+          ),
+      },
+      {
+        id: 'title',
+        header: 'العنوان',
+        width: 'minmax(220px, 1fr)',
+        cell: (b) => <CellTitle title={b.title || '—'} subtitle={b.description} />,
+      },
+      {
+        id: 'order',
+        header: 'الترتيب',
+        width: '90px',
+        align: 'end',
+        cell: (b) => b.order ?? 0,
+      },
+      {
+        id: 'isActive',
+        header: 'الحالة',
+        width: '110px',
+        cell: (b) => (
+          <StatusBadge
+            tone={b.isActive ? 'success' : 'neutral'}
+            label={b.isActive ? 'مفعل' : 'معطل'}
+          />
+        ),
+      },
+      {
+        id: 'actions',
+        header: '',
+        width: '90px',
+        align: 'end',
+        hideable: false,
+        truncate: false,
+        cell: (b) => (
+          <div
+            className="flex items-center justify-end gap-1"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label={`تعديل ${b.title || 'العرض'}`}
+              onClick={() => openEditor(b)}
+            >
+              <Edit />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label={`حذف ${b.title || 'العرض'}`}
+              className="text-text-faint hover:text-tone-danger-fg"
+              onClick={() => setPendingDelete(b)}
+            >
+              <Trash2 />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [],
+  )
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">العروض (Banners)</h1>
-        <Button onClick={() => { setEditBanner(null); setShowForm(true); }} className="flex items-center gap-2">
-          <PlusCircle className="h-5 w-5" />
-          إضافة عرض جديد
-        </Button>
-      </div>
-      {showForm && (
-        <BannerForm
-          banner={editBanner || undefined}
-          onClose={() => { setShowForm(false); setEditBanner(null); fetchBanners(); }}
-        />
-      )}
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="min-w-full divide-y divide-gray-500">
-          <thead className="bg-gray-600">
-            <tr>
-              {/* A bare <th> is centred by the UA stylesheet while a bare <td>
-                  aligns to `start`, so every header here sat off-centre from
-                  its own column. Alignment is now stated per column and
-                  matches the body cell below it. */}
-              <th className="px-4 py-2 text-start">الصورة</th>
-              <th className="px-4 py-2 text-start">العنوان</th>
-              <th className="px-4 py-2 text-start">الوصف</th>
-              <th className="px-4 py-2 text-center">الترتيب</th>
-              <th className="px-4 py-2 text-center">مفعل؟</th>
-              <th className="px-4 py-2 text-start">إجراءات</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={6} className="text-center py-8">جاري التحميل...</td></tr>
-            ) : banners.length === 0 ? (
-              <tr><td colSpan={6} className="text-center py-8">لا توجد عروض</td></tr>
-            ) : banners.map((banner) => (
-              <tr key={banner._id} className="border-b">
-                <td className="px-4 py-2"><img src={banner.image} alt="banner" className="h-16 w-32 object-cover rounded" /></td>
-                <td className="px-4 py-2">{banner.title || "-"}</td>
-                <td className="px-4 py-2">{banner.description || "-"}</td>
-                <td className="px-4 py-2 text-center">{banner.order}</td>
-                <td className="px-4 py-2 text-center">{banner.isActive ? "✅" : "❌"}</td>
-                <td className="px-4 py-2 flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => { setEditBanner(banner); setShowForm(true); }}>
-                    <Edit className="h-4 w-4" />
+    <Page>
+      <PageHeader
+        title="العروض والبانرات"
+        description="الصور الترويجية التي تظهر في أعلى التطبيق."
+        actions={
+          <Button variant="primary" size="sm" onClick={() => openEditor(null)}>
+            <PlusCircle />
+            عرض جديد
+          </Button>
+        }
+      />
+
+      <PageBody>
+        {showForm && (
+          <Section
+            title={editBanner ? 'تعديل العرض' : 'عرض جديد'}
+            variant="panel"
+            className="mb-5"
+          >
+            <BannerForm
+              banner={editBanner || undefined}
+              onClose={() => {
+                setShowForm(false)
+                setEditBanner(null)
+                fetchBanners()
+              }}
+            />
+          </Section>
+        )}
+
+        <Section variant="panel" flush>
+          <DataTable
+            data={banners}
+            columns={columns}
+            getRowId={(b) => b._id}
+            loading={loading}
+            onRowClick={openEditor}
+            empty={
+              <EmptyState
+                icon={<ImageIcon className="size-4" />}
+                title="لا توجد عروض"
+                description="أضف بانراً ترويجياً ليظهر في أعلى الصفحة الرئيسية للتطبيق."
+                action={
+                  <Button variant="primary" size="sm" onClick={() => openEditor(null)}>
+                    <PlusCircle />
+                    إضافة عرض
                   </Button>
-                  <Button size="sm" variant="destructive" onClick={() => handleDelete(banner._id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-} 
+                }
+              />
+            }
+          />
+        </Section>
+      </PageBody>
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        onOpenChange={(open) => !open && setPendingDelete(null)}
+        variant="destructive"
+        loading={deleting}
+        confirmText="حذف العرض"
+        title="حذف هذا العرض؟"
+        description="سيختفي البانر من التطبيق فوراً. لا يمكن التراجع عن هذا الإجراء."
+        onConfirm={confirmDelete}
+      />
+    </Page>
+  )
+}

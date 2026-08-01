@@ -1,14 +1,15 @@
-import React from 'react'
-import ProductWizard from '@/app/admin/products-advanced/v2/ProductWizard';
+import ProductWizard from '@/app/admin/products-advanced/v2/ProductWizard'
 
+/**
+ * The wizard renders its own header, step rail and sticky action bar, so this
+ * route mounts it directly — a wrapper `container` + `<h1>` would duplicate the
+ * title and break the sticky footer's height context.
+ */
 export default function Page() {
   return (
-    <div className="container mx-auto py-6">
-      <h1 className="text-2xl font-bold mb-6 px-4">إضافة منتج جديد</h1>
-      <ProductWizard
-        redirectPath="/merchant/products"
-        addCategoryPath="/merchant/categories/new?from=/merchant/products/new"
-      />
-    </div>
+    <ProductWizard
+      redirectPath="/merchant/products"
+      addCategoryPath="/merchant/categories/new?from=/merchant/products/new"
+    />
   )
 }

@@ -1,0 +1,392 @@
+/* ============================================================================
+   NUBIAN ADMIN — DESIGN SYSTEM
+   ----------------------------------------------------------------------------
+   Scoped to `.admin-theme`. The marketing site keeps the legacy gold/glass
+   look; everything under /admin adopts this system.
+
+   Philosophy
+   ----------
+   1. INK IS PRIMARY, GOLD IS BRAND.  Primary actions are near-black (Polaris/
+      Linear/Vercel). Nubian gold is reserved for identity + the active nav
+      indicator + a single hero metric. Gold on every surface is what made the
+      old dashboard read as a template.
+   2. BORDERS, NOT SHADOWS.  Elevation exists only for things that float
+      (menus, dialogs, popovers). Everything in-page separates with a 1px hairline.
+   3. DENSITY IS A FEATURE.  13px body, 12px meta, 32px table rows. Operators
+      scan hundreds of rows a day.
+   4. FOUR RADII, SIX SPACES, ONE SCALE.  No ad-hoc values.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   Global fallbacks
+   ---------------------------------------------------------------------------
+   The primitives in src/components/admin are also used outside /admin — the
+   product wizard is shared with the merchant panel. These defaults make the
+   NEW token names resolve everywhere, so a shared component can never render
+   with transparent surfaces or invisible text.
+
+   Deliberately additive: `--background`, `--primary` and friends are NOT
+   redefined here, so the marketing site and merchant panel keep their existing
+   identity. Only `.admin-theme` opts into the full ink-primary palette.
+   ------------------------------------------------------------------------ */
+:root {
+  --canvas: #fafaf9;
+  --canvas-hover: #f4f4f2;
+  --text-muted: #6b7280;
+  --text-faint: #9ca3af;
+  --border-strong: rgba(0, 0, 0, 0.18);
+  --border-focus: #1a1a1a;
+
+  --brand: #b8891f;
+  --brand-bright: #d4af37;
+  --brand-soft: #fdf8ea;
+  --brand-border: #ecd9a3;
+
+  --tone-neutral-fg: #52525b;
+  --tone-neutral-bg: #f4f4f5;
+  --tone-neutral-border: #e4e4e7;
+  --tone-success-fg: #15803d;
+  --tone-success-bg: #f0fdf4;
+  --tone-success-border: #bbf7d0;
+  --tone-warning-fg: #b45309;
+  --tone-warning-bg: #fffbeb;
+  --tone-warning-border: #fde68a;
+  --tone-danger-fg: #b91c1c;
+  --tone-danger-bg: #fef2f2;
+  --tone-danger-border: #fecaca;
+  --tone-info-fg: #1d4ed8;
+  --tone-info-bg: #eff6ff;
+  --tone-info-border: #bfdbfe;
+  --tone-brand-fg: #8a6413;
+  --tone-brand-bg: var(--brand-soft);
+  --tone-brand-border: var(--brand-border);
+
+  --elev-menu: 0 4px 12px rgba(24, 24, 27, 0.08), 0 0 0 1px rgba(24, 24, 27, 0.05);
+  --elev-dialog: 0 8px 40px rgba(24, 24, 27, 0.16), 0 0 0 1px rgba(24, 24, 27, 0.06);
+  --elev-bar: 0 -1px 0 var(--border), 0 -8px 24px rgba(24, 24, 27, 0.05);
+
+  --topbar-h: 3rem;
+  --subbar-h: 2.5rem;
+  --sidebar-w: 15rem;
+  --sidebar-w-icon: 3.25rem;
+  --page-max: 88rem;
+  --page-gutter: 1.5rem;
+}
+
+.dark {
+  --canvas: #0f0f11;
+  --canvas-hover: #17171a;
+  --text-muted: #8f8f98;
+  --text-faint: #6b6b73;
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --border-focus: #f4f4f5;
+
+  --brand: #d9b64a;
+  --brand-bright: #e6c76a;
+  --brand-soft: rgba(212, 175, 55, 0.1);
+  --brand-border: rgba(212, 175, 55, 0.24);
+
+  --tone-neutral-fg: #a1a1aa;
+  --tone-neutral-bg: rgba(255, 255, 255, 0.06);
+  --tone-neutral-border: rgba(255, 255, 255, 0.1);
+  --tone-success-fg: #4ade80;
+  --tone-success-bg: rgba(34, 197, 94, 0.1);
+  --tone-success-border: rgba(34, 197, 94, 0.22);
+  --tone-warning-fg: #fbbf24;
+  --tone-warning-bg: rgba(245, 158, 11, 0.1);
+  --tone-warning-border: rgba(245, 158, 11, 0.22);
+  --tone-danger-fg: #f87171;
+  --tone-danger-bg: rgba(239, 68, 68, 0.1);
+  --tone-danger-border: rgba(239, 68, 68, 0.24);
+  --tone-info-fg: #60a5fa;
+  --tone-info-bg: rgba(59, 130, 246, 0.1);
+  --tone-info-border: rgba(59, 130, 246, 0.24);
+  --tone-brand-fg: var(--brand-bright);
+
+  --elev-menu: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.07);
+  --elev-dialog: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.admin-theme {
+  color-scheme: light;
+
+  /* ---- Radius -------------------------------------------------------- */
+  --radius: 0.375rem; /* 6px  — the workhorse */
+  --radius-pill: 9999px;
+
+  /* ---- Brand --------------------------------------------------------- */
+  --brand: #b8891f; /* AA on white — deeper than the legacy #D4AF37 */
+  --brand-bright: #d4af37; /* legacy gold, for dark surfaces + logo */
+  --brand-soft: #fdf8ea;
+  --brand-border: #ecd9a3;
+
+  /* ---- Neutrals ------------------------------------------------------ */
+  --background: #ffffff;
+  --canvas: #fafaf9; /* sidebar, rails, table headers, inset wells */
+  --canvas-hover: #f4f4f2;
+  --foreground: #18181b;
+  --text-muted: #6b7280;
+  --text-faint: #9ca3af;
+
+  --border: #e7e7e4;
+  --border-strong: #d6d6d1;
+  --border-focus: #18181b;
+
+  /* ---- Semantic surface mapping (shadcn contract) --------------------- */
+  --card: #ffffff;
+  --card-foreground: var(--foreground);
+  --popover: #ffffff;
+  --popover-foreground: var(--foreground);
+
+  --primary: #18181b;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f2;
+  --secondary-foreground: #18181b;
+  --muted: #fafaf9;
+  --muted-foreground: var(--text-muted);
+  --accent: #f4f4f2;
+  --accent-foreground: #18181b;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --input: #e7e7e4;
+  --ring: #18181b;
+
+  /* ---- Sidebar ------------------------------------------------------- */
+  --sidebar: #fafaf9;
+  --sidebar-foreground: #3f3f46;
+  --sidebar-primary: #18181b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eeeeec;
+  --sidebar-accent-foreground: #18181b;
+  --sidebar-border: #e7e7e4;
+  --sidebar-ring: #18181b;
+
+  /* ---- Status tones -------------------------------------------------- */
+  /* Each tone ships fg / bg / border so badges, alerts and cells agree. */
+  --tone-neutral-fg: #52525b;
+  --tone-neutral-bg: #f4f4f5;
+  --tone-neutral-border: #e4e4e7;
+
+  --tone-success-fg: #15803d;
+  --tone-success-bg: #f0fdf4;
+  --tone-success-border: #bbf7d0;
+
+  --tone-warning-fg: #b45309;
+  --tone-warning-bg: #fffbeb;
+  --tone-warning-border: #fde68a;
+
+  --tone-danger-fg: #b91c1c;
+  --tone-danger-bg: #fef2f2;
+  --tone-danger-border: #fecaca;
+
+  --tone-info-fg: #1d4ed8;
+  --tone-info-bg: #eff6ff;
+  --tone-info-border: #bfdbfe;
+
+  --tone-brand-fg: #8a6413;
+  --tone-brand-bg: var(--brand-soft);
+  --tone-brand-border: var(--brand-border);
+
+  /* ---- Elevation (floating layers only) ------------------------------ */
+  --elev-menu: 0 1px 1px rgba(24, 24, 27, 0.04), 0 4px 12px rgba(24, 24, 27, 0.08),
+    0 0 0 1px rgba(24, 24, 27, 0.05);
+  --elev-dialog: 0 8px 40px rgba(24, 24, 27, 0.16), 0 0 0 1px rgba(24, 24, 27, 0.06);
+  --elev-bar: 0 -1px 0 var(--border), 0 -8px 24px rgba(24, 24, 27, 0.05);
+
+  /* ---- Layout metrics ------------------------------------------------ */
+  --topbar-h: 3rem; /* 48px */
+  --subbar-h: 2.5rem; /* 40px — tabs / filters strip */
+  --sidebar-w: 15rem; /* 240px */
+  --sidebar-w-icon: 3.25rem; /* 52px */
+  --page-max: 88rem;
+  --page-gutter: 1.5rem;
+
+  /* ---- Charts (calm, sequential, colour-blind safe) ------------------- */
+  --chart-1: #18181b;
+  --chart-2: var(--brand);
+  --chart-3: #0d9488;
+  --chart-4: #6366f1;
+  --chart-5: #d97706;
+
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), var(--font-ibm-plex-arabic), ui-sans-serif, system-ui,
+    sans-serif;
+  font-size: 0.8125rem; /* 13px */
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Dark                                                                    */
+/* ---------------------------------------------------------------------- */
+.dark .admin-theme {
+  color-scheme: dark;
+
+  --brand: #d9b64a;
+  --brand-bright: #e6c76a;
+  --brand-soft: rgba(212, 175, 55, 0.1);
+  --brand-border: rgba(212, 175, 55, 0.24);
+
+  --background: #0a0a0b;
+  --canvas: #0f0f11;
+  --canvas-hover: #17171a;
+  --foreground: #f4f4f5;
+  --text-muted: #8f8f98;
+  --text-faint: #6b6b73;
+
+  --border: #212124;
+  --border-strong: #2e2e33;
+  --border-focus: #f4f4f5;
+
+  --card: #101012;
+  --card-foreground: var(--foreground);
+  --popover: #151518;
+  --popover-foreground: var(--foreground);
+
+  --primary: #f4f4f5;
+  --primary-foreground: #18181b;
+  --secondary: #1c1c20;
+  --secondary-foreground: #f4f4f5;
+  --muted: #141416;
+  --muted-foreground: var(--text-muted);
+  --accent: #1c1c20;
+  --accent-foreground: #f4f4f5;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --input: #26262b;
+  --ring: #52525b;
+
+  --sidebar: #0d0d0f;
+  --sidebar-foreground: #a1a1aa;
+  --sidebar-primary: #f4f4f5;
+  --sidebar-primary-foreground: #18181b;
+  --sidebar-accent: #1a1a1d;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: #1e1e21;
+  --sidebar-ring: #52525b;
+
+  --tone-neutral-fg: #a1a1aa;
+  --tone-neutral-bg: rgba(255, 255, 255, 0.06);
+  --tone-neutral-border: rgba(255, 255, 255, 0.1);
+
+  --tone-success-fg: #4ade80;
+  --tone-success-bg: rgba(34, 197, 94, 0.1);
+  --tone-success-border: rgba(34, 197, 94, 0.22);
+
+  --tone-warning-fg: #fbbf24;
+  --tone-warning-bg: rgba(245, 158, 11, 0.1);
+  --tone-warning-border: rgba(245, 158, 11, 0.22);
+
+  --tone-danger-fg: #f87171;
+  --tone-danger-bg: rgba(239, 68, 68, 0.1);
+  --tone-danger-border: rgba(239, 68, 68, 0.24);
+
+  --tone-info-fg: #60a5fa;
+  --tone-info-bg: rgba(59, 130, 246, 0.1);
+  --tone-info-border: rgba(59, 130, 246, 0.24);
+
+  --tone-brand-fg: var(--brand-bright);
+  --tone-brand-bg: var(--brand-soft);
+  --tone-brand-border: var(--brand-border);
+
+  --elev-menu: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.07);
+  --elev-dialog: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --elev-bar: 0 -1px 0 var(--border), 0 -8px 24px rgba(0, 0, 0, 0.35);
+
+  --chart-1: #e4e4e7;
+  --chart-2: var(--brand);
+  --chart-3: #2dd4bf;
+  --chart-4: #818cf8;
+  --chart-5: #fbbf24;
+}
+
+/* ========================================================================
+   Legacy component retuning
+   ------------------------------------------------------------------------
+   Existing pages import shadcn primitives whose defaults fight this system
+   (pill buttons, pill badges, gold-tinted glass cards). Rather than rewrite
+   every call site at once, retune them at the theme boundary so old and new
+   pages look like one product.
+   ===================================================================== */
+.admin-theme :is([data-slot='button'], [data-slot='badge']) {
+  border-radius: var(--radius);
+}
+
+.admin-theme [data-slot='button'] {
+  box-shadow: none;
+  font-weight: 500;
+}
+
+/* Outline buttons read as the default secondary action. */
+.admin-theme [data-slot='button'].border {
+  border-color: var(--border-strong);
+}
+
+/* Cards lose their drop shadow; a hairline does the work. */
+.admin-theme [data-slot='card'] {
+  border-radius: calc(var(--radius) + 2px);
+  border: 1px solid var(--border);
+  box-shadow: none;
+  background-color: var(--card);
+}
+
+.admin-theme :is([data-slot='dropdown-menu-content'], [data-slot='select-content'],
+    [data-slot='popover-content'], [data-slot='command-dialog']) {
+  box-shadow: var(--elev-menu);
+  border-radius: calc(var(--radius) + 2px);
+}
+
+.admin-theme [data-slot='dialog-content'] {
+  box-shadow: var(--elev-dialog);
+  border-radius: calc(var(--radius) + 4px);
+}
+
+/* ========================================================================
+   Utilities
+   ===================================================================== */
+@layer utilities {
+  /* Tabular figures — every number in a table, stat or money cell. */
+  .nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1, 'cv01' 1;
+  }
+
+  /* The 3px inset focus ring used across every interactive admin control. */
+  .focus-ring {
+    outline: none;
+  }
+  .focus-ring:focus-visible {
+    box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--border-focus);
+  }
+
+  .hairline-b {
+    box-shadow: inset 0 -1px 0 var(--border);
+  }
+  .hairline-t {
+    box-shadow: inset 0 1px 0 var(--border);
+  }
+
+  /* Scrollbars: present but quiet. */
+  .quiet-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+  .quiet-scroll::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  .quiet-scroll::-webkit-scrollbar-thumb {
+    background-color: var(--border-strong);
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  .quiet-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: var(--text-faint);
+  }
+  .quiet-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}

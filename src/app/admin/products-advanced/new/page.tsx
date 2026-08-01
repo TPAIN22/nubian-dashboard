@@ -1,11 +1,9 @@
-import React from 'react'
-import ProductWizard from '../v2/ProductWizard';
+import ProductWizard from '../v2/ProductWizard'
 
+/**
+ * The wizard owns its full page chrome (header, step rail, sticky action bar),
+ * so this route is just a mount point — no wrapper padding, no second title.
+ */
 export default function Page() {
-  return (
-    <div className="container mx-auto py-6">
-      <h1 className="text-2xl font-bold mb-6 px-4">إضافة منتج جديد</h1>
-      <ProductWizard />
-    </div>
-  )
+  return <ProductWizard />
 }

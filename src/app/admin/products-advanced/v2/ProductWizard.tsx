@@ -64,6 +64,25 @@ import {
     FileUploaderItem
 } from "@/components/ui/file-uploader";
 
+import {
+    Alert,
+    Button as AdminButton,
+    Page,
+    PageBody,
+    PageHeader,
+    Spinner,
+    StatusBadge,
+    StickyBar,
+} from "@/components/admin";
+import { formatCurrency } from "@/lib/currency";
+import {
+    WizardHelp,
+    WizardNav,
+    WizardSummary,
+    type WizardStep,
+} from "./WizardChrome";
+import { clearProductDraft, formatSavedAt, useProductDraft } from "./useProductDraft";
+
 // ==========================================
 // ZOD SCHEMAS
 // ==========================================
@@ -109,6 +128,16 @@ const productSchema = z.object({
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
+
+/** Step-scoped guidance shown beside the form. Keyed by step number. */
+const STEP_HELP: Record<number, string> = {
+    1: "اختر «منتج بمتغيرات» فقط إذا كان للمنتج مقاسات أو ألوان مختلفة. المنتج البسيط ينتقل مباشرة إلى المراجعة.",
+    2: "أضف السمة ثم قيمها (مثلاً: المقاس ← S، M، L)، ثم اضغط «توليد المتغيرات» لبناء كل التوليفات دفعة واحدة.",
+    3: "يمكن تعديل الكمية والرمز لكل متغير على حدة. اترك المخزون صفراً للمتغيرات غير المتوفرة حالياً.",
+    4: "الصور المرفوعة هنا تُستخدم لكل متغيرات اللون نفسه. إن لم تُضف صورة للون، تُستخدم صور المنتج الأساسية.",
+    5: "السعر المُدخل هو سعر التاجر. تضيف المنصة هامشها فوقه عند العرض للعميل.",
+    6: "راجع الملخص المجاور. أي حقل ناقص سيظهر بعلامة خطأ على خطوته في قائمة الخطوات.",
+};
 
 // ==========================================
 // WIZARD COMPONENT
@@ -156,6 +185,15 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
     const productType = watch("productType");
     const variants = watch("variants") || [];
     const attributes = watch("attributes") || [];
+
+    // Autosaves the in-progress form to this browser. New products only — in
+    // edit mode the server record is authoritative and a stale local copy would
+    // silently resurrect old values. See useProductDraft.ts.
+    const draft = useProductDraft<ProductFormData>({
+        enabled: !productId,
+        values: watch(),
+        step: currentStep,
+    });
 
     // Fetch Categories
     const { data: categories = [], isLoading: loadingCats } = useQuery({
@@ -294,6 +332,9 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
         },
         onSuccess: () => {
             toast.success(productId ? "تم التحديث بنجاح" : "تمت الإضافة بنجاح");
+            // The product now exists on the server; the local draft is obsolete
+            // and must not be offered back on the next visit.
+            clearProductDraft();
             queryClient.invalidateQueries({ queryKey: ["products"] });
             router.push(redirectPath);
         },
@@ -483,127 +524,223 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
         return fieldsToCheck.some(f => !!errors[f as keyof typeof errors]);
     };
 
-    if (loadingProduct || loadingCats) {
-        return <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-            <Loader2 className="w-10 h-10 animate-spin text-primary" />
-            <p className="text-muted-foreground animate-pulse">جاري التحميل...</p>
-        </div>;
-    }
+    // ── Step model ─────────────────────────────────────────────────────────
+    // `skipped` must be evaluated before `done`: on a simple product the user
+    // jumps 1 → 6, which would otherwise mark the variant steps as completed.
+    const isSimple = productType === "simple";
 
-    const steps = [
-        { title: "البيانات الأساسية", icon: <ImageIcon className="w-4 h-4" /> },
-        { title: "الخيارات والسمات", icon: <Settings className="w-4 h-4" /> },
-        { title: "المخزون والكميات", icon: <LayoutGrid className="w-4 h-4" /> },
-        { title: "صور الألوان", icon: <ImageIcon className="w-4 h-4" /> },
-        { title: "التسعير", icon: <Save className="w-4 h-4" /> },
-        { title: "المراجعة", icon: <CheckCircle2 className="w-4 h-4" /> },
+    const STEP_DEFS: { num: number; title: string; hint: string }[] = [
+        { num: 1, title: "البيانات الأساسية", hint: "الاسم، الوصف، التصنيف والصور" },
+        { num: 2, title: "الخيارات والسمات", hint: "حدّد المقاسات والألوان" },
+        { num: 3, title: "المخزون والكميات", hint: "كمية ورمز لكل متغير" },
+        { num: 4, title: "صور الألوان", hint: "صورة مخصصة لكل لون" },
+        { num: 5, title: "التسعير", hint: "سعر التاجر لكل متغير" },
+        { num: 6, title: "المراجعة والنشر", hint: "تأكد من كل شيء قبل الحفظ" },
     ];
+
+    const wizardSteps: WizardStep[] = STEP_DEFS.map((s) => {
+        let state: WizardStep["state"];
+        if (isSimple && s.num > 1 && s.num < 6) state = "skipped";
+        else if (stepHasError(s.num)) state = "error";
+        else if (currentStep === s.num) state = "current";
+        else if (currentStep > s.num) state = "done";
+        else state = "upcoming";
+        return { ...s, state };
+    });
+
+    const activeStep = STEP_DEFS.find((s) => s.num === currentStep);
+
+    // Status line for the sticky action bar. Save state outranks draft state,
+    // which outranks the plain step counter.
+    const barStatus = (() => {
+        if (mutation.isPending) return "جارٍ الحفظ…";
+        if (mutation.isError) return "فشل الحفظ — راجع رسالة الخطأ";
+        if (!productId && draft.status === "saved")
+            return `حُفظت المسودة تلقائياً ${formatSavedAt(draft.savedAt)}`;
+        if (!productId && draft.status === "saving") return "جارٍ حفظ المسودة…";
+        return `الخطوة ${currentStep} من 6`;
+    })();
+
+    // ── Live summary ───────────────────────────────────────────────────────
+    const categoryName = (categories as any[]).find((c: any) => c._id === watch("category"))?.name;
+    const storeName = isAdmin
+        ? (merchants as any[]).find((m: any) => m._id === watch("merchant"))
+            ? (() => {
+                  const m = (merchants as any[]).find((x: any) => x._id === watch("merchant"));
+                  return m?.businessName || m?.storeName || m?.name;
+              })()
+            : ""
+        : undefined;
+
+    // For a variant product the headline price is the cheapest variant — the
+    // same "from" price a shopper sees on a listing.
+    const summaryPrice = isSimple
+        ? watch("merchantPrice")
+        : (() => {
+              const prices = [
+                  ...variants.map((v: any) => Number(v?.merchantPrice) || 0),
+                  ...Object.values(watch("colorPrices") || {}).map((p) => Number(p) || 0),
+              ].filter((p) => p > 0);
+              return prices.length ? Math.min(...prices) : undefined;
+          })();
+
+    if (loadingProduct || loadingCats) {
+        return (
+            <Page>
+                <PageHeader title={productId ? "تعديل منتج" : "منتج جديد"} />
+                <PageBody>
+                    <div className="flex min-h-[320px] flex-col items-center justify-center gap-3">
+                        <Spinner className="size-5" />
+                        <p className="text-[12px] text-text-muted">جارٍ تحميل بيانات المنتج…</p>
+                    </div>
+                </PageBody>
+            </Page>
+        );
+    }
 
     return (
         <Form {...form}>
-            <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <Page>
+                <PageHeader
+                    title={productId ? "تعديل منتج" : "منتج جديد"}
+                    backHref={redirectPath}
+                    meta={
+                        <StatusBadge
+                            tone={watch("isActive") ? "success" : "neutral"}
+                            label={watch("isActive") ? "سيُنشر" : "مسودة"}
+                        />
+                    }
+                    actions={
+                        <AdminButton variant="ghost" size="sm" asChild>
+                            <Link href={redirectPath}>إلغاء</Link>
+                        </AdminButton>
+                    }
+                />
 
-                {/* Header Section */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight">{productId ? "تعديل منتج" : "إضافة منتج جديد"}</h1>
-                        <p className="text-muted-foreground mt-1">قم بتعبئة تفاصيل المنتج لإنشائه في المتجر</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        {mutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                        <Badge variant={mutation.isError ? "destructive" : "outline"} className="px-3 py-1">
-                            {mutation.isPending ? "جاري الحفظ..." : mutation.isError ? "فشل الحفظ" : "جاهز"}
-                        </Badge>
-                    </div>
-                </div>
-
-                {/* Stepper Navigation */}
-                <Card className="border-none shadow-sm bg-muted/30">
-                    <CardContent className="p-4 overflow-x-auto">
-                        <div className="flex items-center justify-between min-w-[700px]">
-                            {steps.map((step, idx) => {
-                                const stepNum = idx + 1;
-                                const isActive = currentStep === stepNum;
-                                const isCompleted = currentStep > stepNum;
-                                if (productType === "simple" && stepNum > 1 && stepNum < 6) return null;
-
-                                return (
-                                    <div key={idx} className="flex items-center flex-1 last:flex-none">
-                                        <div 
-                                            className={`flex flex-col items-center gap-2 transition-all duration-300 cursor-pointer ${isActive ? 'scale-110' : 'opacity-70 hover:opacity-100'}`}
-                                            onClick={() => goToStep(stepNum)}
+                <PageBody variant="flush">
+                    <div className="px-6 py-5">
+                        {/* Draft recovery — offered once, before any keystroke
+                            overwrites the stored copy. */}
+                        {draft.pending && (
+                            <Alert
+                                tone="info"
+                                title="لديك مسودة غير محفوظة"
+                                className="mb-5"
+                                action={
+                                    <div className="flex gap-2">
+                                        <AdminButton
+                                            size="sm"
+                                            variant="primary"
+                                            onClick={() => {
+                                                const restored = draft.restore();
+                                                if (restored) {
+                                                    reset(restored.values as ProductFormData);
+                                                    setCurrentStep(restored.step || 1);
+                                                    toast.success("تمت استعادة المسودة");
+                                                }
+                                            }}
                                         >
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors 
-                                                ${stepHasError(stepNum) ? 'bg-destructive/10 border-destructive text-destructive' :
-                                                isActive ? 'bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/20' :
-                                                isCompleted ? 'bg-green-500 border-green-500 text-white' : 'bg-background border-muted'}`}>
-                                                {stepHasError(stepNum) ? "!" : isCompleted ? "✓" : stepNum}
-                                            </div>
-                                            <span className={`text-[10px] md:text-sm font-medium ${stepHasError(stepNum) ? 'text-destructive' : isActive ? 'text-primary' : ''}`}>
-                                                {step.title}
-                                            </span>
-                                        </div>
-                                        {idx < steps.length - 1 && !(productType === "simple" && stepNum === 1) && (
-                                            <div className={`h-[2px] flex-1 mx-4 transition-colors duration-500 ${isCompleted ? 'bg-green-500' : 'bg-muted'}`} />
-                                        )}
+                                            استعادة
+                                        </AdminButton>
+                                        <AdminButton size="sm" variant="ghost" onClick={draft.discard}>
+                                            تجاهل
+                                        </AdminButton>
                                     </div>
-                                );
-                            })}
-                        </div>
-                    </CardContent>
-                </Card>
+                                }
+                            >
+                                حُفظت تلقائياً {formatSavedAt(draft.pending.savedAt)} على هذا المتصفح.
+                            </Alert>
+                        )}
 
-                {/* Step Content Area */}
-                <main className="min-h-[500px]">
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                        <div className="md:col-span-12">
-                            {currentStep === 1 && <BasicInfoStep categories={categories} onUpload={handleImageUpload} addCategoryPath={addCategoryPath} showMerchantPicker={isAdmin} merchants={merchants} loadingMerchants={loadingMerchants} />}
-                            {currentStep === 2 && productType === "with_variants" && <VariantSetupStep generate={generateVariants} />}
-                            {currentStep === 3 && productType === "with_variants" && <VariantMatrixStep />}
-                            {currentStep === 4 && productType === "with_variants" && <VariantImagesStep onUpload={handleImageUpload} />}
-                            {currentStep === 5 && productType === "with_variants" && <PricingStep />}
-                            {currentStep === 6 && <ReviewStep />}
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[190px_minmax(0,1fr)] xl:grid-cols-[190px_minmax(0,1fr)_270px]">
+                            {/* Step rail */}
+                            <div className="lg:sticky lg:top-4 lg:self-start">
+                                <WizardNav steps={wizardSteps} onSelect={goToStep} />
+                                <div className="mt-4 hidden lg:block">
+                                    <WizardHelp title="نصيحة">
+                                        <p>{STEP_HELP[currentStep]}</p>
+                                    </WizardHelp>
+                                </div>
+                            </div>
+
+                            {/* Step content */}
+                            <div className="min-w-0">
+                                {activeStep && (
+                                    <div className="mb-4 border-b border-border pb-3">
+                                        <h2 className="text-[15px] font-semibold tracking-[-0.008em] text-foreground">
+                                            {activeStep.title}
+                                        </h2>
+                                        <p className="mt-0.5 text-[12px] text-text-muted">{activeStep.hint}</p>
+                                    </div>
+                                )}
+
+                                {currentStep === 1 && <BasicInfoStep categories={categories} onUpload={handleImageUpload} addCategoryPath={addCategoryPath} showMerchantPicker={isAdmin} merchants={merchants} loadingMerchants={loadingMerchants} />}
+                                {currentStep === 2 && productType === "with_variants" && <VariantSetupStep generate={generateVariants} />}
+                                {currentStep === 3 && productType === "with_variants" && <VariantMatrixStep />}
+                                {currentStep === 4 && productType === "with_variants" && <VariantImagesStep onUpload={handleImageUpload} />}
+                                {currentStep === 5 && productType === "with_variants" && <PricingStep />}
+                                {currentStep === 6 && <ReviewStep />}
+                            </div>
+
+                            {/* Live preview */}
+                            <aside className="hidden xl:block xl:sticky xl:top-4 xl:self-start">
+                                <WizardSummary
+                                    data={{
+                                        name: watch("name"),
+                                        categoryName,
+                                        storeName,
+                                        images: watch("images") || [],
+                                        productType: productType as "simple" | "with_variants",
+                                        price: summaryPrice,
+                                        stock: watch("stock"),
+                                        variantCount: variants.length,
+                                        attributeCount: attributes.length,
+                                        isActive: !!watch("isActive"),
+                                        formatPrice: (n) => formatCurrency(n || 0),
+                                        priceCaption: "سعر التاجر — قبل هامش المنصة",
+                                    }}
+                                />
+                            </aside>
                         </div>
                     </div>
-                </main>
+                </PageBody>
 
-                {/* Footer Controls */}
-                <footer className="flex items-center justify-between border-t pt-6">
-                    <Button
+                {/* Floating action rail — always reachable, never scrolled past. */}
+                <StickyBar status={barStatus}>
+                    <AdminButton
                         variant="secondary"
-                        size="lg"
+                        size="md"
                         onClick={prevStep}
                         disabled={currentStep === 1 || mutation.isPending}
-                        className="gap-2"
                     >
-                        <ChevronRight className="w-4 h-4" /> السابق
-                    </Button>
+                        <ChevronRight className="rtl:rotate-0" />
+                        السابق
+                    </AdminButton>
 
-                    <div className="flex gap-3">
-                        {currentStep < 6 ? (
-                            <Button size="lg" onClick={nextStep} className="gap-2 min-w-[140px]">
-                                التالي <ChevronLeft className="w-4 h-4" />
-                            </Button>
-                        ) : (
-                            <Button
-                                size="lg"
-                                onClick={handleSubmit(
-                                    (d) => mutation.mutate(d as any),
-                                    (formErrors) => {
-                                        console.log("Form Validation Errors:", formErrors);
-                                        toast.error("لا يمكن الحفظ: يرجى مراجعة واستكمال الحقول المطلوبة والمميزة باللون الأحمر");
-                                    }
-                                )}
-                                disabled={mutation.isPending}
-                                className="gap-2 min-w-[160px] bg-green-600 hover:bg-green-700 text-white transition-all hover:shadow-xl"
-                            >
-                                {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                إتمام وحفظ المنتج
-                            </Button>
-                        )}
-                    </div>
-                </footer>
-            </div>
+                    {currentStep < 6 ? (
+                        <AdminButton variant="primary" size="md" onClick={nextStep}>
+                            التالي
+                            <ChevronLeft />
+                        </AdminButton>
+                    ) : (
+                        <AdminButton
+                            variant="primary"
+                            size="md"
+                            loading={mutation.isPending}
+                            onClick={handleSubmit(
+                                (d) => mutation.mutate(d as any),
+                                (formErrors) => {
+                                    console.log("Form Validation Errors:", formErrors);
+                                    toast.error("لا يمكن الحفظ: يرجى مراجعة الحقول المميزة بعلامة خطأ في قائمة الخطوات");
+                                }
+                            )}
+                        >
+                            <Save />
+                            {productId ? "حفظ التعديلات" : "نشر المنتج"}
+                        </AdminButton>
+                    )}
+                </StickyBar>
+            </Page>
         </Form>
     );
 }

@@ -342,42 +342,39 @@ export default function LocationsClient() {
   }
 
   return (
-    <div className="min-h-screen p-4">
-      <div className="max-w-7xl mx-auto">
-        {/* رأس الصفحة */}
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-extrabold text-primary mb-2">
-            إدارة المناطق الجغرافية
+    <div className="min-h-full">
+      <div className="mx-auto w-full max-w-(--page-max) px-6 py-5">
+        {/* رأس الصفحة — يطابق ترويسة لوحة الإدارة القياسية */}
+        <div className="mb-5 border-b border-border pb-4">
+          <h1 className="text-[20px] font-semibold leading-7 tracking-[-0.011em] text-foreground">
+            المناطق والشحن
           </h1>
-          <p className="text-lg text-muted-foreground">
-            إدارة الدول والمدن والأحياء للمتجر
+          <p className="mt-1 max-w-2xl text-[13px] leading-5 text-text-muted">
+            إدارة الدول والمدن والأحياء المستخدمة في عناوين التوصيل.
           </p>
         </div>
 
         {/* إحصائيات سريعة */}
-        <div className="bg-card rounded-lg p-6 mb-6 border">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
-            <div>
-              <h3 className="text-2xl font-bold text-primary">{countries.length}</h3>
-              <p className="text-muted-foreground">الدول</p>
+        <div className="mb-5 grid gap-px overflow-hidden rounded-lg border border-border bg-border grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: 'الدول', value: countries.length },
+            { label: 'المدن', value: cities.length },
+            { label: 'الأحياء', value: subCities.length },
+            {
+              label: 'المناطق النشطة',
+              value:
+                countries.filter((c) => c.isActive).length +
+                cities.filter((c) => c.isActive).length +
+                subCities.filter((s) => s.isActive).length,
+            },
+          ].map((s) => (
+            <div key={s.label} className="bg-card px-4 py-3.5">
+              <p className="truncate text-[12px] font-medium text-text-muted">{s.label}</p>
+              <p className="mt-1.5 text-[24px] font-semibold leading-8 tracking-[-0.02em] text-foreground nums">
+                {s.value}
+              </p>
             </div>
-            <div>
-              <h3 className="text-2xl font-bold text-primary">{cities.length}</h3>
-              <p className="text-muted-foreground">المدن</p>
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold text-primary">{subCities.length}</h3>
-              <p className="text-muted-foreground">الأحياء</p>
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold text-primary">
-                {countries.filter(c => c.isActive).length +
-                 cities.filter(c => c.isActive).length +
-                 subCities.filter(s => s.isActive).length}
-              </h3>
-              <p className="text-muted-foreground">المناطق النشطة</p>
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* الواجهة الثلاثية */}

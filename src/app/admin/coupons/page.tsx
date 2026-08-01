@@ -1,334 +1,426 @@
-"use client";
+'use client'
 
-import * as React from "react";
-import { useAuth } from "@clerk/nextjs";
-import { axiosInstance } from "@/lib/axiosInstance";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Plus, Search, Filter, Download } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import * as React from 'react'
+import { useAuth } from '@clerk/nextjs'
+import { toast } from 'sonner'
+import { Gift, MoreHorizontal, Plus } from 'lucide-react'
+
+import { axiosInstance } from '@/lib/axiosInstance'
+import { formatCurrency } from '@/lib/currency'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Button,
+  Code,
+  DataTable,
+  EmptyState,
+  Page,
+  PageBody,
+  PageHeader,
+  SearchInput,
+  StatusBadge,
+  Toolbar,
+  ToolbarDivider,
+  ToolbarSpacer,
+  ViewTabs,
+  useColumnVisibility,
+  type Column,
+} from '@/components/admin'
+import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import CouponForm from "./couponForm";
+} from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import CouponForm from './couponForm'
 
+/* ============================================================================
+   Coupons
+   ----------------------------------------------------------------------------
+   Unchanged API surface: GET /coupons (with isActive / expired params),
+   PATCH /coupons/:id/deactivate, DELETE /coupons/:id, and the existing
+   CouponForm dialog for create/edit.
 
+   Fixed while rebuilding: delete used a native `confirm()`, and every row
+   carried three always-visible buttons — 3 buttons × N rows is a wall of
+   chrome. Actions now live in a row menu, and delete goes through the app's
+   own confirm dialog so it can state what actually happens.
+   ========================================================================== */
 
-import { formatCurrency } from "@/lib/currency";
-
-// Date formatting utility
 const formatDate = (dateString: string) => {
   try {
-    const date = new Date(dateString);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    const date = new Date(dateString)
+    if (Number.isNaN(date.getTime())) return dateString
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
   } catch {
-    return dateString;
+    return dateString
   }
-};
+}
 
 interface Coupon {
-  _id: string;
-  code: string;
-  type: 'percentage' | 'fixed';
-  value: number;
-  minOrderAmount: number;
-  maxDiscount?: number;
-  startDate: string;
-  endDate: string;
-  usageLimitPerUser: number;
-  usageLimitGlobal?: number;
-  usageCount: number;
-  totalDiscountGiven: number;
-  totalOrders: number;
-  applicableProducts: any[];
-  applicableCategories: any[];
-  applicableMerchants: any[];
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  _id: string
+  code: string
+  type: 'percentage' | 'fixed'
+  value: number
+  minOrderAmount: number
+  maxDiscount?: number
+  startDate: string
+  endDate: string
+  usageLimitPerUser: number
+  usageLimitGlobal?: number
+  usageCount: number
+  totalDiscountGiven: number
+  totalOrders: number
+  applicableProducts: unknown[]
+  applicableCategories: unknown[]
+  applicableMerchants: unknown[]
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export default function CouponsPage() {
-  const { getToken } = useAuth();
-  const [coupons, setCoupons] = React.useState<Coupon[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [searchQuery, setSearchQuery] = React.useState("");
-  const [filterActive, setFilterActive] = React.useState<string>("all");
-  const [selectedCoupon, setSelectedCoupon] = React.useState<Coupon | null>(null);
-  const [showForm, setShowForm] = React.useState(false);
+  const { getToken } = useAuth()
+  const [coupons, setCoupons] = React.useState<Coupon[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [searchQuery, setSearchQuery] = React.useState('')
+  const [filterActive, setFilterActive] = React.useState('all')
+  const [selectedCoupon, setSelectedCoupon] = React.useState<Coupon | null>(null)
+  const [showForm, setShowForm] = React.useState(false)
+  const [pendingDelete, setPendingDelete] = React.useState<Coupon | null>(null)
+  const [deleting, setDeleting] = React.useState(false)
 
   const fetchCoupons = React.useCallback(async () => {
     try {
-      setLoading(true);
-      const token = await getToken();
-      const params = new URLSearchParams();
-      if (filterActive !== "all") {
-        params.append("isActive", filterActive === "active" ? "true" : "false");
+      setLoading(true)
+      const token = await getToken()
+      const params = new URLSearchParams()
+      if (filterActive !== 'all') {
+        params.append('isActive', filterActive === 'active' ? 'true' : 'false')
       }
-      if (filterActive === "expired") {
-        params.append("expired", "true");
+      if (filterActive === 'expired') {
+        params.append('expired', 'true')
       }
 
       const response = await axiosInstance.get(`/coupons?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
-      });
+      })
 
-      if (response.data?.success) {
-        setCoupons(response.data.data || []);
-      } else {
-        setCoupons(response.data || []);
-      }
-    } catch (error: any) {
-      toast.error("فشل تحميل الكوبونات", {
-        description: error.response?.data?.message || error.message,
-      });
+      setCoupons(response.data?.success ? response.data.data || [] : response.data || [])
+    } catch (error) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('فشل تحميل الكوبونات', {
+        description: err.response?.data?.message || err.message,
+      })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [getToken, filterActive]);
+  }, [getToken, filterActive])
 
   React.useEffect(() => {
-    fetchCoupons();
-  }, [fetchCoupons]);
-
-  const handleEdit = (coupon: Coupon) => {
-    setSelectedCoupon(coupon);
-    setShowForm(true);
-  };
+    fetchCoupons()
+  }, [fetchCoupons])
 
   const handleCreate = () => {
-    setSelectedCoupon(null);
-    setShowForm(true);
-  };
+    setSelectedCoupon(null)
+    setShowForm(true)
+  }
 
-  const handleDelete = async (couponId: string) => {
-    if (!confirm("هل أنت متأكد من حذف هذا الكوبون؟")) return;
+  const handleEdit = (coupon: Coupon) => {
+    setSelectedCoupon(coupon)
+    setShowForm(true)
+  }
 
+  const confirmDelete = async () => {
+    if (!pendingDelete) return
+    setDeleting(true)
     try {
-      const token = await getToken();
-      await axiosInstance.delete(`/coupons/${couponId}`, {
+      const token = await getToken()
+      await axiosInstance.delete(`/coupons/${pendingDelete._id}`, {
         headers: { Authorization: `Bearer ${token}` },
-      });
-      toast.success("تم حذف الكوبون بنجاح");
-      fetchCoupons();
-    } catch (error: any) {
-      toast.error("فشل حذف الكوبون", {
-        description: error.response?.data?.message || error.message,
-      });
+      })
+      toast.success('تم حذف الكوبون بنجاح')
+      setPendingDelete(null)
+      fetchCoupons()
+    } catch (error) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('فشل حذف الكوبون', {
+        description: err.response?.data?.message || err.message,
+      })
+    } finally {
+      setDeleting(false)
     }
-  };
+  }
 
   const handleDeactivate = async (couponId: string) => {
     try {
-      const token = await getToken();
-      await axiosInstance.patch(`/coupons/${couponId}/deactivate`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      toast.success("تم تعطيل الكوبون بنجاح");
-      fetchCoupons();
-    } catch (error: any) {
-      toast.error("فشل تعطيل الكوبون", {
-        description: error.response?.data?.message || error.message,
-      });
+      const token = await getToken()
+      await axiosInstance.patch(
+        `/coupons/${couponId}/deactivate`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } },
+      )
+      toast.success('تم تعطيل الكوبون بنجاح')
+      fetchCoupons()
+    } catch (error) {
+      const err = error as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('فشل تعطيل الكوبون', {
+        description: err.response?.data?.message || err.message,
+      })
     }
-  };
+  }
 
-  const filteredCoupons = coupons.filter((coupon) => {
-    const matchesSearch = coupon.code.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
-  });
+  const filteredCoupons = React.useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return coupons
+    return coupons.filter((c) => c.code.toLowerCase().includes(q))
+  }, [coupons, searchQuery])
 
+  const columns = React.useMemo<Column<Coupon>[]>(
+    () => [
+      {
+        id: 'code',
+        header: 'الكود',
+        width: '150px',
+        cell: (c) => <Code className="font-semibold text-foreground">{c.code}</Code>,
+      },
+      {
+        id: 'value',
+        header: 'الخصم',
+        width: '110px',
+        cell: (c) => (
+          <span className="font-medium">
+            {c.type === 'percentage' ? `${c.value}%` : formatCurrency(c.value)}
+          </span>
+        ),
+      },
+      {
+        id: 'minOrderAmount',
+        header: 'الحد الأدنى للطلب',
+        width: '130px',
+        align: 'end',
+        cell: (c) =>
+          c.minOrderAmount > 0 ? (
+            formatCurrency(c.minOrderAmount)
+          ) : (
+            <span className="text-text-faint">—</span>
+          ),
+      },
+      {
+        id: 'usage',
+        header: 'الاستخدام',
+        width: '110px',
+        cell: (c) => (
+          <span className="nums">
+            {c.usageCount || 0}
+            <span className="text-text-faint"> / {c.usageLimitGlobal || '∞'}</span>
+          </span>
+        ),
+      },
+      {
+        id: 'period',
+        header: 'الفترة',
+        width: '180px',
+        cell: (c) => (
+          <span className="whitespace-nowrap text-text-muted nums" dir="ltr">
+            {formatDate(c.startDate)} → {formatDate(c.endDate)}
+          </span>
+        ),
+      },
+      {
+        id: 'status',
+        header: 'الحالة',
+        width: '110px',
+        cell: (c) => {
+          const expired = new Date(c.endDate) < new Date()
+          const active = c.isActive && !expired
+          return (
+            <StatusBadge
+              tone={active ? 'success' : expired ? 'danger' : 'neutral'}
+              label={active ? 'نشط' : expired ? 'منتهي' : 'معطل'}
+            />
+          )
+        },
+      },
+      {
+        id: 'totalDiscountGiven',
+        header: 'إجمالي الخصم الممنوح',
+        width: '150px',
+        align: 'end',
+        defaultHidden: true,
+        cell: (c) => formatCurrency(c.totalDiscountGiven || 0),
+      },
+      {
+        id: 'totalOrders',
+        header: 'الطلبات',
+        width: '90px',
+        align: 'end',
+        defaultHidden: true,
+        cell: (c) => c.totalOrders || 0,
+      },
+      {
+        id: 'actions',
+        header: '',
+        width: '48px',
+        align: 'center',
+        hideable: false,
+        truncate: false,
+        cell: (c) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label={`عمليات الكوبون ${c.code}`}
+                className="grid size-6 place-items-center rounded-[5px] text-text-faint opacity-0 transition-opacity group-hover:opacity-100 hover:bg-canvas-hover hover:text-foreground focus-visible:opacity-100 focus-ring"
+              >
+                <MoreHorizontal className="size-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem className="text-[12px]" onClick={() => handleEdit(c)}>
+                تعديل
+              </DropdownMenuItem>
+              {c.isActive && (
+                <DropdownMenuItem
+                  className="text-[12px]"
+                  onClick={() => handleDeactivate(c._id)}
+                >
+                  تعطيل
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-[12px] text-tone-danger-fg"
+                onClick={() => setPendingDelete(c)}
+              >
+                حذف
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
+
+  const { visible, menu } = useColumnVisibility(columns, 'admin-coupons')
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">إدارة الكوبونات</h1>
-          <p className="text-muted-foreground mt-1">إنشاء وإدارة كوبونات الخصم</p>
-        </div>
-        <Button onClick={handleCreate}>
-          <Plus className="h-4 w-4 ml-2" />
-          إنشاء كوبون جديد
-        </Button>
-      </div>
-
-      {/* Filters and Search */}
-      <div className="flex gap-4 items-center">
-        <div className="flex-1 relative">
-          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="بحث بالكود..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pr-10"
+    <Page>
+      <PageHeader
+        title="الكوبونات"
+        description="إنشاء وإدارة كوبونات الخصم وحدود استخدامها."
+        actions={
+          <Button variant="primary" size="sm" onClick={handleCreate}>
+            <Plus />
+            كوبون جديد
+          </Button>
+        }
+        tabs={
+          <ViewTabs
+            tabs={[
+              { id: 'all', label: 'الكل' },
+              { id: 'active', label: 'نشط' },
+              { id: 'expired', label: 'منتهي' },
+            ]}
+            value={filterActive}
+            onValueChange={setFilterActive}
           />
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant={filterActive === "all" ? "default" : "outline"}
-            onClick={() => setFilterActive("all")}
-          >
-            الكل
-          </Button>
-          <Button
-            variant={filterActive === "active" ? "default" : "outline"}
-            onClick={() => setFilterActive("active")}
-          >
-            نشط
-          </Button>
-          <Button
-            variant={filterActive === "expired" ? "default" : "outline"}
-            onClick={() => setFilterActive("expired")}
-          >
-            منتهي
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
-      {/* Coupons Table */}
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>الكود</TableHead>
-              <TableHead>النوع</TableHead>
-              <TableHead>القيمة</TableHead>
-              <TableHead>الحد الأدنى</TableHead>
-              <TableHead>تاريخ البداية</TableHead>
-              <TableHead>تاريخ النهاية</TableHead>
-              <TableHead>الاستخدام</TableHead>
-              <TableHead>الحالة</TableHead>
-              <TableHead>الإجراءات</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
-                  جاري التحميل...
-                </TableCell>
-              </TableRow>
-            ) : filteredCoupons.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
-                  لا توجد كوبونات
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredCoupons.map((coupon) => {
-                const isExpired = new Date(coupon.endDate) < new Date();
-                const isActive = coupon.isActive && !isExpired;
+      <PageBody variant="flush">
+        <Toolbar>
+          <SearchInput
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+            placeholder="بحث بكود الكوبون…"
+            className="w-full max-w-xs"
+          />
+          <ToolbarSpacer />
+          <ToolbarDivider />
+          {menu}
+        </Toolbar>
 
-                return (
-                  <TableRow key={coupon._id}>
-                    <TableCell className="font-mono font-bold">
-                      {coupon.code}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={coupon.type === "percentage" ? "default" : "secondary"}>
-                        {coupon.type === "percentage" ? "نسبة" : "ثابت"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {coupon.type === "percentage"
-                        ? `${coupon.value}%`
-                        : formatCurrency(coupon.value)}
-                    </TableCell>
-                    <TableCell>
-                      {coupon.minOrderAmount > 0
-                        ? formatCurrency(coupon.minOrderAmount)
-                        : "—"}
-                    </TableCell>
-                    <TableCell>{formatDate(coupon.startDate)}</TableCell>
-                    <TableCell>{formatDate(coupon.endDate)}</TableCell>
-                    <TableCell>
-                      {coupon.usageCount || 0} /{" "}
-                      {coupon.usageLimitGlobal || "∞"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={isActive ? "default" : "secondary"}>
-                        {isActive ? "نشط" : isExpired ? "منتهي" : "معطل"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(coupon)}
-                        >
-                          تعديل
-                        </Button>
-                        {coupon.isActive && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeactivate(coupon._id)}
-                          >
-                            تعطيل
-                          </Button>
-                        )}
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete(coupon._id)}
-                        >
-                          حذف
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+        <DataTable
+          data={filteredCoupons}
+          columns={columns}
+          visibleColumns={visible}
+          getRowId={(c) => c._id}
+          loading={loading}
+          onRowClick={handleEdit}
+          empty={
+            <EmptyState
+              icon={<Gift className="size-4" />}
+              title={searchQuery ? 'لا كوبونات مطابقة' : 'لا توجد كوبونات'}
+              description={
+                searchQuery
+                  ? 'لم يطابق أي كوبون هذا الكود.'
+                  : 'أنشئ كوبون خصم لتشغيل حملة تسويقية أو مكافأة عملاء.'
+              }
+              action={
+                searchQuery ? (
+                  <Button variant="secondary" size="sm" onClick={() => setSearchQuery('')}>
+                    مسح البحث
+                  </Button>
+                ) : (
+                  <Button variant="primary" size="sm" onClick={handleCreate}>
+                    <Plus />
+                    إنشاء كوبون
+                  </Button>
+                )
+              }
+            />
+          }
+        />
+      </PageBody>
 
-      {/* Coupon Form Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {selectedCoupon ? "تعديل الكوبون" : "إنشاء كوبون جديد"}
-            </DialogTitle>
+            <DialogTitle>{selectedCoupon ? 'تعديل الكوبون' : 'كوبون جديد'}</DialogTitle>
             <DialogDescription>
               {selectedCoupon
-                ? "قم بتعديل بيانات الكوبون"
-                : "املأ البيانات لإنشاء كوبون خصم جديد"}
+                ? 'قم بتعديل بيانات الكوبون'
+                : 'املأ البيانات لإنشاء كوبون خصم جديد'}
             </DialogDescription>
           </DialogHeader>
           <CouponForm
             coupon={selectedCoupon}
             onSuccess={() => {
-              setShowForm(false);
-              setSelectedCoupon(null);
-              fetchCoupons();
+              setShowForm(false)
+              setSelectedCoupon(null)
+              fetchCoupons()
             }}
             onCancel={() => {
-              setShowForm(false);
-              setSelectedCoupon(null);
+              setShowForm(false)
+              setSelectedCoupon(null)
             }}
           />
         </DialogContent>
       </Dialog>
-    </div>
-  );
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        onOpenChange={(open) => !open && setPendingDelete(null)}
+        variant="destructive"
+        loading={deleting}
+        confirmText="حذف الكوبون"
+        title={`حذف الكوبون «${pendingDelete?.code ?? ''}»؟`}
+        description="لن يعود بالإمكان استخدام هذا الكود. الطلبات التي استخدمته سابقاً لا تتأثر. لا يمكن التراجع عن هذا الإجراء."
+        onConfirm={confirmDelete}
+      />
+    </Page>
+  )
 }

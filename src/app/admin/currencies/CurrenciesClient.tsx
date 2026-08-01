@@ -199,15 +199,15 @@ export default function CurrenciesClient() {
     }
 
     return (
-        <div className="min-h-screen p-4">
-            <div className="max-w-6xl mx-auto">
-                {/* Header */}
-                <div className="mb-8 text-center">
-                    <h1 className="text-4xl font-extrabold text-primary mb-2">
-                        إدارة العملات
+        <div className="min-h-full">
+            <div className="mx-auto w-full max-w-(--page-max) px-6 py-5">
+                {/* Header — matches the standard admin PageHeader treatment. */}
+                <div className="mb-5 border-b border-border pb-4">
+                    <h1 className="text-[20px] font-semibold leading-7 tracking-[-0.011em] text-foreground">
+                        العملات
                     </h1>
-                    <p className="text-lg text-muted-foreground">
-                        إدارة العملات وأسعار الصرف للمتجر
+                    <p className="mt-1 max-w-2xl text-[13px] leading-5 text-text-muted">
+                        العملات المدعومة في المتجر وأسعار صرفها.
                     </p>
                 </div>
 

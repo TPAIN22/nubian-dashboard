@@ -1,32 +1,27 @@
 import { cn } from '@/lib/utils'
+import { StatusBadge } from '@/components/admin/status'
+import type { Tone as AdminTone } from '@/components/admin/tone'
 
 /**
  * Semantic status colours for the admin surfaces.
  *
- * Lives here rather than inside a feature folder because more than one table
- * needs the same five tones — a "shipped" order and a "sent" notification must
- * not be two different shades of blue. Anything that renders a status pill
- * should map its domain value onto a `Tone` and let this own the palette.
+ * This is now a thin adapter over the admin design system's `StatusBadge`
+ * (src/components/admin/status.tsx), which owns the tone palette. Keeping the
+ * `ToneBadge` signature means every existing call site — orders, notifications,
+ * merchants, support — picks up the new treatment without being touched.
+ *
+ * The visual change: pills are no longer full-radius saturated capsules. The
+ * default is a dot + plain label, which is much easier to scan down a dense
+ * column; pass `withDot={false}` for the soft filled chip instead.
  */
 export type Tone = 'success' | 'warning' | 'danger' | 'info' | 'muted'
 
-const TONE_BG: Record<Tone, string> = {
-  success:
-    'bg-emerald-500/10 text-emerald-700 ring-1 ring-inset ring-emerald-500/20 dark:text-emerald-300 dark:ring-emerald-400/30',
-  warning:
-    'bg-amber-500/10 text-amber-700 ring-1 ring-inset ring-amber-500/20 dark:text-amber-300 dark:ring-amber-400/30',
-  danger:
-    'bg-red-500/10 text-red-700 ring-1 ring-inset ring-red-500/20 dark:text-red-300 dark:ring-red-400/30',
-  info: 'bg-sky-500/10 text-sky-700 ring-1 ring-inset ring-sky-500/20 dark:text-sky-300 dark:ring-sky-400/30',
-  muted: 'bg-muted text-muted-foreground ring-1 ring-inset ring-border',
-}
-
-const TONE_DOT: Record<Tone, string> = {
-  success: 'bg-emerald-500',
-  warning: 'bg-amber-500',
-  danger: 'bg-red-500',
-  info: 'bg-sky-500',
-  muted: 'bg-muted-foreground/60',
+const TO_ADMIN_TONE: Record<Tone, AdminTone> = {
+  success: 'success',
+  warning: 'warning',
+  danger: 'danger',
+  info: 'info',
+  muted: 'neutral',
 }
 
 export function ToneBadge({
@@ -41,18 +36,32 @@ export function ToneBadge({
   children: React.ReactNode
 }) {
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium capitalize',
-        TONE_BG[tone],
-        className,
-      )}
-    >
-      {withDot && <span className={cn('h-1.5 w-1.5 rounded-full', TONE_DOT[tone])} />}
-      {children}
-    </span>
+    <StatusBadge
+      tone={TO_ADMIN_TONE[tone]}
+      variant={withDot ? 'dot' : 'chip'}
+      label={children}
+      className={cn('whitespace-nowrap', className)}
+    />
   )
 }
 
-export const TONE_CLASS = TONE_BG
-export const TONE_DOT_CLASS = TONE_DOT
+/**
+ * Retained for the places that tint a surface rather than render a badge (row
+ * highlights, legends). Mapped onto the same tone tokens so they cannot drift
+ * away from the badges again.
+ */
+export const TONE_CLASS: Record<Tone, string> = {
+  success: 'bg-tone-success-bg text-tone-success-fg ring-1 ring-inset ring-tone-success-border',
+  warning: 'bg-tone-warning-bg text-tone-warning-fg ring-1 ring-inset ring-tone-warning-border',
+  danger: 'bg-tone-danger-bg text-tone-danger-fg ring-1 ring-inset ring-tone-danger-border',
+  info: 'bg-tone-info-bg text-tone-info-fg ring-1 ring-inset ring-tone-info-border',
+  muted: 'bg-tone-neutral-bg text-tone-neutral-fg ring-1 ring-inset ring-tone-neutral-border',
+}
+
+export const TONE_DOT_CLASS: Record<Tone, string> = {
+  success: 'bg-tone-success-fg',
+  warning: 'bg-tone-warning-fg',
+  danger: 'bg-tone-danger-fg',
+  info: 'bg-tone-info-fg',
+  muted: 'bg-tone-neutral-fg',
+}

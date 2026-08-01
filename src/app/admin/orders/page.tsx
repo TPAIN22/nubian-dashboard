@@ -1,16 +1,32 @@
-"use client";
+'use client'
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { RefreshCw } from 'lucide-react'
 
-import { DataTable } from "./ordersTable";
-import { PageHeader } from "@/components/dashboard/PageHeader";
-import { Order, getOrderTotal, getOrderCurrency, formatMoney } from "./types";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
+import {
+  Alert,
+  Button,
+  Page,
+  PageBody,
+  PageHeader,
+  ViewTabs,
+} from '@/components/admin'
+import { OrdersTable } from './ordersTable'
+import { Order, getOrderTotal, getOrderCurrency, formatMoney } from './types'
+
+/* ============================================================================
+   Orders
+   ----------------------------------------------------------------------------
+   The fetching contract is unchanged: server-side pagination against
+   /api/orders/admin, optional `status` filter, `meta.pagination` for counts,
+   `loading` for first paint vs `refreshing` for background refetches.
+
+   The layout is not. Status filters are now the page's tab strip (flush under
+   the title, where a tab strip belongs) rather than nine buttons wrapping onto
+   two rows, and the three "stat cards" that summarised only the current page
+   have collapsed into a single honest summary line above the table. That
+   recovered roughly 260px — the table now starts above the fold.
+   ========================================================================== */
 
 type OrderStatus =
   | 'all'
@@ -21,231 +37,185 @@ type OrderStatus =
   | 'SHIPPED'
   | 'DELIVERED'
   | 'CANCELLED'
-  | 'PAYMENT_FAILED';
+  | 'PAYMENT_FAILED'
 
-// Matches `pending` (lowercase legacy) and `PENDING` / `AWAITING_PAYMENT_CONFIRMATION`.
+// Matches `pending` (lowercase legacy) and the SCREAMING_CASE variants.
 const PENDING_LIKE = new Set([
   'PENDING',
   'AWAITING_PAYMENT_CONFIRMATION',
   'PROCESSING',
   'pending',
-]);
+])
 
-const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 20
 
 interface PaginationMeta {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
+  page: number
+  limit: number
+  total: number
+  totalPages: number
 }
 
-const statusTabs: { value: OrderStatus; label: string }[] = [
-  { value: 'all', label: 'الكل' },
-  { value: 'PENDING', label: 'قيد الانتظار' },
-  { value: 'AWAITING_PAYMENT_CONFIRMATION', label: 'انتظار الدفع' },
-  { value: 'CONFIRMED', label: 'مؤكد' },
-  { value: 'PROCESSING', label: 'قيد المعالجة' },
-  { value: 'SHIPPED', label: 'تم الشحن' },
-  { value: 'DELIVERED', label: 'تم التسليم' },
-  { value: 'CANCELLED', label: 'ملغي' },
-  { value: 'PAYMENT_FAILED', label: 'فشل الدفع' },
-];
+const statusTabs: { id: OrderStatus; label: string }[] = [
+  { id: 'all', label: 'الكل' },
+  { id: 'PENDING', label: 'قيد الانتظار' },
+  { id: 'AWAITING_PAYMENT_CONFIRMATION', label: 'انتظار الدفع' },
+  { id: 'CONFIRMED', label: 'مؤكد' },
+  { id: 'PROCESSING', label: 'قيد المعالجة' },
+  { id: 'SHIPPED', label: 'تم الشحن' },
+  { id: 'DELIVERED', label: 'تم التسليم' },
+  { id: 'CANCELLED', label: 'ملغي' },
+  { id: 'PAYMENT_FAILED', label: 'فشل الدفع' },
+]
 
-export default function Page() {
-  const [orders, setOrders] = useState<Order[]>([]);
+export default function Page_() {
+  const [orders, setOrders] = useState<Order[]>([])
   const [pagination, setPagination] = useState<PaginationMeta>({
     page: 1,
     limit: DEFAULT_PAGE_SIZE,
     total: 0,
     totalPages: 0,
-  });
-  // `loading` is the first paint only; `refreshing` covers every fetch after
-  // it. Splitting them means changing a filter no longer blanks the whole page
-  // — the toolbar, tabs and current rows stay put while the next page lands.
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<OrderStatus>('all');
-  const [page, setPage] = useState(1);
+  })
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedStatus, setSelectedStatus] = useState<OrderStatus>('all')
+  const [page, setPage] = useState(1)
 
-  // Server-side pagination. The backend caps `limit` at 100 and accepts an
-  // optional `status` filter; we forward both. Tab counts reflect the
-  // filtered total (`meta.pagination.total` from the response).
   const fetchOrders = useCallback(async () => {
-    setError(null);
-    setRefreshing(true);
+    setError(null)
+    setRefreshing(true)
     try {
       const params = new URLSearchParams({
         page: String(page),
         limit: String(DEFAULT_PAGE_SIZE),
-      });
-      if (selectedStatus !== 'all') params.set('status', selectedStatus);
+      })
+      if (selectedStatus !== 'all') params.set('status', selectedStatus)
 
-      const res = await fetch(`/api/orders/admin?${params.toString()}`);
-      const data = await res.json().catch(() => ({}));
+      const res = await fetch(`/api/orders/admin?${params.toString()}`)
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(data?.message || `فشل تحميل الطلبات (${res.status})`);
-        return;
+        setError(data?.message || `فشل تحميل الطلبات (${res.status})`)
+        return
       }
       // Backend wraps the response: { success, data, meta: { pagination } }.
-      // Tolerate both wrapped and bare shapes so this works if the envelope
-      // ever changes upstream.
-      const items: Order[] = Array.isArray(data?.data) ? data.data
-        : Array.isArray(data) ? data
-        : [];
-      const meta = data?.meta?.pagination;
-      setOrders(items);
+      // Tolerate both wrapped and bare shapes.
+      const items: Order[] = Array.isArray(data?.data)
+        ? data.data
+        : Array.isArray(data)
+          ? data
+          : []
+      const meta = data?.meta?.pagination
+      setOrders(items)
       setPagination({
         page: meta?.page ?? page,
         limit: meta?.limit ?? DEFAULT_PAGE_SIZE,
         total: meta?.total ?? items.length,
         totalPages: meta?.totalPages ?? 1,
-      });
-    } catch (e: any) {
-      console.error("Error fetching orders:", e);
-      setError(e?.message || 'فشل تحميل الطلبات');
+      })
+    } catch (e) {
+      console.error('Error fetching orders:', e)
+      setError(e instanceof Error ? e.message : 'فشل تحميل الطلبات')
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      setLoading(false)
+      setRefreshing(false)
     }
-  }, [page, selectedStatus]);
+  }, [page, selectedStatus])
 
   useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+    fetchOrders()
+  }, [fetchOrders])
 
-  // Reset to page 1 when the user changes the status filter.
+  // Reset to page 1 when the status filter changes.
   useEffect(() => {
-    setPage(1);
-  }, [selectedStatus]);
+    setPage(1)
+  }, [selectedStatus])
 
-  // Revenue card is necessarily approximate without a stats endpoint — we
-  // only see the current page. Label it accordingly.
+  /* -- page summary ------------------------------------------------------- */
+  // Deliberately scoped to the loaded page and labelled as such: the backend
+  // has no per-status stats endpoint, so a platform-wide figure here would be
+  // invented. The overview page carries the real totals.
   const revenueByCurrency = useMemo(() => {
-    const map: Record<string, number> = {};
+    const map: Record<string, number> = {}
     for (const o of orders) {
-      const code = getOrderCurrency(o);
-      map[code] = (map[code] || 0) + (getOrderTotal(o) || 0);
+      const code = getOrderCurrency(o)
+      map[code] = (map[code] || 0) + (getOrderTotal(o) || 0)
     }
-    return map;
-  }, [orders]);
+    return Object.entries(map).sort(([, a], [, b]) => b - a)
+  }, [orders])
 
-  const pendingOrders = orders.filter(order => PENDING_LIKE.has(order.status || '')).length;
-  const todaysOrders = orders.filter(order => {
-    const today = new Date().toDateString();
-    return new Date(order.createdAt || order.orderDate || '').toDateString() === today;
-  }).length;
+  const pendingOnPage = orders.filter((o) => PENDING_LIKE.has(o.status || '')).length
 
   return (
-    <div className="container mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6">
+    <Page>
       <PageHeader
         title="الطلبات"
-        description="إدارة ومتابعة طلبات العملاء وحالات الشحن."
-      >
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchOrders}
-          disabled={refreshing}
-          aria-label="تحديث قائمة الطلبات"
-        >
-          <RefreshCw className={cn("size-4", refreshing && "animate-spin")} />
-          تحديث
-        </Button>
-      </PageHeader>
-
-      {error ? (
-        <div
-          role="alert"
-          className="flex flex-col items-center gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-6 text-center"
-        >
-          <AlertCircle className="size-6 text-destructive" />
-          <p className="text-sm text-destructive">{error}</p>
-          <Button variant="outline" size="sm" onClick={fetchOrders} disabled={refreshing}>
-            إعادة المحاولة
+        description="متابعة الطلبات وحالات الدفع والشحن."
+        actions={
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={fetchOrders}
+            loading={refreshing}
+            aria-label="تحديث قائمة الطلبات"
+          >
+            <RefreshCw />
+            تحديث
           </Button>
-        </div>
-      ) : null}
+        }
+        tabs={
+          <ViewTabs
+            tabs={statusTabs.map((t) => ({
+              id: t.id,
+              label: t.label,
+              // Only the active tab can carry a truthful count — there is no
+              // per-status stats endpoint, so an inactive tab's number could
+              // only be guessed from the current page.
+              count: t.id === selectedStatus && !loading ? pagination.total : undefined,
+            }))}
+            value={selectedStatus}
+            onValueChange={(id) => setSelectedStatus(id as OrderStatus)}
+          />
+        }
+      />
 
-      {/* Analytics Cards */}
-      <div className="grid gap-4 md:grid-cols-3 md:gap-6">
-        <StatCard
-          title="إيرادات الصفحة"
-          loading={loading}
-          footnote={`من ${pagination.total.toLocaleString()} طلب${
-            selectedStatus !== 'all' ? ` بالحالة المحددة` : ''
-          }`}
-        >
-          {Object.entries(revenueByCurrency).length === 0 ? (
-            <div className="text-3xl font-bold tracking-tight text-foreground">—</div>
-          ) : (
-            Object.entries(revenueByCurrency)
-              .sort(([, a], [, b]) => b - a)
-              .map(([code, total]) => (
-                <div key={code} className="text-2xl font-bold tracking-tight text-foreground">
-                  {formatMoney(total, code)}
-                </div>
-              ))
-          )}
-        </StatCard>
+      <PageBody variant="flush" className="flex flex-col">
+        {error && (
+          <div className="px-6 pt-4">
+            <Alert
+              tone="danger"
+              title="تعذر تحميل الطلبات"
+              action={
+                <Button variant="secondary" size="sm" onClick={fetchOrders} loading={refreshing}>
+                  إعادة المحاولة
+                </Button>
+              }
+            >
+              {error}
+            </Alert>
+          </div>
+        )}
 
-        <StatCard
-          title="طلبات تحتاج معالجة"
-          loading={loading}
-          footnote="قيد الانتظار والمعالجة — في هذه الصفحة"
-        >
-          <div className="text-3xl font-bold tracking-tight text-foreground">{pendingOrders}</div>
-        </StatCard>
-
-        <StatCard title="طلبات اليوم" loading={loading} footnote="في هذه الصفحة">
-          <div className="text-3xl font-bold tracking-tight text-foreground">{todaysOrders}</div>
-        </StatCard>
-      </div>
-
-      <div className="space-y-4">
-        {/* Status filter pills. Only the active tab carries a count: the backend
-            has no per-status stats endpoint (see orders.route.js:42), so a count
-            on an inactive tab could only be derived from the rows currently
-            loaded — a wrong number is worse than none. */}
-        {/* `aria-pressed` toggle buttons, not a tablist: there are no tab
-            panels here — each pill re-queries the same table. */}
-        <div
-          role="group"
-          aria-label="تصفية الطلبات حسب الحالة"
-          className="flex flex-wrap gap-2"
-        >
-          {statusTabs.map((tab) => {
-            const isActive = selectedStatus === tab.value;
-            return (
-              <Button
-                key={tab.value}
-                aria-pressed={isActive}
-                variant={isActive ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedStatus(tab.value)}
-                className={cn(
-                  "h-8 border px-4 text-xs",
-                  isActive
-                    ? "shadow-sm"
-                    : "border-dashed border-border/60 text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {tab.label}
-                {isActive && !loading ? (
-                  <Badge
-                    variant="secondary"
-                    className="pointer-events-none ms-1 h-4 min-w-4 rounded-full bg-primary-foreground/20 px-1 text-[10px] text-primary-foreground"
-                  >
-                    {pagination.total}
-                  </Badge>
-                ) : null}
-              </Button>
-            );
-          })}
+        {/* Honest, one-line page summary in place of three cards. */}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-border px-3 py-2 text-[12px] text-text-muted">
+          <span>
+            إجمالي هذه الصفحة:{' '}
+            <span className="font-medium text-foreground nums">
+              {revenueByCurrency.length === 0
+                ? '—'
+                : revenueByCurrency
+                    .map(([code, total]) => formatMoney(total, code))
+                    .join(' · ')}
+            </span>
+          </span>
+          <span>
+            تحتاج معالجة:{' '}
+            <span className="font-medium text-foreground nums">{pendingOnPage}</span>
+          </span>
+          <span className="text-text-faint">الأرقام محسوبة من الصفحة المعروضة فقط</span>
         </div>
 
-        <DataTable
+        <OrdersTable
           orders={orders}
           onRefresh={fetchOrders}
           pagination={pagination}
@@ -253,40 +223,7 @@ export default function Page() {
           isLoading={loading}
           isRefreshing={refreshing && !loading}
         />
-      </div>
-    </div>
-  );
-}
-
-function StatCard({
-  title,
-  footnote,
-  loading,
-  children,
-}: {
-  title: string;
-  footnote?: string;
-  loading?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <Card className="transition-shadow duration-200 hover:shadow-md">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <>
-            <Skeleton className="h-8 w-32" />
-            <Skeleton className="mt-2 h-3 w-24" />
-          </>
-        ) : (
-          <>
-            <div className="space-y-1">{children}</div>
-            {footnote ? <p className="mt-1 text-xs text-muted-foreground">{footnote}</p> : null}
-          </>
-        )}
-      </CardContent>
-    </Card>
-  );
+      </PageBody>
+    </Page>
+  )
 }
