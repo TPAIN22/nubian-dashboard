@@ -120,7 +120,7 @@ interface Props {
     addCategoryPath?: string;
 }
 
-export default function ProductWizard({ productId, redirectPath = "/business/products", addCategoryPath = "/admin/categories/new" }: Props) {
+export default function ProductWizard({ productId, redirectPath = "/admin/products-advanced", addCategoryPath = "/admin/categories/new" }: Props) {
     const router = useRouter();
     const { getToken } = useAuth();
     const { user } = useUser();

@@ -315,7 +315,7 @@ function ProductCard({ product }: { product: Product }) {
             </div>
             
             <div className="mt-3">
-              <Link href={`/business/products/${product._id}`}>
+              <Link href={`/admin/products-advanced/${product._id}`}>
                 <Button variant="outline" size="sm" className="w-full">
                   <Eye className="h-4 w-4 ml-2" />
                   عرض التفاصيل الكاملة

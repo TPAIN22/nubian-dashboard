@@ -28,7 +28,7 @@ export default function Page() {
         title="المنتجات" 
         description="إدارة مخزون المنتجات وتعديل التفاصيل."
       >
-        <Link href="/business/products/new">
+        <Link href="/admin/products-advanced/new">
           <Button className="rounded-full shadow-sm">
             <IconPlus className="w-5 h-5 ml-2" />
             اضافة منتج

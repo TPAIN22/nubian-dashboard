@@ -728,7 +728,7 @@ export function ProductsTable({
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>إجراءات</DropdownMenuLabel>
 
-              <Link href={`/business/products/${product._id}`}>
+              <Link href={`/admin/products-advanced/${product._id}`}>
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                   <Eye className="mr-2 h-4 w-4" />
                   عرض التفاصيل
@@ -744,7 +744,7 @@ export function ProductsTable({
               {!product.deletedAt && (
                 <>
                   <DropdownMenuItem
-                    onClick={() => router.push(`/business/products/${product._id}/edit`)}
+                    onClick={() => router.push(`/admin/products-advanced/${product._id}/edit`)}
                   >
                     <Edit className="mr-2 h-4 w-4" />
                     تعديل المنتج

@@ -76,7 +76,7 @@ export default async function ProductDetailsPage({ params }: PageProps) {
     <div className="flex flex-col gap-6 h-full sm:mx-12 mx-2 py-6">
       {/* Breadcrumb Navigation */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/business/products" className="hover:text-foreground transition-colors">
+        <Link href="/admin/products-advanced" className="hover:text-foreground transition-colors">
           المنتجات
         </Link>
         <ArrowRight className="h-4 w-4 rotate-180" />
@@ -85,7 +85,7 @@ export default async function ProductDetailsPage({ params }: PageProps) {
 
       {/* Back Button */}
       <div>
-        <Link href="/business/products">
+        <Link href="/admin/products-advanced">
           <Button variant="ghost" className="gap-2">
             <ArrowRight className="h-4 w-4 rotate-180" />
             العودة إلى قائمة المنتجات
@@ -97,7 +97,7 @@ export default async function ProductDetailsPage({ params }: PageProps) {
       <ProductDetails 
         product={product} 
         showActions={true}
-        editUrl={`/business/products/${product._id}/edit`}
+        editUrl={`/admin/products-advanced/${product._id}/edit`}
       />
     </div>
   );
