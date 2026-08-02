@@ -12,9 +12,14 @@ import { Topbar } from './topbar'
 /* ============================================================================
    AdminShell
    ----------------------------------------------------------------------------
-   Fixed viewport, two panes, zero page-level scroll. The rail and topbar never
-   move; only the page body scrolls. That is what lets PageHeader stick and the
-   StickyBar pin without the jitter you get when the document itself scrolls.
+   Fixed viewport, two panes. The rail and topbar never move; the document
+   itself never scrolls. That is what lets PageHeader stick and the StickyBar
+   pin without the jitter you get when the document scrolls.
+
+   Pages built on the <Page> primitives put their scroll inside PageBody, so
+   <main> never overflows for them. Pages that predate those primitives are
+   plain divs with no scroll container of their own — <main> is overflow-y-auto
+   so their content stays reachable instead of being clipped at the fold.
    ========================================================================== */
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
@@ -56,7 +61,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
           <div className="flex min-w-0 flex-1 flex-col">
             <Topbar onOpenMobileNav={() => setMobileOpen(true)} />
-            <main className="min-h-0 flex-1 overflow-hidden">{children}</main>
+            <main className="min-h-0 flex-1 overflow-y-auto quiet-scroll">{children}</main>
           </div>
         </div>
       </BreadcrumbProvider>
