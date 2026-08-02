@@ -21,7 +21,7 @@ import type { ConsoleNav, NavGroup } from '@/components/console/shell'
    (support, settings).
    ========================================================================== */
 
-export type MerchantCountKey = 'pendingOrders' | 'outOfStock'
+export type MerchantCountKey = 'pendingOrders'
 
 export const MERCHANT_GROUPS: NavGroup[] = [
   {
@@ -50,7 +50,6 @@ export const MERCHANT_GROUPS: NavGroup[] = [
         label: 'المنتجات',
         href: '/merchant/products',
         icon: Package,
-        badge: 'outOfStock',
         keywords: ['products', 'inventory', 'مخزون', 'sku', 'منتجاتي'],
         children: [{ label: 'منتج جديد', href: '/merchant/products/new' }],
       },

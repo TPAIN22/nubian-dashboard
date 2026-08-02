@@ -357,21 +357,19 @@ export function useMerchantTicket(id: string) {
 /**
  * Badge counts keyed the way `NavItem.badge` expects.
  *
- * Only figures the API actually reports are surfaced. There is deliberately no
- * ticket badge: the merchant ticket list has no unread/open aggregate, and a
- * badge that lies is worse than no badge.
+ * Sourced from the one aggregate the API already computes. Two badges were
+ * considered and deliberately left out:
+ *
+ *   - open tickets — the ticket list returns no open/unread aggregate, and a
+ *     badge that lies is worse than no badge;
+ *   - out-of-stock products — deriving it means pulling the whole catalogue,
+ *     and the shell renders on every merchant route. A count worth one glance
+ *     is not worth a 200-row fetch on the settings page. The overview's work
+ *     queue reports it instead, where the data is already loaded.
  */
 export function useMerchantCounts(): Partial<Record<string, number>> {
   const { data: stats } = useMerchantStats()
-  const { data: products } = useMerchantProducts()
-
-  const counts: Record<string, number> = {}
-  if (stats) counts.pendingOrders = stats.statusStats.pending
-  if (products) {
-    const outOfStock = products.filter((p) => (p.stock ?? 0) <= 0).length
-    if (outOfStock) counts.outOfStock = outOfStock
-  }
-  return counts
+  return stats ? { pendingOrders: stats.statusStats.pending } : {}
 }
 
 /**
