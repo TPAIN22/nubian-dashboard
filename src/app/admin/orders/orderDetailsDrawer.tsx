@@ -94,12 +94,12 @@ const statusOptions: { value: AdminOrderStatus; label: string }[] = [
   { value: "PAYMENT_FAILED", label: "فشل الدفع" },
 ];
 
+// Labels mirror PAYMENT_STATUS_META so the dropdown and the badge read the
+// same for a given value.
 const paymentOptions: { value: AdminPaymentStatus; label: string }[] = [
-  { value: "UNPAID", label: "غير مدفوع" },
-  { value: "PENDING_CONFIRMATION", label: "بانتظار موافقة التحويل" },
-  { value: "PAID", label: "مدفوع" },
-  { value: "REJECTED", label: "مرفوض" },
-  { value: "FAILED", label: "فشل" },
+  { value: "pending", label: "بانتظار الدفع" },
+  { value: "paid", label: "مدفوع" },
+  { value: "failed", label: "فشل" },
 ];
 
 interface Props {
@@ -196,8 +196,14 @@ export function OrderDetailsDrawer({ order, open, onOpenChange, onChanged }: Pro
   }, [order]);
 
   const isBankak = order?.paymentMethod === "BANKAK";
+  // A BANKAK order with a proof attached and payment not yet settled is exactly
+  // the approve/reject case. This used to test for "PENDING_CONFIRMATION", which
+  // the backend never persists, so the buttons never appeared.
   const canApproveReject =
-    !!order && isBankak && !!order.transferProof && order.paymentStatus === "PENDING_CONFIRMATION";
+    !!order &&
+    isBankak &&
+    !!order.transferProof &&
+    ["pending", "PENDING", "PENDING_CONFIRMATION"].includes(String(order.paymentStatus));
 
   const terminal = isTerminalStatus(order?.status);
   const canMarkShipped =

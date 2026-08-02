@@ -17,12 +17,14 @@ export type AdminOrderStatus =
   | "CANCELLED"
   | "PAYMENT_FAILED";
 
-export type AdminPaymentStatus =
-  | "UNPAID"
-  | "PENDING_CONFIRMATION"
-  | "PAID"
-  | "REJECTED"
-  | "FAILED";
+/**
+ * The three states the Order model actually stores. The drawer used to offer a
+ * wider set (UNPAID / PENDING_CONFIRMATION / REJECTED) that had nowhere to be
+ * persisted, so picking one either 400'd or silently collapsed on refetch.
+ * BANKAK confirmation and rejection keep their own detail via the dedicated
+ * /payment/approve and /payment/reject endpoints.
+ */
+export type AdminPaymentStatus = "pending" | "paid" | "failed";
 
 // Generates a per-attempt idempotency key. crypto.randomUUID is available in
 // every modern browser; fall back to a timestamp+random string for older
