@@ -64,25 +64,36 @@ const STATUS_TONES: Record<string, Tone> = {
   needs_revision: 'warning',
   on_hold: 'warning',
   awaiting_payment: 'warning',
+  awaiting_payment_confirmation: 'warning',
+  pending_confirmation: 'warning',
   low_stock: 'warning',
+  waiting_customer: 'warning',
 
   rejected: 'danger',
   cancelled: 'danger',
   canceled: 'danger',
   failed: 'danger',
+  payment_failed: 'danger',
   refunded: 'danger',
   suspended: 'danger',
   out_of_stock: 'danger',
   expired: 'danger',
   disputed: 'danger',
+  escalated: 'danger',
+  resolved_rejected: 'danger',
 
   draft: 'neutral',
   archived: 'neutral',
   inactive: 'neutral',
   closed: 'neutral',
+  unpaid: 'neutral',
 
+  confirmed: 'info',
   shipped: 'info',
   out_for_delivery: 'info',
+  under_review: 'info',
+
+  resolved_refund: 'success',
 }
 
 export function toneFor(status?: string | null): Tone {

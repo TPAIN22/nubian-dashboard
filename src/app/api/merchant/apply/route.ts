@@ -7,14 +7,14 @@
  *   - resubmit-on-revision flow
  */
 
-import { NextRequest } from 'next/server';
-import { proxyToAuth } from '@/lib/authProxy';
+import { NextRequest } from "next/server";
+import { proxyToAuth } from "@/lib/authProxy";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   return proxyToAuth({
-    path: '/merchants/apply',
-    method: 'POST',
+    path: "/merchants/apply",
+    method: "POST",
     body,
   });
 }

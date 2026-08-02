@@ -1,6 +1,6 @@
-import type { LucideIcon } from 'lucide-react'
 import {
   ArrowLeftRight,
+  ArrowUpDown,
   Banknote,
   BellRing,
   Coins,
@@ -11,6 +11,7 @@ import {
   MapPin,
   Megaphone,
   Package,
+  Plus,
   ReceiptText,
   Store,
   Tags,
@@ -19,39 +20,21 @@ import {
   Users,
 } from 'lucide-react'
 
+import { filterNav, type ConsoleNav, type NavGroup, type NavItem } from '@/components/console/shell'
+
 /* ============================================================================
-   Navigation model
+   Admin console navigation
    ----------------------------------------------------------------------------
-   One declarative source drives the sidebar, the breadcrumb trail and the
-   command palette. Adding a route in one place lights it up in all three.
+   Data only. The rendering — sidebar, breadcrumb trail, ⌘K palette — lives in
+   components/console/shell and is shared with the merchant console.
    ========================================================================== */
 
 export type CountKey = 'pendingMerchants' | 'openTickets' | 'pendingOrders'
 
-export type NavItem = {
-  label: string
-  href: string
-  icon: LucideIcon
-  /** Live badge sourced from `useAdminCounts`. */
-  badge?: CountKey
-  /** Extra path prefixes that should keep this item highlighted. */
-  match?: string[]
-  /** Hidden from `support` role — platform-financial surfaces. */
-  adminOnly?: boolean
-  /** Extra command-palette search terms (English aliases, synonyms). */
-  keywords?: string[]
-  /** Sub-routes surfaced in the palette and breadcrumbs, not in the sidebar. */
-  children?: { label: string; href: string }[]
-}
+/** The one gate this console uses: platform-financial surfaces. */
+export const ADMIN_ONLY = 'admin'
 
-export type NavGroup = {
-  id: string
-  /** Omitted for the top-level group so "Overview" needs no heading. */
-  label?: string
-  items: NavItem[]
-}
-
-export const ADMIN_NAV: NavGroup[] = [
+export const ADMIN_GROUPS: NavGroup[] = [
   {
     id: 'root',
     items: [
@@ -134,7 +117,7 @@ export const ADMIN_NAV: NavGroup[] = [
         label: 'العمولات',
         href: '/admin/commissions',
         icon: Banknote,
-        adminOnly: true,
+        requires: ADMIN_ONLY,
         keywords: ['commissions', 'payouts', 'مدفوعات'],
       },
     ],
@@ -184,72 +167,52 @@ export const ADMIN_NAV: NavGroup[] = [
         label: 'العملات',
         href: '/admin/currencies',
         icon: Coins,
-        adminOnly: true,
+        requires: ADMIN_ONLY,
         keywords: ['currencies', 'عملات'],
       },
       {
         label: 'أسعار الصرف',
         href: '/admin/fx-rates',
         icon: ArrowLeftRight,
-        adminOnly: true,
+        requires: ADMIN_ONLY,
         keywords: ['fx', 'exchange rates', 'صرف'],
       },
     ],
   },
 ]
 
-/* -------------------------------------------------------------------------- */
-/* Derived lookups                                                            */
+export const ADMIN_CONSOLE: ConsoleNav = {
+  root: '/admin',
+  rootLabel: 'الإدارة',
+  badgeLabel: 'الإدارة',
+  homeHref: '/admin',
+  groups: ADMIN_GROUPS,
+  primaryAction: { href: '/admin/products-advanced/new', label: 'منتج جديد' },
+  notificationsHref: '/admin/notifications',
+  commands: [
+    { label: 'إنشاء منتج جديد', href: '/admin/products-advanced/new', icon: Plus, shortcut: 'N' },
+    { label: 'استيراد منتجات', href: '/admin/products-advanced/import', icon: ArrowUpDown },
+  ],
+  segmentLabels: {
+    new: 'جديد',
+    edit: 'تعديل',
+    import: 'استيراد',
+    compose: 'إنشاء',
+    history: 'السجل',
+    queues: 'الطوابير',
+    preferences: 'التفضيلات',
+    v2: 'المعالج',
+  },
+}
+
 /* -------------------------------------------------------------------------- */
 
-export const ALL_NAV_ITEMS: NavItem[] = ADMIN_NAV.flatMap((g) => g.items)
+export const ALL_NAV_ITEMS: NavItem[] = ADMIN_GROUPS.flatMap((g) => g.items)
 
 /** Icon used when a breadcrumb/palette entry has no owning nav item. */
 export const FALLBACK_ICON = Truck
 
-/**
- * Labels for path segments that are not nav items — wizard steps, sub-tabs and
- * verbs. Dynamic ids (`[id]`) are handled by the breadcrumb context instead.
- */
-export const SEGMENT_LABELS: Record<string, string> = {
-  new: 'جديد',
-  edit: 'تعديل',
-  import: 'استيراد',
-  compose: 'إنشاء',
-  history: 'السجل',
-  queues: 'الطوابير',
-  preferences: 'التفضيلات',
-  v2: 'المعالج',
-}
-
-/** Groups a path to its owning nav item, longest prefix wins. */
-export function findNavItem(pathname: string): NavItem | undefined {
-  let best: NavItem | undefined
-  let bestLen = -1
-  for (const item of ALL_NAV_ITEMS) {
-    for (const p of [item.href, ...(item.match ?? [])]) {
-      if ((pathname === p || pathname.startsWith(`${p}/`)) && p.length > bestLen) {
-        best = item
-        bestLen = p.length
-      }
-    }
-  }
-  return best
-}
-
-/** True when a nav item should render as active for the current path. */
-export function isNavItemActive(item: NavItem, pathname: string): boolean {
-  // "/admin" must not swallow every child route.
-  if (item.href === '/admin') return pathname === '/admin'
-  return [item.href, ...(item.match ?? [])].some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`),
-  )
-}
-
-export function visibleNav(role: string | undefined): NavGroup[] {
-  const isAdmin = role === 'admin'
-  return ADMIN_NAV.map((g) => ({
-    ...g,
-    items: g.items.filter((i) => !i.adminOnly || isAdmin),
-  })).filter((g) => g.items.length > 0)
+/** `support` sees everything except the platform-financial surfaces. */
+export function adminConsoleFor(role: string | undefined): ConsoleNav {
+  return filterNav(ADMIN_CONSOLE, role === 'admin' ? [ADMIN_ONLY] : [])
 }

@@ -1,8 +1,14 @@
 /* ============================================================================
-   NUBIAN ADMIN — DESIGN SYSTEM
+   NUBIAN CONSOLE — DESIGN SYSTEM
    ----------------------------------------------------------------------------
-   Scoped to `.admin-theme`. The marketing site keeps the legacy gold/glass
-   look; everything under /admin adopts this system.
+   Scoped to `.admin-theme` and `.merchant-theme`. Both panels are the same
+   product wearing the same clothes — an operator who learns one can drive the
+   other. The only difference between them is which routes the nav exposes, and
+   that lives in the nav config, not in CSS. The marketing site outside these
+   classes keeps the legacy gold/glass look.
+
+   Every rule below therefore targets `:is(.admin-theme, .merchant-theme)`.
+   Adding a third console (affiliate) means adding one class to that list.
 
    Philosophy
    ----------
@@ -20,14 +26,14 @@
 /* ---------------------------------------------------------------------------
    Global fallbacks
    ---------------------------------------------------------------------------
-   The primitives in src/components/admin are also used outside /admin — the
-   product wizard is shared with the merchant panel. These defaults make the
-   NEW token names resolve everywhere, so a shared component can never render
-   with transparent surfaces or invisible text.
+   The primitives in src/components/admin are also used outside the consoles —
+   e.g. the product wizard mounts on marketing-adjacent routes. These defaults
+   make the NEW token names resolve everywhere, so a shared component can never
+   render with transparent surfaces or invisible text.
 
    Deliberately additive: `--background`, `--primary` and friends are NOT
-   redefined here, so the marketing site and merchant panel keep their existing
-   identity. Only `.admin-theme` opts into the full ink-primary palette.
+   redefined here, so the marketing site keeps its existing identity. Only the
+   console themes opt into the full ink-primary palette.
    ------------------------------------------------------------------------ */
 :root {
   --canvas: #fafaf9;
@@ -107,7 +113,7 @@
   --elev-dialog: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
-.admin-theme {
+:is(.admin-theme, .merchant-theme) {
   color-scheme: light;
 
   /* ---- Radius -------------------------------------------------------- */
@@ -221,7 +227,7 @@
 /* ---------------------------------------------------------------------- */
 /* Dark                                                                    */
 /* ---------------------------------------------------------------------- */
-.dark .admin-theme {
+.dark :is(.admin-theme, .merchant-theme) {
   color-scheme: dark;
 
   --brand: #d9b64a;
@@ -310,35 +316,36 @@
    every call site at once, retune them at the theme boundary so old and new
    pages look like one product.
    ===================================================================== */
-.admin-theme :is([data-slot='button'], [data-slot='badge']) {
+:is(.admin-theme, .merchant-theme) :is([data-slot='button'], [data-slot='badge']) {
   border-radius: var(--radius);
 }
 
-.admin-theme [data-slot='button'] {
+:is(.admin-theme, .merchant-theme) [data-slot='button'] {
   box-shadow: none;
   font-weight: 500;
 }
 
 /* Outline buttons read as the default secondary action. */
-.admin-theme [data-slot='button'].border {
+:is(.admin-theme, .merchant-theme) [data-slot='button'].border {
   border-color: var(--border-strong);
 }
 
 /* Cards lose their drop shadow; a hairline does the work. */
-.admin-theme [data-slot='card'] {
+:is(.admin-theme, .merchant-theme) [data-slot='card'] {
   border-radius: calc(var(--radius) + 2px);
   border: 1px solid var(--border);
   box-shadow: none;
   background-color: var(--card);
 }
 
-.admin-theme :is([data-slot='dropdown-menu-content'], [data-slot='select-content'],
-    [data-slot='popover-content'], [data-slot='command-dialog']) {
+:is(.admin-theme, .merchant-theme) :is([data-slot='dropdown-menu-content'],
+    [data-slot='select-content'], [data-slot='popover-content'],
+    [data-slot='command-dialog']) {
   box-shadow: var(--elev-menu);
   border-radius: calc(var(--radius) + 2px);
 }
 
-.admin-theme [data-slot='dialog-content'] {
+:is(.admin-theme, .merchant-theme) [data-slot='dialog-content'] {
   box-shadow: var(--elev-dialog);
   border-radius: calc(var(--radius) + 4px);
 }

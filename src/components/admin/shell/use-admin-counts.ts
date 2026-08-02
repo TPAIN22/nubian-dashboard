@@ -42,7 +42,11 @@ async function fetchOverview(): Promise<AdminOverview> {
     const s = json?.stats ?? {}
     return {
       ...EMPTY,
-      merchants: { ...EMPTY.merchants, approved: s.totalMerchants ?? 0, pending: s.pendingMerchants ?? 0 },
+      merchants: {
+        ...EMPTY.merchants,
+        approved: s.totalMerchants ?? 0,
+        pending: s.pendingMerchants ?? 0,
+      },
       products: { ...EMPTY.products, total: s.totalProducts ?? 0 },
       orders: { ...EMPTY.orders, total: s.totalOrders ?? 0 },
       revenue: { ...EMPTY.revenue, netDelivered: s.totalRevenue ?? 0 },
