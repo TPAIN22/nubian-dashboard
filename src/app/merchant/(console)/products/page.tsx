@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Download, Package, Plus, RefreshCw } from 'lucide-react'
 
 import {
+  Alert,
   Button,
   ClearFilters,
   EmptyState,
@@ -22,7 +23,11 @@ import {
   ToolbarSpacer,
   useColumnVisibility,
 } from '@/components/admin'
-import { useMerchantProducts, type MerchantProduct } from '@/features/merchant/api'
+import {
+  PRODUCT_FETCH_CAP,
+  useMerchantProducts,
+  type MerchantProduct,
+} from '@/features/merchant/api'
 import {
   ProductsTable,
   categoryName,
@@ -59,7 +64,7 @@ export default function MerchantProductsPage() {
   const [pageSize, setPageSize] = React.useState(25)
   const [density, setDensity] = React.useState<'compact' | 'comfortable'>('compact')
 
-  const all = React.useMemo(() => products.data ?? [], [products.data])
+  const all = React.useMemo(() => products.data?.items ?? [], [products.data])
 
   /* ---- counts drive the filter chips, so the numbers are never a guess ---- */
   const counts = React.useMemo(
@@ -154,9 +159,20 @@ export default function MerchantProductsPage() {
 
       <PageBody variant="flush">
         {products.isError ? (
-          <ErrorState size="page" onRetry={() => products.refetch()} />
+          <ErrorState
+            size="page"
+            description={(products.error as Error)?.message}
+            onRetry={() => products.refetch()}
+          />
         ) : (
           <Section variant="panel" flush className="m-4 rounded-lg">
+            {products.data?.truncated && (
+              <Alert tone="warning" className="m-3">
+                يعرض هذا الجدول أول {PRODUCT_FETCH_CAP.toLocaleString('en-US')} منتج من أصل{' '}
+                {products.data.total.toLocaleString('en-US')}. استخدم البحث والفلاتر للوصول إلى بقية
+                الكتالوج.
+              </Alert>
+            )}
             <Toolbar>
               <SearchInput
                 value={query}

@@ -235,13 +235,54 @@ export function useMerchantStats(options?: { enabled?: boolean }) {
   })
 }
 
-export function useMerchantProducts(options?: Partial<UseQueryOptions<MerchantProduct[]>>) {
-  return useQuery<MerchantProduct[]>({
+/**
+ * The backend's `validatePagination` rejects `limit > 100` with a 400, so the
+ * catalogue is walked a page at a time rather than asked for in one go.
+ *
+ * The list is fetched whole because the products page filters, sorts and pages
+ * it on the client — the merchant endpoint has no text search, so server-side
+ * paging would reduce "search" to "search this page". `truncated` is set when a
+ * catalogue is larger than the cap, so the page can say so instead of quietly
+ * showing a subset.
+ */
+export const PRODUCT_PAGE_SIZE = 100
+export const PRODUCT_FETCH_CAP = 1000
+
+export type MerchantCatalogue = {
+  items: MerchantProduct[]
+  total: number
+  truncated: boolean
+}
+
+export function useMerchantProducts(options?: Partial<UseQueryOptions<MerchantCatalogue>>) {
+  return useQuery<MerchantCatalogue>({
     queryKey: merchantKeys.products,
     queryFn: async () => {
-      const body = await request<any>('/api/products/merchant/my-products?limit=200')
-      const items = Array.isArray(body?.data) ? body.data : Array.isArray(body) ? body : []
-      return items as MerchantProduct[]
+      const items: MerchantProduct[] = []
+      let page = 1
+      let total = 0
+      let totalPages = 1
+
+      while (page <= totalPages && items.length < PRODUCT_FETCH_CAP) {
+        const body = await request<any>(
+          `/api/products/merchant/my-products?page=${page}&limit=${PRODUCT_PAGE_SIZE}`,
+        )
+        const batch: MerchantProduct[] = Array.isArray(body?.data)
+          ? body.data
+          : Array.isArray(body)
+            ? body
+            : []
+        items.push(...batch)
+
+        const meta = body?.meta?.pagination
+        total = meta?.total ?? items.length
+        totalPages = meta?.totalPages ?? 1
+        // A response without pagination meta means there is nothing to page.
+        if (!meta || batch.length === 0) break
+        page += 1
+      }
+
+      return { items, total, truncated: items.length < total }
     },
     staleTime: 30_000,
     ...options,

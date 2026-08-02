@@ -113,7 +113,11 @@ export default function MerchantSettingsPage() {
       <Page>
         <PageHeader title="إعدادات المتجر" />
         <PageBody>
-          <ErrorState size="page" onRetry={() => profile.refetch()} />
+          <ErrorState
+            size="page"
+            description={(profile.error as Error)?.message}
+            onRetry={() => profile.refetch()}
+          />
         </PageBody>
       </Page>
     )

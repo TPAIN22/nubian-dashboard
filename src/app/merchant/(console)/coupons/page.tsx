@@ -207,7 +207,11 @@ export default function MerchantCouponsPage() {
 
       <PageBody>
         {coupons.isError ? (
-          <ErrorState size="page" onRetry={() => coupons.refetch()} />
+          <ErrorState
+            size="page"
+            description={(coupons.error as Error)?.message}
+            onRetry={() => coupons.refetch()}
+          />
         ) : (
           <Stack gap="lg">
             <Alert tone="info">

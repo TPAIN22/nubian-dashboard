@@ -65,7 +65,7 @@ export default function MerchantOverviewPage() {
     products.refetch()
   }
 
-  const productList = React.useMemo(() => products.data ?? [], [products.data])
+  const productList = React.useMemo(() => products.data?.items ?? [], [products.data])
   const outOfStock = productList.filter((p) => (p.stock ?? 0) <= 0).length
   const lowStock = productList.filter((p) => (p.stock ?? 0) > 0 && (p.stock ?? 0) < 10).length
   const unpublished = productList.filter((p) => !p.isActive).length
@@ -109,7 +109,11 @@ export default function MerchantOverviewPage() {
 
       <PageBody>
         {isError ? (
-          <ErrorState size="page" onRetry={refresh} />
+          <ErrorState
+            size="page"
+            description={((stats.error ?? products.error) as Error | null)?.message}
+            onRetry={refresh}
+          />
         ) : (
           <Stack gap="lg">
             {/* ---- Headline metrics ------------------------------------- */}

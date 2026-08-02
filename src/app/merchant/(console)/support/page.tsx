@@ -212,7 +212,11 @@ function SupportView() {
 
       <PageBody variant="flush">
         {tickets.isError ? (
-          <ErrorState size="page" onRetry={() => tickets.refetch()} />
+          <ErrorState
+            size="page"
+            description={(tickets.error as Error)?.message}
+            onRetry={() => tickets.refetch()}
+          />
         ) : (
           <Section variant="panel" flush className="m-4 rounded-lg">
             <Toolbar>

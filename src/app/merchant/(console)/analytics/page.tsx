@@ -56,7 +56,7 @@ export default function MerchantAnalyticsPage() {
   }
 
   const s = stats.data
-  const list = React.useMemo(() => products.data ?? [], [products.data])
+  const list = React.useMemo(() => products.data?.items ?? [], [products.data])
 
   const fulfilled = s?.statusStats.delivered ?? 0
   const cancelled = s?.statusStats.cancelled ?? 0
@@ -101,7 +101,11 @@ export default function MerchantAnalyticsPage() {
 
       <PageBody>
         {stats.isError && products.isError ? (
-          <ErrorState size="page" onRetry={refresh} />
+          <ErrorState
+            size="page"
+            description={((stats.error ?? products.error) as Error | null)?.message}
+            onRetry={refresh}
+          />
         ) : (
           <Stack gap="lg">
             {isLoading ? (
