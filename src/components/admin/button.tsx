@@ -1,3 +1,13 @@
+'use client'
+
+/*
+ * Must stay a client module. `@radix-ui/react-slot` is itself `'use client'`,
+ * so from a server component `<Slot>`/`<Slottable>` are client references:
+ * they get serialized into the RSC payload and run in the browser. Serializing
+ * strips `Slottable`'s `__radixId` marker, so `Slot` no longer recognises it,
+ * sees three children instead of one, and throws "Slot failed to slot onto its
+ * children" — which is what `asChild` from a server page used to do.
+ */
 import * as React from 'react'
 import { Slot, Slottable } from '@radix-ui/react-slot'
 import { cva, type VariantProps } from 'class-variance-authority'

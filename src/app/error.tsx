@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import logger from '@/lib/logger';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
@@ -11,14 +12,18 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const pathname = usePathname();
+
   useEffect(() => {
-    // Log error to error tracking service
+    // Log error to error tracking service. `route` is what makes a production
+    // report actionable — a minified stack alone doesn't say which page broke.
     logger.error('Next.js Error Boundary', {
+      route: pathname,
       error: error.message,
       digest: error.digest,
       stack: error.stack,
     });
-  }, [error]);
+  }, [error, pathname]);
 
   return (
     <ErrorBoundary>
