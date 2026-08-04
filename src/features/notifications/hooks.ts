@@ -93,6 +93,10 @@ export const useFailedJobs = (
     queryKey: ['notifications', 'queues', queue, 'failed', pagination],
     placeholderData: keepPreviousData,
     refetchInterval: POLLING_INTERVALS.failedJobs,
+    // No timer on this one (see POLLING_INTERVALS) — each poll costs one Redis
+    // HGETALL per row. Focus is the refresh trigger instead, so this has to opt
+    // out of the provider-wide refetchOnWindowFocus: false default.
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const t = await token()
       if (!t) throw new Error('Authentication required')

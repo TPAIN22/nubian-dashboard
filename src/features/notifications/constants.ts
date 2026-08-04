@@ -8,9 +8,26 @@ import type {
 
 export const NOTIFICATION_QUERY_KEY = ['notifications'] as const
 
+/**
+ * Poll intervals for the notification/queue console.
+ *
+ * The queue views are billed in Redis commands, not just HTTP requests:
+ * `queueStats` fans out to one Lua call per queue (5), and `failedJobs` costs a
+ * range read plus *one HGETALL per row on the page* — ~27 Redis commands per
+ * tick at a full 25-row page. On a 5s/10s timer that was ~320k commands a day
+ * from one admin tab left open, dwarfing real traffic.
+ *
+ * So the two queue views no longer poll at all. Both already have an explicit
+ * refresh button, and both refetch on window focus — you get fresh numbers
+ * whenever you actually look at the page, and nothing is spent when you don't.
+ * A background tab is free.
+ *
+ * The Mongo-backed views (notifications, analytics) don't touch Redis, so they
+ * keep their timers.
+ */
 export const POLLING_INTERVALS = {
-  queueStats: 5_000,
-  failedJobs: 10_000,
+  queueStats: false,
+  failedJobs: false,
   notifications: 30_000,
   analytics: 60_000,
 } as const
