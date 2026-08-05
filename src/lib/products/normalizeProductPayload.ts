@@ -16,6 +16,7 @@
  */
 
 import { ProductVariantDTO, ProductAttributeDefDTO } from "@/domain/product/product.types";
+import { DEFAULT_NUBIAN_MARKUP } from "@/lib/pricing.config";
 
 // --------------------------------------------------------------------------
 // Types for form payload (UI-specific fields that don't go to DB)
@@ -154,7 +155,7 @@ function normalizeSimpleProduct(
     
   normalized.merchantPrice = merchantPrice;
   normalized.price = merchantPrice; // Legacy mirror
-  normalized.nubianMarkup = payload.nubianMarkup ?? 10;
+  normalized.nubianMarkup = payload.nubianMarkup ?? DEFAULT_NUBIAN_MARKUP;
   normalized.stock = payload.stock ?? 0;
   
   // Clear variant-related fields
@@ -173,7 +174,7 @@ function normalizeVariantProduct(
   payload: ProductFormPayload
 ): NormalizedProductPayload {
   const defaultPrice = parseNumberOrUndefined(payload.defaultVariantMerchantPrice);
-  const defaultNubianMarkup = payload.nubianMarkup ?? 10;
+  const defaultNubianMarkup = payload.nubianMarkup ?? DEFAULT_NUBIAN_MARKUP;
   
   // Copy attributes
   normalized.attributes = payload.attributes || [];
@@ -364,7 +365,7 @@ export function getResolvedVariantPrice(
 export function getMinVariantPrice(
   variants: FormVariant[],
   defaultVariantMerchantPrice?: number | "",
-  nubianMarkup: number = 10
+  nubianMarkup: number = DEFAULT_NUBIAN_MARKUP
 ): number {
   if (variants.length === 0) return 0;
   

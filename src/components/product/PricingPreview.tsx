@@ -7,6 +7,7 @@ import { AlertTriangle, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 import { formatCurrency } from "@/lib/currency";
+import { DEFAULT_NUBIAN_MARKUP } from "@/lib/pricing.config";
 
 interface PricingPreviewProps {
   merchantPrice?: number;
@@ -18,7 +19,7 @@ interface PricingPreviewProps {
 
 export function PricingPreview({
   merchantPrice = 0,
-  nubianMarkup = 10,
+  nubianMarkup = DEFAULT_NUBIAN_MARKUP,
   dynamicMarkup = 0,
   finalPrice,
   isMerchantView = false,

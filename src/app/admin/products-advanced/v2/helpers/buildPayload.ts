@@ -2,6 +2,7 @@ import { WizardState } from "../types";
 import { ProductCreatePayloadDTO, ProductVariantCreateDTO } from "@/domain/product/product.types";
 import { applyColorImagesToVariants } from "./applyColorImages";
 import { applyColorPricesToVariants } from "./applyColorPrices";
+import { DEFAULT_NUBIAN_MARKUP } from "@/lib/pricing.config";
 
 export function buildProductPayload(state: WizardState): ProductCreatePayloadDTO {
   // For variants, we need to apply the color images and prices one last time 
@@ -31,7 +32,7 @@ export function buildProductPayload(state: WizardState): ProductCreatePayloadDTO
       stock: v.stock || 0,
       images: v.images || [],
       isActive: v.isActive,
-      nubianMarkup: v.nubianMarkup || 10,
+      nubianMarkup: v.nubianMarkup || DEFAULT_NUBIAN_MARKUP,
     }));
   }
 

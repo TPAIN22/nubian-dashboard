@@ -492,12 +492,31 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
 
         const productName = watch("name");
         const defaultPrice = watch("merchantPrice") || 0;
+        const existingVariants = watch("variants") || [];
+
+        // SKUs are unique across the WHOLE catalogue (Mongo: unique index on
+        // variants.sku), not per product — and soft-deleted products keep theirs
+        // reserved. A name-and-attributes SKU therefore collides the moment two
+        // products share their first 3 characters and an option value
+        // ("طقم … مقاس 37" twice), and the save fails at the DB. The random
+        // suffix makes each generated SKU unique while staying readable.
+        const uniqueSuffix = () => Math.random().toString(36).slice(2, 6).toUpperCase();
+
+        const sameAttributes = (a: Record<string, string>, b: Record<string, string>) => {
+            const keys = Object.keys(a);
+            return keys.length === Object.keys(b).length && keys.every((k) => a[k] === b[k]);
+        };
 
         const newVariants = combinations.map((combo) => {
             const variantAttrs: Record<string, string> = {};
             attributes.forEach((attr, i) => { variantAttrs[attr.name] = combo[i]; });
 
-            const sku = `SKU-${productName.slice(0, 3).toUpperCase()}-${combo.join("-").toUpperCase()}`;
+            // Re-generating over an existing set must not churn SKUs that are
+            // already saved on this product.
+            const existing = existingVariants.find((v) => v.attributes && sameAttributes(v.attributes, variantAttrs));
+
+            const sku = existing?.sku
+                || `SKU-${productName.slice(0, 3).toUpperCase()}-${combo.join("-").toUpperCase()}-${uniqueSuffix()}`;
             return {
                 sku,
                 attributes: variantAttrs,

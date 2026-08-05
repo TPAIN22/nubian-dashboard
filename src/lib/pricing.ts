@@ -1,5 +1,6 @@
 import { ProductDTO, ProductVariantDTO } from "@/types/shop";
 import { BASE_CURRENCY } from "@/lib/currency";
+import { DEFAULT_NUBIAN_MARKUP } from "@/lib/pricing.config";
 
 export interface ResolvedPrice {
   final: number;
@@ -115,7 +116,7 @@ function resolveVariant(variant: ProductVariantDTO, currency = BASE_CURRENCY): R
       },
       breakdown: {
         merchantPrice: merchant,
-        nubianMarkup: variant.nubianMarkup ?? 30,
+        nubianMarkup: variant.nubianMarkup ?? DEFAULT_NUBIAN_MARKUP,
         dynamicMarkup: variant.dynamicMarkup ?? 0,
         finalPrice: final,
       },
@@ -125,7 +126,7 @@ function resolveVariant(variant: ProductVariantDTO, currency = BASE_CURRENCY): R
   // Legacy fallback: nothing was enriched, derive locally.
   return localFallback({
     merchant,
-    nubianMarkup: variant.nubianMarkup ?? 30,
+    nubianMarkup: variant.nubianMarkup ?? DEFAULT_NUBIAN_MARKUP,
     dynamicMarkup: variant.dynamicMarkup ?? 0,
     legacyDiscountPrice: variant.discountPrice,
     storedFinalPrice: variant.finalPrice,
@@ -156,7 +157,7 @@ function resolveSimple(product: ProductDTO, currency = BASE_CURRENCY): ResolvedP
 
   return localFallback({
     merchant,
-    nubianMarkup: product.nubianMarkup ?? 30,
+    nubianMarkup: product.nubianMarkup ?? DEFAULT_NUBIAN_MARKUP,
     dynamicMarkup: product.dynamicMarkup ?? 0,
     legacyDiscountPrice: product.discountPrice,
     storedFinalPrice: product.finalPrice,

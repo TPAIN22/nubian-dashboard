@@ -14,6 +14,7 @@ import {
   FormVariant,
   ProductFormPayload,
 } from './normalizeProductPayload';
+import { DEFAULT_NUBIAN_MARKUP } from '@/lib/pricing.config';
 
 describe('normalizeProductPayload', () => {
   describe('Simple Products', () => {
@@ -38,7 +39,7 @@ describe('normalizeProductPayload', () => {
       expect(result.variants).toBeUndefined();
     });
 
-    it('should default nubianMarkup to 10 if not provided', () => {
+    it('should default nubianMarkup to the platform default if not provided', () => {
       const payload: ProductFormPayload = {
         name: 'Test',
         description: 'Desc',
@@ -50,7 +51,7 @@ describe('normalizeProductPayload', () => {
 
       const result = normalizeProductPayload(payload, 'simple');
 
-      expect(result.nubianMarkup).toBe(10);
+      expect(result.nubianMarkup).toBe(DEFAULT_NUBIAN_MARKUP);
     });
   });
 

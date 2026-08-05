@@ -7,6 +7,7 @@ import { Info } from "lucide-react";
 import { FormVariant, getMinVariantPrice, getResolvedVariantPrice } from "@/lib/products/normalizeProductPayload";
 
 import { formatCurrency } from "@/lib/currency";
+import { DEFAULT_NUBIAN_MARKUP } from "@/lib/pricing.config";
 
 interface VariantPricingPreviewProps {
   variants: FormVariant[];
@@ -17,7 +18,7 @@ interface VariantPricingPreviewProps {
 export function VariantPricingPreview({
   variants,
   defaultVariantMerchantPrice,
-  defaultNubianMarkup = 10,
+  defaultNubianMarkup = DEFAULT_NUBIAN_MARKUP,
 }: VariantPricingPreviewProps) {
   // Calculate min price across all variants
   const minFinalPrice = React.useMemo(() => {

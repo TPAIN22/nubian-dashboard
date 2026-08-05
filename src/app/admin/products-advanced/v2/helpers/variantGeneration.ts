@@ -1,4 +1,5 @@
 import { ProductAttributeDefDTO, ProductVariantDTO } from "@/domain/product/product.types";
+import { DEFAULT_NUBIAN_MARKUP } from "@/lib/pricing.config";
 
 /**
  * Generates a deterministically stable SKU.
@@ -75,7 +76,7 @@ export function generateVariantsFromAttributes(
       stock: 0,
       isActive: true,
       images: [], 
-      nubianMarkup: 10,
+      nubianMarkup: DEFAULT_NUBIAN_MARKUP,
     };
   });
 

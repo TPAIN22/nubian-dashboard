@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 
 import { formatCurrency } from "@/lib/currency";
+import { DEFAULT_NUBIAN_MARKUP } from "@/lib/pricing.config";
 
 export interface Product {
   _id: string;
@@ -95,7 +96,7 @@ export function ProductDetails({ product, showActions = false, onEdit, onToggleA
   // Get pricing breakdown if available
   const pricingBreakdown = product.pricingBreakdown || {
     merchantPrice: merchantPrice,
-    nubianMarkup: product.nubianMarkup || 10,
+    nubianMarkup: product.nubianMarkup || DEFAULT_NUBIAN_MARKUP,
     dynamicMarkup: product.dynamicMarkup || 0,
     finalPrice: finalPrice,
   };
