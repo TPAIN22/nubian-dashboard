@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { PackagePlus } from "lucide-react";
+// Aliased: `Store` is already this module's exported row type.
+import { PackagePlus, Store as StoreIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ export type Store = {
   nationalId?: string;
   crNumber?: string;
   iban?: string;
+  logoUrl?: string;
   status: string;
   claimStatus: "unclaimed" | "claimed";
   claimRequestedBy?: string | null;
@@ -64,7 +66,25 @@ export function StoresTable({ stores }: { stores: Store[] }) {
         <TableBody>
           {stores.map((store) => (
             <TableRow key={store._id}>
-              <TableCell className="font-medium">{store.storeName}</TableCell>
+              <TableCell className="font-medium">
+                <span className="flex items-center gap-2">
+                  {store.logoUrl ? (
+                    <img
+                      src={store.logoUrl}
+                      alt=""
+                      className="h-8 w-8 shrink-0 rounded-md border object-cover"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-dashed text-muted-foreground"
+                    >
+                      <StoreIcon className="h-4 w-4" />
+                    </span>
+                  )}
+                  {store.storeName}
+                </span>
+              </TableCell>
               <TableCell>{store.ownerName}</TableCell>
               <TableCell dir="ltr" className="text-start">{store.email}</TableCell>
               <TableCell>{store.city || "—"}</TableCell>

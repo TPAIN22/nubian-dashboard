@@ -226,6 +226,9 @@ export function SimpleImageUpload({ value, onChange }: SimpleImageUploadProps) {
               />
               {/* Button to remove the displayed image */}
               <button
+                // Without this the default type="submit" makes "remove image"
+                // submit any enclosing <form> (e.g. the store dialog).
+                type="button"
                 onClick={handleRemoveImage}
                 className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-80 hover:opacity-100 transition-opacity"
                 title="إزالة الصورة"

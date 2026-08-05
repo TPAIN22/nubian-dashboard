@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SimpleImageUpload } from "@/components/simpleImageUpload";
 import type { Store } from "./StoresTable";
 
 type FormState = {
@@ -38,6 +39,7 @@ type FormState = {
   nationalId: string;
   crNumber: string;
   iban: string;
+  logoUrl: string;
 };
 
 const EMPTY: FormState = {
@@ -51,6 +53,7 @@ const EMPTY: FormState = {
   nationalId: "",
   crNumber: "",
   iban: "",
+  logoUrl: "",
 };
 
 const fromStore = (store: Store): FormState => ({
@@ -64,6 +67,7 @@ const fromStore = (store: Store): FormState => ({
   nationalId: store.nationalId ?? "",
   crNumber: store.crNumber ?? "",
   iban: store.iban ?? "",
+  logoUrl: store.logoUrl ?? "",
 });
 
 /**
@@ -113,6 +117,10 @@ export function StoreFormDialog({ store }: { store?: Store }) {
             nationalId: optional(form.nationalId),
             crNumber: optional(form.crNumber),
             iban: optional(form.iban),
+            // On edit an empty string is meaningful — it's how an admin clears
+            // an existing logo (the controller only applies keys that are
+            // present). On create it would just persist "", so send undefined.
+            logoUrl: isEdit ? form.logoUrl.trim() : optional(form.logoUrl),
           }),
         }
       );
@@ -241,6 +249,17 @@ export function StoreFormDialog({ store }: { store?: Store }) {
               value={form.description}
               onChange={(e) => set({ description: e.target.value })}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>شعار المتجر</Label>
+            <SimpleImageUpload
+              value={form.logoUrl || undefined}
+              onChange={(url) => set({ logoUrl: url ?? "" })}
+            />
+            <p className="text-xs text-muted-foreground">
+              اختياري — يظهر بجانب اسم المتجر في التطبيق. يمكن للتاجر تغييره بعد ربط المتجر بحسابه.
+            </p>
           </div>
 
           <div className="rounded-lg border p-3 space-y-4">
