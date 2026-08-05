@@ -15,19 +15,34 @@ export default async function StoresPage() {
     .then((res) => res.data?.data || res.data || [])
     .catch(() => [])
 
-  // Unclaimed stores are the ones needing attention, and any store with a
-  // pending claim request jumps to the very top.
-  const unclaimed = stores
-    .filter((s) => s.claimStatus === 'unclaimed')
-    .sort((a, b) => Number(Boolean(b.claimRequestedBy)) - Number(Boolean(a.claimRequestedBy)))
+  // Claimed stores are listed too — an admin has to be able to fix a logo or a
+  // typo on a live merchant.
+  //
+  // Applicants still in the review pipeline are NOT stores yet and belong to
+  // /admin/applications; including them here would duplicate that page and bury
+  // the real stores. Admin-created stores are approved on creation, so this
+  // never hides one of those.
+  const PIPELINE = ['pending', 'rejected', 'needs_revision']
+  const visible = stores.filter((s) => !PIPELINE.includes(s.status))
 
-  const awaitingConfirmation = unclaimed.filter((s) => s.claimRequestedBy).length
+  // What needs attention first: pending claim requests, then unclaimed stores,
+  // then everything already owned.
+  const rank = (s: Store) => {
+    if (s.claimStatus === 'unclaimed' && s.claimRequestedBy) return 0
+    if (s.claimStatus === 'unclaimed') return 1
+    return 2
+  }
+  const sorted = [...visible].sort((a, b) => rank(a) - rank(b))
+
+  const awaitingConfirmation = stores.filter(
+    (s) => s.claimStatus === 'unclaimed' && s.claimRequestedBy
+  ).length
 
   return (
     <Page>
       <PageHeader
         title="متاجر الإدارة"
-        description="أنشئ متجراً نيابة عن التاجر، أضف منتجاته، ثم اربطه بحسابه عندما يسجّل."
+        description="أنشئ متجراً نيابة عن التاجر، أضف منتجاته، ثم اربطه بحسابه عندما يسجّل. تظهر هنا أيضاً المتاجر المرتبطة بحسابات تجّار لتعديل بياناتها."
         actions={<StoreFormDialog />}
       />
 
@@ -40,7 +55,7 @@ export default async function StoresPage() {
             </Alert>
           )}
 
-          <StoresTable stores={unclaimed} />
+          <StoresTable stores={sorted} />
         </Stack>
       </PageBody>
     </Page>

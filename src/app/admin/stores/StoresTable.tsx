@@ -44,7 +44,7 @@ export function StoresTable({ stores }: { stores: Store[] }) {
     return (
       <div className="rounded-lg border border-dashed py-16 text-center">
         <p className="text-sm text-muted-foreground">
-          لا توجد متاجر غير مرتبطة. أنشئ متجراً لتبدأ بإضافة منتجات نيابة عن التاجر.
+          لا توجد متاجر بعد. أنشئ متجراً لتبدأ بإضافة منتجات نيابة عن التاجر.
         </p>
       </div>
     );
@@ -89,7 +89,9 @@ export function StoresTable({ stores }: { stores: Store[] }) {
               <TableCell dir="ltr" className="text-start">{store.email}</TableCell>
               <TableCell>{store.city || "—"}</TableCell>
               <TableCell>
-                {store.claimRequestedBy ? (
+                {store.claimStatus === "claimed" ? (
+                  <Badge variant="outline">مرتبط بحساب</Badge>
+                ) : store.claimRequestedBy ? (
                   <Badge className="bg-amber-500 hover:bg-amber-500 text-white">
                     بانتظار تأكيد الربط
                   </Badge>
@@ -99,7 +101,9 @@ export function StoresTable({ stores }: { stores: Store[] }) {
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
-                  <LinkOwnerDialog store={store} />
+                  {/* Linking only applies to a store with no owner yet — the
+                      backend rejects it outright for claimed ones. */}
+                  {store.claimStatus !== "claimed" && <LinkOwnerDialog store={store} />}
                   <StoreFormDialog store={store} />
                   <Button asChild variant="ghost" size="sm">
                     <Link href="/admin/products-advanced/new">

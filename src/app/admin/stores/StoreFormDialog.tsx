@@ -71,14 +71,16 @@ const fromStore = (store: Store): FormState => ({
 });
 
 /**
- * Create a store, or edit one that has no owner yet.
+ * Create a store, or edit an existing one — claimed or not.
  *
- * The backend refuses edits once a store is claimed, so the edit trigger is only
- * ever rendered for unclaimed rows.
+ * Editing a claimed store rewrites data a real merchant owns and cannot see
+ * being changed, so the dialog says so plainly. The backend audit-logs any
+ * payout or identity field touched on a claimed store.
  */
 export function StoreFormDialog({ store }: { store?: Store }) {
   const router = useRouter();
   const isEdit = Boolean(store);
+  const isClaimed = store?.claimStatus === "claimed";
 
   const [open, setOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -160,9 +162,11 @@ export function StoreFormDialog({ store }: { store?: Store }) {
             {isEdit ? `تعديل بيانات "${store!.storeName}"` : "إنشاء متجر نيابة عن تاجر"}
           </DialogTitle>
           <DialogDescription>
-            {isEdit
-              ? "يمكن تعديل المتاجر غير المرتبطة بمستخدم فقط. تغيير البريد الإلكتروني يغيّر الحساب الذي سيُربط بالمتجر."
-              : "البريد الإلكتروني هو مفتاح الربط لاحقاً — استخدم البريد الذي سيسجّل به التاجر."}
+            {!isEdit
+              ? "البريد الإلكتروني هو مفتاح الربط لاحقاً — استخدم البريد الذي سيسجّل به التاجر."
+              : isClaimed
+                ? "هذا المتجر مرتبط بحساب تاجر. أي تعديل هنا يغيّر بيانات يملكها التاجر دون علمه، ويُسجَّل تغيير البيانات البنكية وبيانات الهوية في سجل المراجعة."
+                : "تغيير البريد الإلكتروني يغيّر الحساب الذي سيُربط بالمتجر."}
           </DialogDescription>
         </DialogHeader>
 
