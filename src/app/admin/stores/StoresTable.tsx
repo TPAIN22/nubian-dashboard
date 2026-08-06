@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 // Aliased: `Store` is already this module's exported row type.
-import { PackagePlus, Store as StoreIcon } from "lucide-react";
+import { Boxes, PackagePlus, Store as StoreIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -82,7 +82,9 @@ export function StoresTable({ stores }: { stores: Store[] }) {
                       <StoreIcon className="h-4 w-4" />
                     </span>
                   )}
-                  {store.storeName}
+                  <Link href={`/admin/stores/${store._id}`} className="hover:underline">
+                    {store.storeName}
+                  </Link>
                 </span>
               </TableCell>
               <TableCell>{store.ownerName}</TableCell>
@@ -106,7 +108,13 @@ export function StoresTable({ stores }: { stores: Store[] }) {
                   {store.claimStatus !== "claimed" && <LinkOwnerDialog store={store} />}
                   <StoreFormDialog store={store} />
                   <Button asChild variant="ghost" size="sm">
-                    <Link href="/admin/products-advanced/new">
+                    <Link href={`/admin/stores/${store._id}`}>
+                      <Boxes className="h-4 w-4 ms-1" />
+                      المنتجات
+                    </Link>
+                  </Button>
+                  <Button asChild variant="ghost" size="sm">
+                    <Link href={`/admin/products-advanced/new?merchant=${store._id}`}>
                       <PackagePlus className="h-4 w-4 ms-1" />
                       إضافة منتج
                     </Link>

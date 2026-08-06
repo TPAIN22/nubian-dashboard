@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useForm, useFieldArray, useFormContext } from "react-hook-form";
@@ -189,9 +189,16 @@ interface Props {
     productId?: string;
     redirectPath?: string;
     addCategoryPath?: string;
+    /**
+     * Store to pre-select in the picker, passed by the route from `?merchant=`
+     * (a store page's "add product" button). Ignored in edit mode and for
+     * merchants, and dropped if it isn't an approved store the admin can post
+     * to — a stale link must not silently attribute a product to the wrong shop.
+     */
+    defaultMerchantId?: string;
 }
 
-export default function ProductWizard({ productId, redirectPath = "/admin/products-advanced", addCategoryPath = "/admin/categories/new" }: Props) {
+export default function ProductWizard({ productId, redirectPath = "/admin/products-advanced", addCategoryPath = "/admin/categories/new", defaultMerchantId }: Props) {
     const router = useRouter();
     const { getToken } = useAuth();
     const { user } = useUser();
@@ -263,6 +270,28 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
             return (Array.isArray(list) ? list : []).filter((m: any) => m.status === "approved");
         }
     });
+
+    // Pre-select the store the admin came from (/admin/stores/<id> → إضافة منتج).
+    //
+    // Applied once, and only after the store list resolves so an id that isn't
+    // an approved store is discarded rather than silently submitted. The ref
+    // guard matters: react-query hands back a new array on every refetch (window
+    // focus is enough), and without it this would reset a store the admin had
+    // since picked by hand.
+    const merchantPrefilled = useRef(false);
+    const canPrefillMerchant = Boolean(defaultMerchantId) && !productId && isAdmin;
+
+    const applyDefaultMerchant = useCallback(() => {
+        if (!canPrefillMerchant || loadingMerchants) return false;
+        if (!merchants.some((m: any) => m._id === defaultMerchantId)) return false;
+        setValue("merchant", defaultMerchantId!, { shouldValidate: true, shouldDirty: false });
+        return true;
+    }, [canPrefillMerchant, loadingMerchants, merchants, defaultMerchantId, setValue]);
+
+    useEffect(() => {
+        if (merchantPrefilled.current) return;
+        if (applyDefaultMerchant()) merchantPrefilled.current = true;
+    }, [applyDefaultMerchant]);
 
     // Fetch Product (Edit Mode)
     const { data: existingProduct, isLoading: loadingProduct } = useQuery({
@@ -731,6 +760,11 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
                                                 if (restored) {
                                                     reset(restored.values as ProductFormData);
                                                     setCurrentStep(restored.step || 1);
+                                                    // reset() overwrites the store the URL pre-selected
+                                                    // with whatever the draft was saved against. Arriving
+                                                    // from a specific store page is the more deliberate
+                                                    // signal, so re-apply it.
+                                                    applyDefaultMerchant();
                                                     toast.success("تمت استعادة المسودة");
                                                 }
                                             }}
