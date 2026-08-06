@@ -9,9 +9,9 @@ import { FormVariant, getResolvedVariantPrice } from "@/lib/products/normalizePr
 import { formatCurrency } from "@/lib/currency";
 import { DEFAULT_NUBIAN_MARKUP } from "@/lib/pricing.config";
 import type { ProductDiscountDTO } from "@/domain/product/product.types";
-// Same engine mirror the single-variant preview uses. SOURCE OF TRUTH is
+// The one shared engine. SOURCE OF TRUTH is
 // apps/backend/src/lib/pricing.engine.js — see the header comment there.
-import { computeEnginePricing, discountInactiveReason } from "./PricingPreview";
+import { computeEnginePricing, discountInactiveReason } from "@/domain/pricing/pricing.engine";
 
 /**
  * `FormVariant` (lib/products/normalizeProductPayload.ts) predates the discount

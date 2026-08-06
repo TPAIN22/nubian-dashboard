@@ -1,6 +1,7 @@
 import { ProductDTO, ProductVariantDTO } from "@/types/shop";
 import { BASE_CURRENCY } from "@/lib/currency";
 import { DEFAULT_NUBIAN_MARKUP } from "@/lib/pricing.config";
+import { computeEnginePricing } from "@/domain/pricing/pricing.engine";
 
 export interface ResolvedPrice {
   final: number;
@@ -217,15 +218,26 @@ function localFallback(args: {
 }): ResolvedPrice {
   const { merchant, nubianMarkup, dynamicMarkup, legacyDiscountPrice, storedFinalPrice, currency, source } = args;
 
-  const listed = round2(merchant * (1 + nubianMarkup / 100));
-  const surged = round2(merchant * (1 + nubianMarkup / 100 + dynamicMarkup / 100));
-  let final = storedFinalPrice && storedFinalPrice > 0 ? storedFinalPrice : surged;
+  // The markup formula and `original = max(listed, surged)` come from the shared
+  // engine (domain/pricing/pricing.engine.ts) rather than a second copy of the
+  // arithmetic. This function only layers the legacy overrides on top of it.
+  //
+  // No discount block is passed: the enriched payload is what carries discounts,
+  // and by definition we are here because the payload was NOT enriched. Legacy
+  // documents express a discount as `discountPrice`, handled below.
+  const engine = computeEnginePricing({
+    merchantPrice: merchant,
+    nubianMarkup,
+    dynamicMarkup,
+  });
+
+  let final = storedFinalPrice && storedFinalPrice > 0 ? storedFinalPrice : engine.finalPrice;
 
   if (legacyDiscountPrice && legacyDiscountPrice > 0 && legacyDiscountPrice < final) {
     final = legacyDiscountPrice;
   }
 
-  const original = Math.max(listed, surged);
+  const original = engine.originalPrice;
   const amount = Math.max(0, original - final);
   const percentage = original > 0 && amount > 0 ? Math.round((amount / original) * 100) : 0;
 
@@ -239,5 +251,3 @@ function localFallback(args: {
     breakdown: { merchantPrice: merchant, nubianMarkup, dynamicMarkup, finalPrice: final },
   };
 }
-
-const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;

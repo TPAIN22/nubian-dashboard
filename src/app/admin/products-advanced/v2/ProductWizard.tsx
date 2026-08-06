@@ -83,11 +83,11 @@ import {
 } from "./WizardChrome";
 import { clearProductDraft, formatSavedAt, useProductDraft } from "./useProductDraft";
 import { DEFAULT_NUBIAN_MARKUP } from "@/lib/pricing.config";
+import { PricingPreview } from "@/components/product/PricingPreview";
 import {
-    PricingPreview,
     computeEnginePricing,
     discountInactiveReason,
-} from "@/components/product/PricingPreview";
+} from "@/domain/pricing/pricing.engine";
 import type { ProductDiscountDTO, ProductDiscountInputDTO } from "@/domain/product/product.types";
 
 // ==========================================
