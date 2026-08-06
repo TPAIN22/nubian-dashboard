@@ -4,6 +4,26 @@ export type ObjectIdString = string;
 
 export type ProductAttributeType = "select" | "text" | "number";
 
+/**
+ * Product-level discount block (`product.discount`, product.model.js:55–69).
+ * Applies to every variant and stacks with `variant.merchantDiscount`.
+ * `value` is a percentage when `type === "percentage"`, else an absolute amount;
+ * `maxDiscount` caps percentage discounts only.
+ *
+ * Live only when `isActive` AND `value > 0` AND `now` is inside the
+ * `startsAt`/`endsAt` window — see backend `isProductDiscountActive`.
+ */
+export type ProductDiscountType = "percentage" | "fixed";
+
+export type ProductDiscountDTO = {
+  type?: ProductDiscountType | null;
+  value?: number;
+  maxDiscount?: number | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  isActive?: boolean;
+};
+
 export type ProductAttributeDefDTO = {
   _id: ObjectIdString;
   name: string;
@@ -21,6 +41,10 @@ export type ProductVariantDTO = {
   price: number;
   nubianMarkup?: number;
   dynamicMarkup?: number;
+  /**
+   * ABSOLUTE currency amount off this variant — never a percentage
+   * (product.model.js:26). Stacks with the product-level `discount`.
+   */
   merchantDiscount?: number;
 
   // Authoritative pricing block, computed by the backend engine
@@ -68,14 +92,7 @@ export type ProductDTO = {
   discountAmount?: number;
   discountPercentage?: number;
   hasDiscount?: boolean;
-  discount?: {
-    type?: 'percentage' | 'fixed' | null;
-    value?: number;
-    isActive?: boolean;
-    startsAt?: string | null;
-    endsAt?: string | null;
-    maxDiscount?: number | null;
-  } | null;
+  discount?: ProductDiscountDTO | null;
 
   // Legacy field — kept for back-compat with old simple products.
   discountPrice?: number;

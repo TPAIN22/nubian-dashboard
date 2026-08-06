@@ -1,4 +1,9 @@
-import type { ProductAttributeDefDTO, ProductDTO, ProductVariantDTO } from "./product.types";
+import type {
+  ProductAttributeDefDTO,
+  ProductDiscountDTO,
+  ProductDTO,
+  ProductVariantDTO,
+} from "./product.types";
 
 export type NormalizedProduct = {
   id: string;
@@ -15,6 +20,13 @@ export type NormalizedProduct = {
 
   attributeDefs: ProductAttributeDefDTO[];
   variants: ProductVariantDTO[];
+
+  /**
+   * Product-level discount block, normalised to a complete shape (never a
+   * partial). `null` means "no discount block stored". Per-variant
+   * `merchantDiscount` stays on each entry of `variants`.
+   */
+  discount: ProductDiscountDTO | null;
 
   simple: {
     stock: number | null;
@@ -57,6 +69,40 @@ function normalizeVariant(v: any): ProductVariantDTO {
   };
 }
 
+const asIso = (v: any): string | null => {
+  if (v == null || v === "") return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+};
+
+/**
+ * Normalise `product.discount` into a complete block, or `null` when the
+ * product carries none. Kept lossless: an expired-but-enabled discount still
+ * round-trips as `isActive: true` with its window, because whether it is
+ * currently LIVE is the pricing engine's call, not this mapper's.
+ */
+function normalizeDiscount(d: any): ProductDiscountDTO | null {
+  if (!d || typeof d !== "object") return null;
+  const type = d.type === "percentage" || d.type === "fixed" ? d.type : null;
+  const value = asNum(d.value) ?? 0;
+  const maxDiscount = asNum(d.maxDiscount);
+  const startsAt = asIso(d.startsAt);
+  const endsAt = asIso(d.endsAt);
+  const isActive = asBool(d.isActive, false);
+
+  // A block with nothing set at all is indistinguishable from "no discount".
+  if (!type && value === 0 && !isActive && !startsAt && !endsAt) return null;
+
+  return {
+    type,
+    value,
+    maxDiscount: maxDiscount != null && maxDiscount > 0 ? maxDiscount : null,
+    startsAt,
+    endsAt,
+    isActive,
+  };
+}
+
 function normalizeAttrDef(a: any): ProductAttributeDefDTO {
   return {
     _id: a?._id ? asString(a._id) : undefined,
@@ -91,6 +137,8 @@ export function normalizeProduct(raw: ProductDTO): NormalizedProduct {
 
     attributeDefs,
     variants,
+
+    discount: normalizeDiscount(raw?.discount),
 
     simple: {
       stock: variants.length ? null : asNum(raw?.stock),

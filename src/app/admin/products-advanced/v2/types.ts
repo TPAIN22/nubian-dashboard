@@ -1,3 +1,11 @@
+/**
+ * ⚠️ DEAD CODE — `WizardState` is not the shape the live wizard uses.
+ *
+ * The shipping wizard (`./ProductWizard.tsx`) derives its form type from a zod
+ * schema (`ProductFormData`), not from this interface. Only the unwired
+ * `steps/` and `helpers/` scaffold references `WizardState`. See the note in
+ * `helpers/buildPayload.ts` before extending anything here.
+ */
 import { ProductAttributeDefDTO, ProductVariantDTO } from "@/domain/product/product.types";
 
 export type ProductType = "simple" | "with_variants";

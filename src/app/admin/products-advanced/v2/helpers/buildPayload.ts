@@ -1,3 +1,23 @@
+/**
+ * ⚠️ NOT THE LIVE PAYLOAD BUILDER — DEAD CODE.
+ *
+ * Nothing imports this file (verified: repo-wide grep for `buildProductPayload`
+ * and `helpers/buildPayload` returns only this definition). The wizard that
+ * actually ships is `../ProductWizard.tsx`, a self-contained react-hook-form +
+ * zod implementation with its own inline `buildPayload` closure — that is where
+ * the submitted payload is assembled, including the product-level `discount`
+ * block and each variant's `merchantDiscount`.
+ *
+ * The whole `steps/` + `helpers/` + `types.ts` trio here is an earlier
+ * `WizardState`-based scaffold that was never wired up. It has NO discount
+ * support on purpose: adding it would create a second source of truth for the
+ * discount contract that nothing executes and nobody would keep in sync.
+ *
+ * If you revive this scaffold, port the discount handling from
+ * `ProductWizard.tsx` (`discountToApi` / `discountFromApi`) rather than
+ * reinventing it, and mirror `sanitizeDiscountInput`
+ * (apps/backend/src/controllers/products.controller.js:617).
+ */
 import { WizardState } from "../types";
 import { ProductCreatePayloadDTO, ProductVariantCreateDTO } from "@/domain/product/product.types";
 import { applyColorImagesToVariants } from "./applyColorImages";

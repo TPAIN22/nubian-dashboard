@@ -93,8 +93,14 @@ import { Label } from "@/components/ui/label"
 
 
 import type { Product, ProductFilters } from '../types/product'
-
-import { formatCurrency } from "@/lib/currency";
+import {
+  discountPercentage,
+  finalAmount,
+  formatFinalPrice,
+  formatOriginalPrice,
+  hasDiscount,
+  originalAmount,
+} from '../types/product'
 
 interface ProductsTableProps {
   productsData: Product[]
@@ -520,7 +526,9 @@ export function ProductsTable({
       },
     },
     {
-      accessorKey: "price",
+      // Sorts on the real numeric field. The legacy `price` accessor sorted on
+      // the Money envelope object, which is not orderable.
+      accessorKey: "finalPrice",
       header: ({ column }) => (
         <Button
           variant="ghost"
@@ -531,37 +539,36 @@ export function ProductsTable({
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
-      cell: ({ row }) => {
-        const product = row.original
-        const finalPrice = product.finalPrice || product.discountPrice || product.price || 0
-        const validFinalPrice = !isNaN(finalPrice) && isFinite(finalPrice) ? finalPrice : 0
-        const formatted = formatCurrency(validFinalPrice)
-
-        return <div className="text-right font-medium">{formatted}</div>
-      },
+      cell: ({ row }) => (
+        <div className="text-right font-medium">{formatFinalPrice(row.original)}</div>
+      ),
     },
     {
-      accessorKey: "discountPrice",
+      // Was `discountPrice` — a field that does not exist in the schema, so the
+      // column never sorted. `originalPrice` is the strikethrough value.
+      accessorKey: "originalPrice",
       header: () => <div className="text-right">السعر الأصلي</div>,
       cell: ({ row }) => {
         const product = row.original
-        const merchantPrice = product.merchantPrice || product.price || 0
-        const finalPrice = product.finalPrice || product.discountPrice || product.price || 0
-        const validOriginalPrice = !isNaN(merchantPrice) && isFinite(merchantPrice) ? merchantPrice : 0
-        const validFinalPrice = !isNaN(finalPrice) && isFinite(finalPrice) ? finalPrice : 0
 
-        const hasDiscount = validFinalPrice < validOriginalPrice
-        if (hasDiscount) {
-          const formatted = formatCurrency(validOriginalPrice)
-
-          return (
-            <div className="text-right font-medium">
-              <span className="line-through text-muted-foreground">{formatted}</span>
-            </div>
-          )
+        // `merchantPrice` is COST, not the old price: the engine floors
+        // finalPrice at it, so `final < merchant` can never be true. Trust the
+        // backend's own has-discount flag instead.
+        if (!hasDiscount(product)) {
+          return <div className="text-right text-muted-foreground">-</div>
         }
 
-        return <div className="text-right text-muted-foreground">-</div>
+        const percentage = discountPercentage(product)
+        return (
+          <div className="flex items-center justify-end gap-2 text-right font-medium">
+            <span className="line-through text-muted-foreground">
+              {formatOriginalPrice(product)}
+            </span>
+            {percentage > 0 && (
+              <Badge className="bg-red-100 text-red-800">خصم {percentage}%</Badge>
+            )}
+          </div>
+        )
       },
     },
     {
@@ -1000,8 +1007,10 @@ export function ProductsTable({
         .map((product) =>
           [
             product.name,
-            product.price,
-            product.discountPrice || "",
+            // Header order is [الأصلي, النهائي] — `price` was the envelope
+            // object and `discountPrice` never existed, so both columns were junk.
+            hasDiscount(product) ? originalAmount(product) : "",
+            finalAmount(product),
             product.stock,
             product.isActive ? "نشط" : "غير نشط",
             (typeof product.category === "object" &&
@@ -1187,10 +1196,10 @@ export function ProductsTable({
                       ? "الصورة"
                       : column.id === "category"
                       ? "التصنيف"
-                      : column.id === "price"
-                      ? "السعر الأصلي"
-                      : column.id === "discountPrice"
+                      : column.id === "finalPrice"
                       ? "السعر النهائي"
+                      : column.id === "originalPrice"
+                      ? "السعر الأصلي"
                       : column.id === "stock"
                       ? "الكمية"
                       : column.id === "isActive"

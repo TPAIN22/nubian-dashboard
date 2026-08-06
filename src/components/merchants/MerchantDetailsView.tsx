@@ -22,17 +22,23 @@ import {
 import { toast } from "sonner";
 import type { Merchant } from "@/app/admin/merchants-legacy/[merchantId]/page";
 
-import { formatCurrency } from "@/lib/currency";
+import {
+  type PricedProduct,
+  formatFinalPrice,
+  formatOriginalPrice,
+  hasDiscount,
+} from "@/features/products/types/product";
 
-interface Product {
+// Pricing comes from PricedProduct: `originalPrice` is the strikethrough and
+// `hasDiscount` is the predicate. The previous local `price`/`discountPrice`
+// fields do not exist on the schema, and the old `finalPrice < merchantPrice`
+// test could never be true — merchantPrice is COST, and finalPrice is floored
+// at it. See PRICING_AUDIT_REPORT.md issue #5.
+interface Product extends PricedProduct {
   _id: string;
   name: string;
-  price: number;
-  discountPrice?: number; // Legacy field
-  merchantPrice?: number; // Base merchant price
   nubianMarkup?: number; // Nubian markup percentage
   dynamicMarkup?: number; // Dynamic markup percentage
-  finalPrice?: number; // Smart pricing final price
   stock: number;
   isActive: boolean;
   description: string;
@@ -336,26 +342,13 @@ function ProductCard({ product, onUpdate, getToken }: ProductCardProps) {
             <div className="mt-2 space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-primary">
-                  {(() => {
-                    // Smart pricing: finalPrice > discountPrice > price
-                    const merchantPrice = product.merchantPrice || product.price || 0;
-                    const finalPrice = product.finalPrice || product.discountPrice || product.price || 0;
-                    const originalPrice = merchantPrice;
-                    return formatCurrency(finalPrice);
-                  })()}
+                  {formatFinalPrice(product)}
                 </span>
-                {(() => {
-                  // Smart pricing: finalPrice > discountPrice > price
-                  const merchantPrice = product.merchantPrice || product.price || 0;
-                  const finalPrice = product.finalPrice || product.discountPrice || product.price || 0;
-                  const originalPrice = merchantPrice;
-                  const hasDiscount = finalPrice < merchantPrice;
-                  return hasDiscount ? (
-                    <span className="text-xs text-muted-foreground line-through">
-                      {formatCurrency(originalPrice)}
-                    </span>
-                  ) : null;
-                })()}
+                {hasDiscount(product) ? (
+                  <span className="text-xs text-muted-foreground line-through">
+                    {formatOriginalPrice(product)}
+                  </span>
+                ) : null}
               </div>
               
               <p className="text-xs text-muted-foreground">

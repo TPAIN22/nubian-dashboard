@@ -11,16 +11,20 @@ import Link from "next/link";
 
 import { formatCurrency } from "@/lib/currency";
 import { DEFAULT_NUBIAN_MARKUP } from "@/lib/pricing.config";
+import {
+  discountPercentage,
+  finalAmount,
+  formatFinalPrice,
+  formatOriginalPrice,
+  hasDiscount,
+  type PricedProduct,
+} from "@/features/products/types/product";
 
-export interface Product {
+export interface Product extends PricedProduct {
   _id: string;
   name: string;
-  price: number;
-  discountPrice?: number; // Legacy field
-  merchantPrice?: number; // Base merchant price
   nubianMarkup?: number; // Nubian markup percentage
   dynamicMarkup?: number; // Dynamic markup percentage
-  finalPrice?: number; // Smart pricing final price
   stock: number;
   isActive: boolean;
   description: string;
@@ -84,18 +88,17 @@ export function ProductDetails({ product, showActions = false, onEdit, onToggleA
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Smart pricing: finalPrice > discountPrice > price
-  const merchantPrice = product.merchantPrice || product.price || 0;
-  const finalPrice = product.finalPrice || product.discountPrice || product.price || 0;
-  const originalPrice = merchantPrice;
-  const hasDiscount = finalPrice < merchantPrice;
-  const discountPercentage = hasDiscount && merchantPrice > 0
-    ? Math.round(((merchantPrice - finalPrice) / merchantPrice) * 100)
-    : 0;
-  
-  // Get pricing breakdown if available
+  // Customer-facing pricing. `merchantPrice` is COST — the engine floors
+  // finalPrice at it, so it is never the "was" price and `final < merchant` is
+  // a predicate that can never be true. Read the backend's own fields instead.
+  const finalPrice = finalAmount(product);
+  const showDiscount = hasDiscount(product);
+  const discountPct = discountPercentage(product);
+
+  // Internal margin view — this is the one place `merchantPrice` belongs.
+  const merchantCost = product.merchantPrice ?? product.basePrice ?? 0;
   const pricingBreakdown = product.pricingBreakdown || {
-    merchantPrice: merchantPrice,
+    merchantPrice: merchantCost,
     nubianMarkup: product.nubianMarkup || DEFAULT_NUBIAN_MARKUP,
     dynamicMarkup: product.dynamicMarkup || 0,
     finalPrice: finalPrice,
@@ -207,21 +210,23 @@ export function ProductDetails({ product, showActions = false, onEdit, onToggleA
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-1">السعر النهائي</p>
               <p className="text-2xl font-bold text-primary">
-                {formatCurrency(finalPrice)}
+                {formatFinalPrice(product)}
               </p>
             </div>
-            
-            {hasDiscount && (
+
+            {showDiscount && (
               <>
                 <Separator />
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">السعر الأصلي</p>
                   <p className="text-lg line-through text-muted-foreground">
-                    {formatCurrency(originalPrice)}
+                    {formatOriginalPrice(product)}
                   </p>
-                  <Badge className="mt-2 bg-red-100 text-red-800">
-                    خصم {discountPercentage}%
-                  </Badge>
+                  {discountPct > 0 && (
+                    <Badge className="mt-2 bg-red-100 text-red-800">
+                      خصم {discountPct}%
+                    </Badge>
+                  )}
                 </div>
               </>
             )}

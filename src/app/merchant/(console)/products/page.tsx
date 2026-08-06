@@ -31,6 +31,8 @@ import {
 import {
   ProductsTable,
   categoryName,
+  hasDiscount,
+  originalPrice,
   sellingPrice,
   useProductActions,
   useProductColumns,
@@ -316,7 +318,10 @@ function exportCsv(rows: MerchantProduct[]) {
       [
         p.name,
         categoryName(p.category),
-        p.price,
+        // `p.price` is the typed Money envelope object, not a number — emitting
+        // it produced "[object Object]". Blank when there is no discount, so the
+        // column means "was price" rather than repeating the charged price.
+        hasDiscount(p) ? originalPrice(p) : '',
         sellingPrice(p),
         p.stock,
         p.isActive ? 'منشور' : 'غير منشور',

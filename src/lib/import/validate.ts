@@ -10,6 +10,7 @@ import {
   ImportMode,
   GlobalError,
   ProductVariantImport,
+  ProductDiscountImport,
   MAX_SKU_LENGTH,
   ALLOWED_IMAGE_EXTENSIONS,
 } from './types';
@@ -168,7 +169,29 @@ function validateRow(
     });
   }
   const stock = stockValue !== null ? Math.floor(stockValue) : 0;
-  
+
+  // Validate merchant_discount — ABSOLUTE amount off, not a percentage.
+  const merchantDiscountValue = parseNumber(raw.merchant_discount);
+  if (merchantDiscountValue !== null && merchantDiscountValue < 0) {
+    errors.push({
+      field: 'merchant_discount',
+      message: 'merchant_discount must be a non-negative number',
+      code: 'INVALID_NUMBER',
+    });
+  }
+  const merchantDiscount = merchantDiscountValue !== null ? Math.max(0, merchantDiscountValue) : 0;
+  // The discount comes off the MARKED-UP price, but the import only knows the
+  // merchant price, so compare against that — a discount above cost is already
+  // strong evidence someone typed a percentage into an absolute-amount column.
+  if (merchantDiscount > 0 && priceValue !== null && merchantDiscount > priceValue) {
+    warnings.push(
+      `merchant_discount (${merchantDiscount}) exceeds price (${priceValue}) — note it is an absolute amount off, not a percentage`,
+    );
+  }
+
+  // Product-level discount block
+  const discount = parseDiscount(raw, errors);
+
   // Validate currency
   const currency = String(raw.currency || 'USD').trim().toUpperCase();
   
@@ -271,6 +294,9 @@ function validateRow(
               sku: String(v.sku || '').trim(),
               attributes: v.attributes || {},
               merchantPrice: parseNumber(v.merchantPrice) ?? parseNumber(v.price) ?? price,
+              // Absolute amount off this variant. Falls back to the row-level
+              // merchant_discount column so a single-column sheet still works.
+              merchantDiscount: Math.max(0, parseNumber(v.merchantDiscount) ?? merchantDiscount),
               stock: parseNumber(v.stock) ?? 0,
               images: v.images || [],
               isActive: v.isActive !== false
@@ -299,9 +325,131 @@ function validateRow(
     images,
     imageFiles,
     variants,
+    merchantDiscount,
+    discount,
     isValid: errors.length === 0,
     errors,
     warnings
+  };
+}
+
+/** Parse a boolean-ish cell. Blank → `fallback`. */
+function parseBool(value: unknown, fallback: boolean): boolean {
+  if (value === undefined || value === null || value === '') return fallback;
+  const s = String(value).trim().toLowerCase();
+  if (['true', '1', 'yes', 'y', 'نعم'].includes(s)) return true;
+  if (['false', '0', 'no', 'n', 'لا'].includes(s)) return false;
+  return fallback;
+}
+
+/** Parse a date cell to ISO 8601. Returns `undefined` when unparseable. */
+function parseDate(value: unknown): string | null | undefined {
+  if (value === undefined || value === null || String(value).trim() === '') return null;
+  const d = new Date(String(value).trim());
+  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
+}
+
+/**
+ * Parse the flat `discount_*` columns into the complete product-level block.
+ *
+ * Mirrors `sanitizeDiscountInput` (backend products.controller.js:617–669) so a
+ * row that the backend would silently clear is flagged here instead: it does
+ * NOT 400 on a bad discount, it stores the cleared block — meaning a typo would
+ * otherwise look like a successful import with no sale attached.
+ *
+ * Returns `null` when the row declares no discount at all (all columns blank),
+ * so an import that doesn't mention discounts never touches an existing sale.
+ */
+function parseDiscount(raw: ImportRowRaw, errors: RowError[]): ProductDiscountImport | null {
+  const rawType = String(raw.discount_type ?? '').trim().toLowerCase();
+  const hasValue = raw.discount_value !== undefined && String(raw.discount_value).trim() !== '';
+  const hasActive = raw.discount_active !== undefined && String(raw.discount_active).trim() !== '';
+
+  // Nothing declared → leave the product's discount alone.
+  if (!rawType && !hasValue && !hasActive) return null;
+
+  const cleared: ProductDiscountImport = {
+    type: null,
+    value: 0,
+    maxDiscount: null,
+    startsAt: null,
+    endsAt: null,
+    isActive: false,
+  };
+
+  // An explicit `discount_active=false` is the "end the sale" payload and must
+  // win over anything else in the row.
+  if (hasActive && !parseBool(raw.discount_active, true)) return cleared;
+
+  if (rawType !== 'percentage' && rawType !== 'fixed') {
+    errors.push({
+      field: 'discount_type',
+      message: "discount_type must be 'percentage' or 'fixed'",
+      code: 'INVALID_DISCOUNT',
+    });
+    return cleared;
+  }
+
+  const value = parseNumber(raw.discount_value);
+  if (value === null || value <= 0) {
+    errors.push({
+      field: 'discount_value',
+      message: 'discount_value must be a number greater than 0',
+      code: 'INVALID_NUMBER',
+    });
+    return cleared;
+  }
+  if (rawType === 'percentage' && value > 100) {
+    errors.push({
+      field: 'discount_value',
+      message: 'A percentage discount cannot exceed 100',
+      code: 'INVALID_NUMBER',
+    });
+    return cleared;
+  }
+
+  const maxRaw = parseNumber(raw.discount_max);
+  if (maxRaw !== null && maxRaw < 0) {
+    errors.push({
+      field: 'discount_max',
+      message: 'discount_max cannot be negative',
+      code: 'INVALID_NUMBER',
+    });
+  }
+
+  const startsAt = parseDate(raw.discount_starts_at);
+  if (startsAt === undefined) {
+    errors.push({
+      field: 'discount_starts_at',
+      message: 'discount_starts_at is not a valid date',
+      code: 'INVALID_DATE',
+    });
+  }
+  const endsAt = parseDate(raw.discount_ends_at);
+  if (endsAt === undefined) {
+    errors.push({
+      field: 'discount_ends_at',
+      message: 'discount_ends_at is not a valid date',
+      code: 'INVALID_DATE',
+    });
+  }
+  if (startsAt && endsAt && new Date(startsAt) > new Date(endsAt)) {
+    errors.push({
+      field: 'discount_ends_at',
+      message: 'discount_ends_at must be after discount_starts_at',
+      code: 'INVALID_DISCOUNT',
+    });
+  }
+
+  return {
+    type: rawType,
+    value,
+    // maxDiscount is meaningless for a fixed discount — the engine only
+    // consults it when type === 'percentage'.
+    maxDiscount: rawType === 'percentage' && maxRaw !== null && maxRaw > 0 ? maxRaw : null,
+    startsAt: startsAt ?? null,
+    endsAt: endsAt ?? null,
+    isActive: parseBool(raw.discount_active, true),
   };
 }
 
@@ -344,6 +492,18 @@ function validateVariant(v: unknown, index: number): RowError[] {
     }
   }
   
+  // Validate merchantDiscount if provided — absolute amount, never a percentage
+  if (variant.merchantDiscount !== undefined) {
+    const discount = parseNumber(variant.merchantDiscount);
+    if (discount === null || discount < 0) {
+      errors.push({
+        field: 'merchantDiscount',
+        message: 'Variant merchantDiscount must be a non-negative number (absolute amount off, not a percentage)',
+        code: 'INVALID_NUMBER'
+      });
+    }
+  }
+
   // Validate stock if provided
   if (variant.stock !== undefined) {
     const stock = parseNumber(variant.stock);
@@ -355,7 +515,7 @@ function validateVariant(v: unknown, index: number): RowError[] {
       });
     }
   }
-  
+
   return errors;
 }
 

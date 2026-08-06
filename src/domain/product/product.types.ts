@@ -5,6 +5,39 @@ export type ObjectIdString = string;
 
 export type ProductAttributeType = "select" | "text" | "number";
 
+/**
+ * Product-level discount block (`product.discount` in product.model.js:55–69).
+ *
+ * Applies to EVERY variant and stacks on top of `variant.merchantDiscount`.
+ * `value` is a percentage when `type === "percentage"`, otherwise an absolute
+ * currency amount. `maxDiscount` caps percentage discounts only.
+ *
+ * The engine (backend lib/pricing.engine.js `isProductDiscountActive`) treats a
+ * discount as live only when `isActive` is true, `value > 0`, `type` is valid,
+ * AND `now` sits inside the `startsAt`/`endsAt` window. `isActive: true` alone
+ * is NOT enough.
+ */
+export type ProductDiscountType = "percentage" | "fixed";
+
+export type ProductDiscountDTO = {
+  type?: ProductDiscountType | null;
+  value?: number;
+  maxDiscount?: number | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  isActive?: boolean;
+};
+
+/**
+ * What a writer must send. `sanitizeDiscountInput`
+ * (backend products.controller.js:617) rewrites the whole block on every save,
+ * so a PARTIAL payload cannot reliably switch a sale off — always send all six
+ * keys, including an explicit `isActive`.
+ */
+export type ProductDiscountInputDTO = Required<{
+  [K in keyof ProductDiscountDTO]: ProductDiscountDTO[K];
+}>;
+
 export type ProductAttributeDefDTO = {
   _id?: ObjectIdString; // backend subdoc has _id
   name: string; // backend: lowercase
@@ -24,6 +57,11 @@ export type ProductVariantDTO = {
 
   nubianMarkup?: number;
   dynamicMarkup?: number;
+  /**
+   * Per-variant discount as an ABSOLUTE currency amount off the surged price —
+   * never a percentage (product.model.js:26, `min: 0`, default 0). Stacks with
+   * the product-level `discount` block.
+   */
   merchantDiscount?: number;
 
   // Authoritative pricing block from backend pricing engine.
@@ -72,14 +110,7 @@ export type ProductDTO = {
   discountAmount?: number;
   discountPercentage?: number;
   hasDiscount?: boolean;
-  discount?: {
-    type?: 'percentage' | 'fixed' | null;
-    value?: number;
-    isActive?: boolean;
-    startsAt?: string | null;
-    endsAt?: string | null;
-    maxDiscount?: number | null;
-  } | null;
+  discount?: ProductDiscountDTO | null;
 
   // Legacy field — back-compat with old simple products.
   discountPrice?: number;
@@ -128,7 +159,16 @@ export type ProductDTO = {
 
 // Create/update payloads (backend-driven contract; no frontend inference helpers)
 export type ProductVariantCreateDTO = Omit<ProductVariantDTO, "_id"> & { _id?: never };
-export type ProductCreatePayloadDTO = Omit<ProductDTO, "_id" | "createdAt" | "updatedAt"> & {
+export type ProductCreatePayloadDTO = Omit<
+  ProductDTO,
+  "_id" | "createdAt" | "updatedAt" | "discount"
+> & {
   variants?: ProductVariantCreateDTO[];
+  /**
+   * Always the COMPLETE block — see ProductDiscountInputDTO. Omit the key
+   * entirely to leave an existing discount untouched on PUT; send the cleared
+   * block (`{ type: null, value: 0, …, isActive: false }`) to end a sale.
+   */
+  discount?: ProductDiscountInputDTO;
 };
 

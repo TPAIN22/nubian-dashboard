@@ -1,3 +1,11 @@
+/**
+ * ⚠️ DEAD CODE — not the live validator.
+ *
+ * The shipping wizard validates through its zod schema + `superRefine` in
+ * `../ProductWizard.tsx`, which is also where the discount contract
+ * (value > 0, percentage <= 100, startsAt <= endsAt, maxDiscount >= 0) is
+ * enforced. See the note in `./buildPayload.ts`.
+ */
 import { WizardState } from "../types";
 import { ProductAttributeDefDTO } from "@/domain/product/product.types";
 

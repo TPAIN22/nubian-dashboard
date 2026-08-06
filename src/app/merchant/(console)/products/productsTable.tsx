@@ -46,7 +46,14 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
-import { formatCurrency } from '@/lib/currency'
+import {
+  discountPercentage,
+  finalAmount,
+  formatFinalPrice,
+  formatOriginalPrice,
+  hasDiscount as productHasDiscount,
+  originalAmount,
+} from '@/features/products/types/product'
 import {
   merchantKeys,
   merchantRequest,
@@ -70,14 +77,25 @@ export function categoryName(category: MerchantProduct['category']): string {
   return typeof category === 'string' ? category : ''
 }
 
-/** Final selling price: `discountPrice` when set, otherwise `price`. */
+/**
+ * Price the customer is charged.
+ *
+ * This used to read `p.discountPrice ?? p.price`. `discountPrice` is not in the
+ * schema, and `p.price` is the Money envelope **object**, so `Number.isFinite`
+ * failed on both and every row rendered 0. The enriched payload already carries
+ * `price.final.amount` / `finalPrice`.
+ */
 export function sellingPrice(p: MerchantProduct): number {
-  const original = Number.isFinite(p.price) ? p.price : 0
-  const discounted = Number.isFinite(p.discountPrice) ? p.discountPrice : 0
-  return discounted > 0 ? discounted : original
+  return finalAmount(p)
 }
 
-export const hasDiscount = (p: MerchantProduct) => sellingPrice(p) < (p.price ?? 0)
+/** Strikethrough "was" price — `originalPrice`, never `merchantPrice` (cost). */
+export function originalPrice(p: MerchantProduct): number {
+  return originalAmount(p)
+}
+
+/** The backend's own predicate. `finalPrice < merchantPrice` can never be true. */
+export const hasDiscount = (p: MerchantProduct) => productHasDiscount(p)
 
 /** Stock is the number a merchant scans for, so it gets a tone, not just a value. */
 function stockTone(stock: number) {
@@ -232,6 +250,8 @@ export function useProductColumns(): Column<MerchantProduct>[] {
         cell: (p) => categoryName(p.category) || <CellEmpty />,
       },
       {
+        // The id stays 'price': the page's `compare()` sorts this column
+        // through `sellingPrice()`, which now resolves a real number.
         id: 'price',
         header: 'السعر',
         width: '150px',
@@ -241,10 +261,10 @@ export function useProductColumns(): Column<MerchantProduct>[] {
           <span className="inline-flex items-baseline gap-1.5">
             {hasDiscount(p) && (
               <span className="text-[11px] text-text-faint line-through">
-                {formatCurrency(p.price)}
+                {formatOriginalPrice(p)}
               </span>
             )}
-            <span className="font-medium">{formatCurrency(sellingPrice(p))}</span>
+            <span className="font-medium">{formatFinalPrice(p)}</span>
           </span>
         ),
       },
@@ -565,10 +585,17 @@ function ProductPreview({
             )}
 
             <dl className="mt-1">
-              <DetailRow label="السعر النهائي">{formatCurrency(sellingPrice(product))}</DetailRow>
+              <DetailRow label="السعر النهائي">{formatFinalPrice(product)}</DetailRow>
               {hasDiscount(product) && (
                 <DetailRow label="السعر الأصلي">
-                  <span className="line-through">{formatCurrency(product.price)}</span>
+                  <span className="inline-flex items-baseline gap-1.5">
+                    <span className="line-through">{formatOriginalPrice(product)}</span>
+                    {discountPercentage(product) > 0 && (
+                      <span className="text-tone-danger-fg">
+                        خصم {discountPercentage(product)}%
+                      </span>
+                    )}
+                  </span>
                 </DetailRow>
               )}
               <DetailRow label="المخزون">

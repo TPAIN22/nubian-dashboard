@@ -4,7 +4,7 @@
  */
 
 import * as ExcelJS from 'exceljs';
-import { ImportRowRaw } from './types';
+import { ImportRowRaw, IMPORT_COLUMNS } from './types';
 
 interface ParseXlsxResult {
   rows: ImportRowRaw[];
@@ -138,19 +138,20 @@ export async function generateXlsx(headers: string[], rows: Record<string, strin
  * Create a template Excel file with headers and example rows
  */
 export async function createTemplateXlsx(): Promise<Buffer> {
-  const headers = [
-    'sku',
-    'name',
-    'description',
-    'price',
-    'currency',
-    'category',
-    'stock',
-    'image_urls',
-    'image_files',
-    'variants_json'
-  ];
-  
+  // Shared with the CSV template so the two can never drift apart.
+  const headers = [...IMPORT_COLUMNS];
+
+  /** Blank discount columns — a row that doesn't mention a sale leaves it alone. */
+  const noDiscount = {
+    merchant_discount: '',
+    discount_type: '',
+    discount_value: '',
+    discount_max: '',
+    discount_starts_at: '',
+    discount_ends_at: '',
+    discount_active: ''
+  };
+
   const exampleUrlRow = {
     sku: 'PROD-001',
     name: 'Example Product',
@@ -161,9 +162,33 @@ export async function createTemplateXlsx(): Promise<Buffer> {
     stock: 100,
     image_urls: 'https://example.com/img1.jpg|https://example.com/img2.jpg',
     image_files: '',
-    variants_json: ''
+    variants_json: '',
+    ...noDiscount
   };
-  
+
+  // A simple product with BOTH discount mechanisms: an absolute 5 off the
+  // single variant, plus 15% off the product (capped at 20). They stack.
+  const exampleDiscountRow = {
+    sku: 'PROD-003',
+    name: 'Product on Sale',
+    description: 'Demonstrates both discount mechanisms',
+    price: 199.99,
+    currency: 'USD',
+    category: 'Electronics',
+    stock: 25,
+    image_urls: 'https://example.com/img3.jpg',
+    image_files: '',
+    variants_json: '',
+    // ABSOLUTE amount off — not a percentage.
+    merchant_discount: 5,
+    discount_type: 'percentage',
+    discount_value: 15,
+    discount_max: 20,
+    discount_starts_at: '2026-01-01T00:00:00Z',
+    discount_ends_at: '2026-01-31T23:59:59Z',
+    discount_active: 'true'
+  };
+
   const exampleZipRow = {
     sku: 'PROD-002',
     name: 'Product with ZIP Images',
@@ -174,11 +199,13 @@ export async function createTemplateXlsx(): Promise<Buffer> {
     stock: 50,
     image_urls: '',
     image_files: 'product2-front.jpg|product2-back.jpg',
+    // merchantDiscount here is an ABSOLUTE amount off that variant.
     variants_json: JSON.stringify([
-      { sku: 'PROD-002-S', attributes: { size: 'S' }, merchantPrice: 149.99, stock: 20 },
-      { sku: 'PROD-002-M', attributes: { size: 'M' }, merchantPrice: 149.99, stock: 30 }
-    ])
+      { sku: 'PROD-002-S', attributes: { size: 'S' }, merchantPrice: 149.99, merchantDiscount: 0, stock: 20 },
+      { sku: 'PROD-002-M', attributes: { size: 'M' }, merchantPrice: 149.99, merchantDiscount: 10, stock: 30 }
+    ]),
+    ...noDiscount
   };
-  
-  return generateXlsx(headers, [exampleUrlRow, exampleZipRow]);
+
+  return generateXlsx(headers, [exampleUrlRow, exampleDiscountRow, exampleZipRow]);
 }

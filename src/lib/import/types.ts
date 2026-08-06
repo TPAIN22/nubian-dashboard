@@ -20,7 +20,36 @@ export interface ImportRowRaw {
   image_5?: string;
   image_files?: string; // pipe-separated filenames for ZIP mode
   variants_json?: string;
+
+  // --- Discounts (Issue #25) ---
+  // Per-variant absolute amount off. Applies to the synthesized single variant
+  // when the row has no `variants_json`; inside `variants_json` use the
+  // per-object `merchantDiscount` key instead.
+  merchant_discount?: string | number;
+  // Product-level discount block → `product.discount`.
+  discount_type?: string;          // 'percentage' | 'fixed' | ''
+  discount_value?: string | number; // percent when type=percentage, else amount
+  discount_max?: string | number;   // cap; percentage discounts only
+  discount_starts_at?: string;      // ISO 8601 or empty
+  discount_ends_at?: string;        // ISO 8601 or empty
+  discount_active?: string;         // 'true' | 'false' | '' (defaults true when a type+value are given)
+
   [key: string]: string | number | undefined;
+}
+
+/**
+ * Product-level discount, parsed from the flat `discount_*` columns into the
+ * exact block the backend expects. Always COMPLETE — never a partial — so that
+ * `sanitizeDiscountInput` (backend products.controller.js:617) rewrites every
+ * sub-field and an import can reliably turn a sale OFF as well as on.
+ */
+export interface ProductDiscountImport {
+  type: 'percentage' | 'fixed' | null;
+  value: number;
+  maxDiscount: number | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  isActive: boolean;
 }
 
 export interface ImportRowValidated {
@@ -35,6 +64,10 @@ export interface ImportRowValidated {
   images: string[]; // resolved URLs (either from URL mode or placeholders for ZIP mode)
   imageFiles?: string[]; // original filenames for ZIP mode
   variants?: ProductVariantImport[];
+  /** Absolute amount off the single synthesized variant (no variants_json). */
+  merchantDiscount: number;
+  /** Product-level discount; `null` when the row declares none. */
+  discount: ProductDiscountImport | null;
   isValid: boolean;
   errors: RowError[];
   warnings: string[];
@@ -44,6 +77,8 @@ export interface ProductVariantImport {
   sku: string;
   attributes: Record<string, string>;
   merchantPrice: number;
+  /** ABSOLUTE currency amount off this variant — never a percentage. */
+  merchantDiscount: number;
   stock: number;
   images?: string[];
   isActive?: boolean;
@@ -66,7 +101,9 @@ export type ErrorCode =
   | 'INVALID_FILE_TYPE'
   | 'INVALID_JSON'
   | 'SKU_TOO_LONG'
-  | 'SKU_INVALID_CHARS';
+  | 'SKU_INVALID_CHARS'
+  | 'INVALID_DATE'
+  | 'INVALID_DISCOUNT';
 
 export interface ParseResult {
   rows: ImportRowValidated[];
@@ -153,7 +190,38 @@ export interface TemplateRow {
   image_urls: string;
   image_files: string;
   variants_json: string;
+  merchant_discount: number | string;
+  discount_type: string;
+  discount_value: number | string;
+  discount_max: number | string;
+  discount_starts_at: string;
+  discount_ends_at: string;
+  discount_active: string;
 }
+
+/**
+ * Canonical import column order. Both templates (CSV + XLSX) and the docs read
+ * from this so the two can never drift apart.
+ */
+export const IMPORT_COLUMNS = [
+  'sku',
+  'name',
+  'description',
+  'price',
+  'currency',
+  'category',
+  'stock',
+  'image_urls',
+  'image_files',
+  'variants_json',
+  'merchant_discount',
+  'discount_type',
+  'discount_value',
+  'discount_max',
+  'discount_starts_at',
+  'discount_ends_at',
+  'discount_active',
+] as const;
 
 // ImageKit types
 export interface ImageKitUploadResult {

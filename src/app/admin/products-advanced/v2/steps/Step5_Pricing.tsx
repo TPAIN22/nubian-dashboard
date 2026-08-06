@@ -1,3 +1,15 @@
+/**
+ * ⚠️ NOT THE LIVE PRICING STEP — DEAD CODE.
+ *
+ * Nothing renders this component (verified: repo-wide grep for `steps/Step`
+ * returns no importers outside this folder). The pricing step users actually
+ * see is the `PricingStep` function inside `../ProductWizard.tsx`, which is
+ * where the product-level discount UI (`DiscountSection`) and the per-variant
+ * `merchantDiscount` input (`MerchantDiscountInput`) live.
+ *
+ * Deliberately left without discount fields — see the note in
+ * `../helpers/buildPayload.ts`.
+ */
 import { useMemo } from "react";
 import { WizardState } from "../types";
 import { Card, CardContent } from "@/components/ui/card";

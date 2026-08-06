@@ -2,6 +2,8 @@
 
 import { useQuery, useQueryClient, type UseQueryOptions } from '@tanstack/react-query'
 
+import type { PricedProduct } from '@/features/products/types/product'
+
 /* ============================================================================
    Merchant data layer
    ----------------------------------------------------------------------------
@@ -126,11 +128,21 @@ export type MerchantStats = {
   revenueByStatus: OrderStatusCounts
 }
 
-export type MerchantProduct = {
+/**
+ * `/api/products/merchant/my-products` is enriched by the backend, so every
+ * product carries the full pricing block: `finalPrice`, `originalPrice`,
+ * `discountPercentage`, `hasDiscount` and the typed `price` Money envelope.
+ *
+ * It used to be typed with `price: number` + `discountPrice: number`.
+ * `discountPrice` does not exist in the schema at all, and `price` is the
+ * envelope **object** — so every numeric read of either returned 0. The shape
+ * below is what is actually on the wire; read it through the helpers in
+ * `@/features/products/types/product`, never by comparing against
+ * `merchantPrice` (which is cost).
+ */
+export type MerchantProduct = PricedProduct & {
   _id: string
   name: string
-  price: number
-  discountPrice: number
   stock: number
   isActive: boolean
   description?: string

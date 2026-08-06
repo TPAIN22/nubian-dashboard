@@ -15,6 +15,7 @@ import {
   CommitResult,
   FailedRow,
   ImageKitUploadResult,
+  ProductDiscountImport,
   ZipFileEntry,
 } from './types';
 import { uploadRowImages } from './imagekit';
@@ -55,10 +56,19 @@ interface BackendRow {
     sku: string;
     attributes: Record<string, string>;
     merchantPrice: number;
+    /** Absolute amount off this variant (product.model.js:26). */
+    merchantDiscount: number;
     stock: number;
     images: string[];
     isActive: boolean;
   }>;
+  /**
+   * Product-level discount. OMITTED entirely when the row declares none, so an
+   * import that doesn't mention discounts leaves an existing sale untouched
+   * (the backend only rewrites `discount` when the key is present). When
+   * present it is always the COMPLETE block — see ProductDiscountImport.
+   */
+  discount?: ProductDiscountImport;
 }
 
 /**
@@ -79,6 +89,7 @@ function buildBackendRow(
           sku: v.sku,
           attributes: v.attributes,
           merchantPrice: Number(v.merchantPrice),
+          merchantDiscount: Number(v.merchantDiscount) || 0,
           stock: Number(v.stock),
           images: v.images ?? [],
           isActive: v.isActive !== false,
@@ -88,6 +99,7 @@ function buildBackendRow(
             sku: row.sku,
             attributes: { default: 'default' },
             merchantPrice: Number(row.price),
+            merchantDiscount: Number(row.merchantDiscount) || 0,
             stock: Number(row.stock),
             images: resolvedImages,
             isActive: true,
@@ -101,6 +113,7 @@ function buildBackendRow(
     category: categoryId,
     images: resolvedImages,
     variants,
+    ...(row.discount ? { discount: row.discount } : {}),
   };
 }
 
