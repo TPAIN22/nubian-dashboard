@@ -29,10 +29,13 @@ export default function DashboardsPage() {
   const { getToken } = useAuth()
   const router = useRouter()
   const [checking, setChecking] = useState(true)
+  // This page calls the backend directly, so it sees the raw envelope
+  // (`{ hasApplication, merchant }`) and the raw lowercase status enum — unlike
+  // the console, which goes through the /api/merchant/my-status proxy.
   const [merchantStatus, setMerchantStatus] = useState<{
     hasApplication: boolean
     merchant?: {
-      status: 'PENDING' | 'APPROVED' | 'REJECTED'
+      status: string
     }
   } | null>(null)
 
@@ -91,7 +94,7 @@ export default function DashboardsPage() {
   const role = user?.publicMetadata?.role as string | undefined
   const isAdmin = role === 'admin'
   const isMerchant = role === 'merchant'
-  const isMerchantApproved = merchantStatus?.merchant?.status === 'APPROVED'
+  const isMerchantApproved = merchantStatus?.merchant?.status?.toUpperCase() === 'APPROVED'
 
   const handleDashboardClick = async (dashboardType: 'admin' | 'merchant') => {
     if (dashboardType === 'admin') {

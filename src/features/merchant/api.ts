@@ -84,13 +84,10 @@ export const merchantRequest = request
 /* Types                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export type MerchantStatusValue =
-  'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'NEEDS_REVISION'
-
 export type MerchantRecord = {
   _id: string
   storeName?: string
-  businessName?: string
+  /** Raw enum from the backend: lowercase `pending | approved | …`. */
   status: string
   rejectionReason?: string
   revisionNotes?: string
@@ -104,13 +101,21 @@ export type MerchantStatus = {
   application: MerchantRecord | null
 }
 
+/**
+ * The Merchant document as `/merchants/my-profile` returns it. These are the
+ * only names the API knows — `updateMerchantProfile` reads exactly
+ * `storeName, description, email, phone, city, logoUrl, banner` off the body
+ * and ignores everything else, so a form posting `business*` keys saves nothing.
+ */
 export type MerchantProfile = {
-  businessName?: string
   storeName?: string
-  businessDescription?: string
-  businessEmail?: string
-  businessPhone?: string
-  businessAddress?: string
+  ownerName?: string
+  description?: string
+  email?: string
+  phone?: string
+  city?: string
+  logoUrl?: string
+  banner?: string
 }
 
 export type OrderStatusCounts = {

@@ -119,6 +119,14 @@ export interface ProductVariant extends PricedProduct {
   isActive: boolean;
 }
 
+/** Mirrors the `status` enum on the backend Merchant model (lowercase). */
+export type MerchantStatus =
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'needs_revision'
+  | 'suspended';
+
 export interface Product extends PricedProduct {
   _id: string;
   name: string;
@@ -135,12 +143,20 @@ export interface Product extends PricedProduct {
     _id: string;
     name: string;
   } | string;
+  /**
+   * Populated by the backend as `merchant` with the projection
+   * `storeName email logoUrl city status` — the Merchant model has no
+   * `businessName`/`businessEmail`. `null` for admin-created products that
+   * have no seller (the schema default).
+   */
   merchant?: {
     _id: string;
-    businessName: string;
-    businessEmail: string;
-    status?: string;
-  };
+    storeName: string;
+    email?: string;
+    logoUrl?: string;
+    city?: string;
+    status?: MerchantStatus;
+  } | null;
   deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;

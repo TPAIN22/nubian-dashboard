@@ -39,22 +39,28 @@ import {
    find out whether you had already saved.
    ========================================================================== */
 
+/**
+ * Field names are the API's, not the form's. `PUT /merchants/my-profile` reads
+ * `storeName, description, email, phone, city, logoUrl, banner` off the body and
+ * silently drops anything else — the previous `business*` names meant every save
+ * returned 200 having written nothing, and every field but the name loaded blank.
+ */
 const schema = z.object({
-  businessName: z.string().min(1, 'اسم المتجر مطلوب'),
-  businessEmail: z.string().email('عنوان بريد إلكتروني غير صحيح'),
-  businessPhone: z.string().optional(),
-  businessDescription: z.string().optional(),
-  businessAddress: z.string().optional(),
+  storeName: z.string().min(1, 'اسم المتجر مطلوب'),
+  email: z.string().email('عنوان بريد إلكتروني غير صحيح'),
+  phone: z.string().optional(),
+  description: z.string().optional(),
+  city: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof schema>
 
 const EMPTY: FormValues = {
-  businessName: '',
-  businessEmail: '',
-  businessPhone: '',
-  businessDescription: '',
-  businessAddress: '',
+  storeName: '',
+  email: '',
+  phone: '',
+  description: '',
+  city: '',
 }
 
 export default function MerchantSettingsPage() {
@@ -82,11 +88,11 @@ export default function MerchantSettingsPage() {
   React.useEffect(() => {
     if (!profile.data) return
     reset({
-      businessName: profile.data.businessName || profile.data.storeName || '',
-      businessEmail: profile.data.businessEmail || '',
-      businessPhone: profile.data.businessPhone || '',
-      businessDescription: profile.data.businessDescription || '',
-      businessAddress: profile.data.businessAddress || '',
+      storeName: profile.data.storeName || '',
+      email: profile.data.email || '',
+      phone: profile.data.phone || '',
+      description: profile.data.description || '',
+      city: profile.data.city || '',
     })
   }, [profile.data, reset])
 
@@ -136,19 +142,19 @@ export default function MerchantSettingsPage() {
               title="هوية المتجر"
               description="الاسم الذي يظهر للعملاء على صفحة متجرك وفي كل طلب."
             >
-              <Field label="اسم المتجر" required error={errors.businessName?.message}>
-                <Input placeholder="مثال: متجر النيل" {...register('businessName')} />
+              <Field label="اسم المتجر" required error={errors.storeName?.message}>
+                <Input placeholder="مثال: متجر النيل" {...register('storeName')} />
               </Field>
 
               <Field
                 label="وصف المتجر"
                 hint="سطران عمّا تبيعه. يظهر أعلى صفحة متجرك."
-                error={errors.businessDescription?.message}
+                error={errors.description?.message}
               >
                 <Textarea
                   rows={4}
                   placeholder="أخبر عملاءك عن متجرك…"
-                  {...register('businessDescription')}
+                  {...register('description')}
                 />
               </Field>
             </FormSection>
@@ -158,30 +164,28 @@ export default function MerchantSettingsPage() {
               description="نستخدمها للتواصل معك بشأن الطلبات والمدفوعات."
             >
               <FieldGrid>
-                <Field label="البريد الإلكتروني" required error={errors.businessEmail?.message}>
+                <Field label="البريد الإلكتروني" required error={errors.email?.message}>
                   <Input
                     type="email"
                     dir="ltr"
                     placeholder="business@example.com"
-                    {...register('businessEmail')}
+                    {...register('email')}
                   />
                 </Field>
-                <Field label="رقم الهاتف" error={errors.businessPhone?.message}>
+                <Field label="رقم الهاتف" error={errors.phone?.message}>
                   <Input
                     type="tel"
                     dir="ltr"
                     placeholder="+249123456789"
-                    {...register('businessPhone')}
+                    {...register('phone')}
                   />
                 </Field>
               </FieldGrid>
 
-              <Field label="العنوان" error={errors.businessAddress?.message}>
-                <Textarea
-                  rows={2}
-                  placeholder="عنوان المتجر أو المستودع"
-                  {...register('businessAddress')}
-                />
+              {/* The Merchant model stores `city`, not a free-text address — the
+                  old address textarea had nowhere to be saved. */}
+              <Field label="المدينة" error={errors.city?.message}>
+                <Input placeholder="مثال: جدة" {...register('city')} />
               </Field>
             </FormSection>
 

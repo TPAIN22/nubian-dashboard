@@ -42,7 +42,7 @@ export default function MerchantOverviewPage() {
   const products = useMerchantProducts()
 
   const store = status.data?.application
-  const storeName = store?.storeName || store?.businessName
+  const storeName = store?.storeName
 
   // The middleware is the real gate, but Clerk claims can lag behind an admin
   // suspending a store mid-session. Trust the record, not the JWT.

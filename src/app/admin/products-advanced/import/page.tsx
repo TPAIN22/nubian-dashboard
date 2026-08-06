@@ -87,7 +87,7 @@ interface CommitResult {
 
 interface Merchant {
   _id: string;
-  businessName: string;
+  storeName: string;
   status: string;
 }
 
@@ -153,7 +153,12 @@ export default function ProductImportPage() {
         const data = await response.json();
         console.log('[Import] Merchants data:', data);
         const merchantList = data.data || data.merchants || data || [];
-        const approved = merchantList.filter((m: Merchant) => m.status === 'APPROVED');
+        // The Merchant model's status enum is lowercase ('approved'). Comparing
+        // against 'APPROVED' matched nothing, so the selector never populated
+        // and no admin could start an import.
+        const approved = merchantList.filter(
+          (m: Merchant) => m.status?.toLowerCase() === 'approved',
+        );
         console.log('[Import] Approved merchants:', approved);
         setMerchants(approved);
       } else {
@@ -435,7 +440,7 @@ export default function ProductImportPage() {
                     <SelectContent>
                       {merchants.map((merchant) => (
                         <SelectItem key={merchant._id} value={merchant._id}>
-                          {merchant.businessName}
+                          {merchant.storeName}
                         </SelectItem>
                       ))}
                     </SelectContent>

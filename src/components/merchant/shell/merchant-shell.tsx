@@ -16,7 +16,7 @@ export function MerchantShell({ children }: { children: React.ReactNode }) {
   const counts = useMerchantCounts()
 
   const store = status?.application
-  const storeName = store?.storeName || store?.businessName
+  const storeName = store?.storeName
 
   return (
     <ConsoleShell nav={MERCHANT_CONSOLE} counts={counts} brandBadge={storeName}>

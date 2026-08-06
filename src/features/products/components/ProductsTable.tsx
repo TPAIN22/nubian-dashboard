@@ -92,7 +92,7 @@ import { Label } from "@/components/ui/label"
 
 
 
-import type { Product, ProductFilters } from '../types/product'
+import type { MerchantStatus, Product, ProductFilters } from '../types/product'
 import {
   discountPercentage,
   finalAmount,
@@ -101,6 +101,14 @@ import {
   hasDiscount,
   originalAmount,
 } from '../types/product'
+
+const MERCHANT_STATUS_LABELS: Record<MerchantStatus, string> = {
+  pending: "قيد المراجعة",
+  approved: "موافق",
+  rejected: "مرفوض",
+  needs_revision: "يحتاج تعديل",
+  suspended: "موقوف",
+}
 
 interface ProductsTableProps {
   productsData: Product[]
@@ -506,17 +514,18 @@ export function ProductsTable({
       header: "التاجر",
       cell: ({ row }) => {
         const merchant = row.getValue("merchant") as Product["merchant"]
-        if (typeof merchant === "object" && merchant !== null && "businessName" in merchant) {
-          const merchantObj = merchant as { businessName: string; status?: string }
+        // `merchant` is null for admin-created products with no seller — that
+        // is the only case that should read "عام".
+        if (typeof merchant === "object" && merchant !== null && "storeName" in merchant) {
           return (
             <div className="flex flex-col">
-              <div className="font-medium">{merchantObj.businessName}</div>
-              {merchantObj.status && (
+              <div className="font-medium">{merchant.storeName}</div>
+              {merchant.status && (
                 <Badge
-                  variant={merchantObj.status === "APPROVED" ? "default" : "secondary"}
+                  variant={merchant.status === "approved" ? "default" : "secondary"}
                   className="text-xs mt-1"
                 >
-                  {merchantObj.status === "APPROVED" ? "موافق" : merchantObj.status}
+                  {MERCHANT_STATUS_LABELS[merchant.status] ?? merchant.status}
                 </Badge>
               )}
             </div>

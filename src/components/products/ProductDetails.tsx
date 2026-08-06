@@ -32,10 +32,12 @@ export interface Product extends PricedProduct {
   sizes: string[];
   createdAt: string;
   updatedAt: string;
+  // Populated by the backend as `storeName email logoUrl city status` — the
+  // Merchant model has no `businessName`/`businessEmail`.
   merchant?: string | {
     _id: string;
-    businessName: string;
-    businessEmail: string;
+    storeName: string;
+    email?: string;
     status?: string;
   };
   category?: {
@@ -347,8 +349,10 @@ export function ProductDetails({ product, showActions = false, onEdit, onToggleA
                 <Separator />
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">التاجر</p>
-                  <p className="text-sm">{product.merchant.businessName}</p>
-                  <p className="text-xs text-muted-foreground">{product.merchant.businessEmail}</p>
+                  <p className="text-sm">{product.merchant.storeName}</p>
+                  {product.merchant.email && (
+                    <p className="text-xs text-muted-foreground">{product.merchant.email}</p>
+                  )}
                 </div>
               </>
             )}
