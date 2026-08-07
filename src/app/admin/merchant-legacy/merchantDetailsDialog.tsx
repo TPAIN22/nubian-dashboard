@@ -39,8 +39,8 @@ interface Product {
   updatedAt: string;
   merchant?: string | {
     _id: string;
-    businessName: string;
-    businessEmail: string;
+    storeName: string;
+    email?: string;
     status?: string;
   };
 }
@@ -149,7 +149,7 @@ export function MerchantDetailsDialog({ merchant }: MerchantDetailsDialogProps) 
           {/* Merchant Information */}
           <Card>
             <CardHeader>
-              <CardTitle>{merchant.businessName}</CardTitle>
+              <CardTitle>{merchant.storeName}</CardTitle>
               <CardDescription>معلومات العلامة التجارية</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -158,7 +158,7 @@ export function MerchantDetailsDialog({ merchant }: MerchantDetailsDialogProps) 
                   <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-sm font-medium">البريد الإلكتروني</p>
-                    <p className="text-sm text-muted-foreground">{merchant.businessEmail}</p>
+                    <p className="text-sm text-muted-foreground">{merchant.email}</p>
                   </div>
                 </div>
                 
@@ -167,17 +167,17 @@ export function MerchantDetailsDialog({ merchant }: MerchantDetailsDialogProps) 
                   <div>
                     <p className="text-sm font-medium">رقم الهاتف</p>
                     <p className="text-sm text-muted-foreground">
-                      {merchant.businessPhone || "غير محدد"}
+                      {merchant.phone || "غير محدد"}
                     </p>
                   </div>
                 </div>
                 
-                {merchant.businessAddress && (
+                {merchant.city && (
                   <div className="flex items-start gap-3">
                     <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium">العنوان</p>
-                      <p className="text-sm text-muted-foreground">{merchant.businessAddress}</p>
+                      <p className="text-sm font-medium">المدينة</p>
+                      <p className="text-sm text-muted-foreground">{merchant.city}</p>
                     </div>
                   </div>
                 )}
@@ -193,14 +193,14 @@ export function MerchantDetailsDialog({ merchant }: MerchantDetailsDialogProps) 
                 </div>
               </div>
               
-              {merchant.businessDescription && (
+              {merchant.description && (
                 <>
                   <Separator />
                   <div className="flex items-start gap-3">
                     <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
                     <div>
                       <p className="text-sm font-medium">الوصف</p>
-                      <p className="text-sm text-muted-foreground">{merchant.businessDescription}</p>
+                      <p className="text-sm text-muted-foreground">{merchant.description}</p>
                     </div>
                   </div>
                 </>

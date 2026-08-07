@@ -70,7 +70,7 @@ export const columns: ColumnDef<Merchant>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "businessName",
+    accessorKey: "storeName",
     header: ({ column }) => {
       return (
         <Button
@@ -83,28 +83,28 @@ export const columns: ColumnDef<Merchant>[] = [
       );
     },
     cell: ({ row }) => (
-      <div className="font-medium">{row.getValue("businessName")}</div>
+      <div className="font-medium">{row.getValue("storeName")}</div>
     ),
   },
   {
-    accessorKey: "businessEmail",
+    accessorKey: "email",
     header: "البريد الإلكتروني",
     cell: ({ row }) => (
-      <div>{row.getValue("businessEmail")}</div>
+      <div>{row.getValue("email")}</div>
     ),
   },
   {
-    accessorKey: "businessPhone",
+    accessorKey: "phone",
     header: "رقم الهاتف",
     cell: ({ row }) => (
-      <div>{row.getValue("businessPhone") || "غير محدد"}</div>
+      <div>{row.getValue("phone") || "غير محدد"}</div>
     ),
   },
   {
-    accessorKey: "businessAddress",
-    header: "العنوان",
+    accessorKey: "city",
+    header: "المدينة",
     cell: ({ row }) => (
-      <div className="max-w-[200px] truncate">{row.getValue("businessAddress") || "غير محدد"}</div>
+      <div className="max-w-[200px] truncate">{row.getValue("city") || "غير محدد"}</div>
     ),
   },
   {
@@ -176,9 +176,9 @@ export function BrandsTable({ merchants }: BrandsTableProps) {
       <div className="flex items-center gap-4 py-4">
         <Input
           placeholder="البحث باسم العلامة التجارية..."
-          value={(table.getColumn("businessName")?.getFilterValue() as string) ?? ""}
+          value={(table.getColumn("storeName")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
-            table.getColumn("businessName")?.setFilterValue(event.target.value)
+            table.getColumn("storeName")?.setFilterValue(event.target.value)
           }
           className="max-w-sm"
         />
@@ -194,10 +194,10 @@ export function BrandsTable({ merchants }: BrandsTableProps) {
               .filter((column) => column.getCanHide())
               .map((column) => {
                 const columnLabels: Record<string, string> = {
-                  businessName: "اسم العلامة التجارية",
-                  businessEmail: "البريد الإلكتروني",
-                  businessPhone: "رقم الهاتف",
-                  businessAddress: "العنوان",
+                  storeName: "اسم العلامة التجارية",
+                  email: "البريد الإلكتروني",
+                  phone: "رقم الهاتف",
+                  city: "المدينة",
                   approvedAt: "تاريخ الموافقة",
                 };
 

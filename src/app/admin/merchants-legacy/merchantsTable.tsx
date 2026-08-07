@@ -37,23 +37,48 @@ interface ApiErrorResponse {
 
 type ApiResponse = ApiSuccessResponse | ApiErrorResponse;
 
+/**
+ * Mirrors the Merchant document as `GET /merchants` returns it (raw, no
+ * projection). The field names are the model's — there is no `business*`
+ * anything — and `status` is the model's lowercase enum. Compare it through
+ * `normalizeStatus`, never with a literal `=== "APPROVED"`.
+ */
+export type MerchantStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "needs_revision"
+  | "suspended";
+
 export type Merchant = {
   _id: string;
-  clerkId: string;
-  businessName: string;
-  businessDescription?: string;
-  businessEmail: string;
-  businessPhone?: string;
-  businessAddress?: string;
-  status: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
+  userId: string;
+  storeName: string;
+  ownerName?: string;
+  description?: string;
+  email: string;
+  phone?: string;
+  city?: string;
+  status: MerchantStatus;
   rejectionReason?: string;
+  revisionNotes?: string;
   suspensionReason?: string;
-  appliedAt: string;
   approvedAt?: string;
   approvedBy?: string;
   suspendedAt?: string;
   createdAt: string;
   updatedAt: string;
+};
+
+/** Tolerates legacy uppercase rows that may still be sitting in the database. */
+const normalizeStatus = (status?: string): string => (status ?? "").toLowerCase();
+
+const STATUS_BADGES: Record<string, { label: string; className: string }> = {
+  pending: { label: "قيد المراجعة", className: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300" },
+  approved: { label: "موافق عليه", className: "bg-green-500/15 text-green-700 dark:text-green-300" },
+  rejected: { label: "مرفوض", className: "bg-red-500/15 text-red-700 dark:text-red-300" },
+  needs_revision: { label: "يحتاج تعديل", className: "bg-blue-500/15 text-blue-700 dark:text-blue-300" },
+  suspended: { label: "معلق", className: "bg-orange-500/15 text-orange-700 dark:text-orange-300" },
 };
 
 // Separate component for merchant actions to fix React hooks rules
@@ -190,7 +215,9 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
   };
 
   // Show actions based on status
-  if (merchant.status === "APPROVED") {
+  const status = normalizeStatus(merchant.status);
+
+  if (status === "approved") {
     return (
       <div className="flex items-center gap-2">
         <DropdownMenu>
@@ -214,7 +241,7 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
                 <AlertDialogHeader>
                   <AlertDialogTitle>تعليق التاجر</AlertDialogTitle>
                   <AlertDialogDescription>
-                    يرجى إدخال سبب تعليق التاجر <strong>{merchant.businessName}</strong>.
+                    يرجى إدخال سبب تعليق التاجر <strong>{merchant.storeName}</strong>.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="py-4">
@@ -244,7 +271,7 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
                 <AlertDialogHeader>
                   <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
                   <AlertDialogDescription>
-                    هل أنت متأكد من حذف التاجر <strong>{merchant.businessName}</strong>؟ 
+                    هل أنت متأكد من حذف التاجر <strong>{merchant.storeName}</strong>؟ 
                     هذا الإجراء لا يمكن التراجع عنه.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -264,7 +291,7 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
 
   return (
     <div className="flex items-center gap-2">
-      {merchant.status === "PENDING" && (
+      {(status === "pending" || status === "needs_revision") && (
         <>
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -277,7 +304,7 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
               <AlertDialogHeader>
                 <AlertDialogTitle>تأكيد الموافقة</AlertDialogTitle>
                 <AlertDialogDescription>
-                  هل أنت متأكد من الموافقة على طلب التاجر <strong>{merchant.businessName}</strong>؟
+                  هل أنت متأكد من الموافقة على طلب التاجر <strong>{merchant.storeName}</strong>؟
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -300,7 +327,7 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
               <AlertDialogHeader>
                 <AlertDialogTitle>رفض الطلب</AlertDialogTitle>
                 <AlertDialogDescription>
-                  يرجى إدخال سبب رفض طلب التاجر <strong>{merchant.businessName}</strong>.
+                  يرجى إدخال سبب رفض طلب التاجر <strong>{merchant.storeName}</strong>.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <div className="py-4">
@@ -321,12 +348,12 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
           </AlertDialog>
         </>
       )}
-      {merchant.status === "REJECTED" && merchant.rejectionReason && (
+      {status === "rejected" && merchant.rejectionReason && (
         <div className="text-xs text-muted-foreground max-w-[200px]">
           سبب الرفض: {merchant.rejectionReason}
         </div>
       )}
-      {merchant.status === "SUSPENDED" && (
+      {status === "suspended" && (
         <div className="flex items-center gap-2">
           {merchant.suspensionReason && (
             <div className="text-xs text-muted-foreground max-w-[200px]">
@@ -354,7 +381,7 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
                   <AlertDialogHeader>
                     <AlertDialogTitle>إلغاء تعليق التاجر</AlertDialogTitle>
                     <AlertDialogDescription>
-                      هل أنت متأكد من إلغاء تعليق التاجر <strong>{merchant.businessName}</strong>؟
+                      هل أنت متأكد من إلغاء تعليق التاجر <strong>{merchant.storeName}</strong>؟
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -376,7 +403,7 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
                   <AlertDialogHeader>
                     <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
                     <AlertDialogDescription>
-                      هل أنت متأكد من حذف التاجر <strong>{merchant.businessName}</strong>؟ 
+                      هل أنت متأكد من حذف التاجر <strong>{merchant.storeName}</strong>؟ 
                       هذا الإجراء لا يمكن التراجع عنه.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
@@ -502,39 +529,43 @@ export const columns: ColumnDef<Merchant>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "businessName",
-    header: "اسم العمل",
+    accessorKey: "storeName",
+    header: "اسم المتجر",
     cell: ({ row }) => (
-      <div className="font-medium">{row.getValue("businessName")}</div>
+      <div className="font-medium">{row.getValue("storeName")}</div>
     ),
   },
   {
-    accessorKey: "businessEmail",
+    accessorKey: "ownerName",
+    header: "اسم المالك",
+    cell: ({ row }) => (
+      <div>{row.getValue("ownerName") || "غير محدد"}</div>
+    ),
+  },
+  {
+    accessorKey: "email",
     header: "البريد الإلكتروني",
     cell: ({ row }) => (
-      <div>{row.getValue("businessEmail")}</div>
+      <div>{row.getValue("email")}</div>
     ),
   },
   {
-    accessorKey: "businessPhone",
+    accessorKey: "phone",
     header: "رقم الهاتف",
     cell: ({ row }) => (
-      <div>{row.getValue("businessPhone") || "غير محدد"}</div>
+      <div>{row.getValue("phone") || "غير محدد"}</div>
     ),
   },
   {
     accessorKey: "status",
     header: "الحالة",
     cell: ({ row }) => {
-      const status = row.getValue("status") as string;
-      const statusMap: Record<string, { label: string; className: string }> = {
-        PENDING: { label: "قيد المراجعة", className: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300" },
-        APPROVED: { label: "موافق عليه", className: "bg-green-500/15 text-green-700 dark:text-green-300" },
-        REJECTED: { label: "مرفوض", className: "bg-red-500/15 text-red-700 dark:text-red-300" },
-        SUSPENDED: { label: "معلق", className: "bg-orange-500/15 text-orange-700 dark:text-orange-300" },
+      const status = normalizeStatus(row.getValue("status") as string);
+      const statusInfo = STATUS_BADGES[status] || {
+        label: status,
+        className: "bg-muted text-muted-foreground",
       };
-      const statusInfo = statusMap[status] || { label: status, className: "bg-muted text-muted-foreground" };
-      
+
       return (
         <div className="capitalize">
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusInfo.className}`}>
@@ -545,7 +576,9 @@ export const columns: ColumnDef<Merchant>[] = [
     },
   },
   {
-    accessorKey: "appliedAt",
+    // The model has no `appliedAt` — it relies on Mongoose timestamps, so the
+    // application date is `createdAt`. The old accessor rendered undefined.
+    accessorKey: "createdAt",
     header: ({ column }) => {
       return (
         <Button
@@ -558,7 +591,7 @@ export const columns: ColumnDef<Merchant>[] = [
       );
     },
     cell: ({ row }) => {
-      const date = row.getValue("appliedAt") as string;
+      const date = row.getValue("createdAt") as string;
       return <DateCell dateString={date} />;
     },
   },
@@ -581,7 +614,7 @@ export function MerchantsTable({ merchants }: { merchants: Merchant[] }) {
 
   const filteredMerchants = React.useMemo(() => {
     if (statusFilter === "all") return merchants;
-    return merchants.filter(m => m.status === statusFilter);
+    return merchants.filter((m) => normalizeStatus(m.status) === statusFilter);
   }, [merchants, statusFilter]);
 
   const table = useReactTable({
@@ -607,29 +640,29 @@ export function MerchantsTable({ merchants }: { merchants: Merchant[] }) {
     <div className="w-full">
       <div className="flex items-center gap-4 py-4">
         <Input
-          placeholder="البحث باسم العمل..."
-          value={(table.getColumn("businessName")?.getFilterValue() as string) ?? ""}
+          placeholder="البحث باسم المتجر..."
+          value={(table.getColumn("storeName")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
-            table.getColumn("businessName")?.setFilterValue(event.target.value)
+            table.getColumn("storeName")?.setFilterValue(event.target.value)
           }
           className="max-w-sm"
         />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline">
-              {statusFilter === "all" ? "جميع الحالات" : 
-               statusFilter === "PENDING" ? "قيد المراجعة" :
-               statusFilter === "APPROVED" ? "موافق عليه" :
-               statusFilter === "SUSPENDED" ? "معلق" : "مرفوض"}
+              {statusFilter === "all"
+                ? "جميع الحالات"
+                : STATUS_BADGES[statusFilter]?.label ?? statusFilter}
               <ChevronDown className="mr-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem onClick={() => setStatusFilter("all")}>جميع الحالات</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter("PENDING")}>قيد المراجعة</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter("APPROVED")}>موافق عليه</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter("SUSPENDED")}>معلق</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter("REJECTED")}>مرفوض</DropdownMenuItem>
+            {Object.entries(STATUS_BADGES).map(([value, { label }]) => (
+              <DropdownMenuItem key={value} onClick={() => setStatusFilter(value)}>
+                {label}
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
         <DropdownMenu>
@@ -644,11 +677,12 @@ export function MerchantsTable({ merchants }: { merchants: Merchant[] }) {
               .filter((column) => column.getCanHide())
               .map((column) => {
                 const columnLabels: Record<string, string> = {
-                  businessName: "اسم العمل",
-                  businessEmail: "البريد الإلكتروني",
-                  businessPhone: "رقم الهاتف",
+                  storeName: "اسم المتجر",
+                  ownerName: "اسم المالك",
+                  email: "البريد الإلكتروني",
+                  phone: "رقم الهاتف",
                   status: "الحالة",
-                  appliedAt: "تاريخ التقديم",
+                  createdAt: "تاريخ التقديم",
                 };
 
                 return (

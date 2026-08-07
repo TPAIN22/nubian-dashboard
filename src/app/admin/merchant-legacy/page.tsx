@@ -6,17 +6,19 @@ import { auth } from '@clerk/nextjs/server';
 
 
 
+/** The raw Merchant document — model field names, lowercase status enum. */
 export type Merchant = {
   _id: string;
-  clerkId: string;
-  businessName: string;
-  businessDescription?: string;
-  businessEmail: string;
-  businessPhone?: string;
-  businessAddress?: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  userId: string;
+  storeName: string;
+  ownerName?: string;
+  description?: string;
+  email: string;
+  phone?: string;
+  city?: string;
+  logoUrl?: string;
+  status: "pending" | "approved" | "rejected" | "needs_revision" | "suspended";
   rejectionReason?: string;
-  appliedAt: string;
   approvedAt?: string;
   approvedBy?: string;
   createdAt: string;
@@ -47,8 +49,9 @@ async function getMerchants() {
       merchants = response.data.data;
     }
     
-    // Filter only approved merchants for brands
-    return merchants.filter((m: Merchant) => m.status === "APPROVED");
+    // Filter only approved merchants for brands. The enum is lowercase — the
+    // old "APPROVED" comparison matched nothing, so this table was always empty.
+    return merchants.filter((m: Merchant) => m.status?.toLowerCase() === "approved");
   } catch (error: any) {
     return [];
   }

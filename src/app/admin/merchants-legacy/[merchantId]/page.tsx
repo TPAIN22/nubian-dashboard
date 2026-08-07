@@ -13,18 +13,24 @@ interface PageProps {
   }>;
 }
 
+/**
+ * `GET /merchants/:id` returns the raw Merchant document — model field names,
+ * lowercase status enum. See `merchant.model.js`.
+ */
 export type Merchant = {
   _id: string;
-  clerkId: string;
-  businessName: string;
-  businessDescription?: string;
-  businessEmail: string;
-  businessPhone?: string;
-  businessAddress?: string;
-  status: "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
+  userId: string;
+  storeName: string;
+  ownerName?: string;
+  description?: string;
+  email: string;
+  phone?: string;
+  city?: string;
+  logoUrl?: string;
+  status: "pending" | "approved" | "rejected" | "needs_revision" | "suspended";
   rejectionReason?: string;
+  revisionNotes?: string;
   suspensionReason?: string;
-  appliedAt: string;
   approvedAt?: string;
   approvedBy?: string;
   suspendedAt?: string;
@@ -78,8 +84,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   return {
-    title: merchant.businessName,
-    description: merchant.businessDescription || `تفاصيل التاجر: ${merchant.businessName}`,
+    title: merchant.storeName,
+    description: merchant.description || `تفاصيل التاجر: ${merchant.storeName}`,
   };
 }
 
@@ -99,7 +105,7 @@ export default async function MerchantDetailsPage({ params }: PageProps) {
           التجار
         </Link>
         <ArrowRight className="h-4 w-4 rotate-180" />
-        <span className="text-foreground font-medium">{merchant.businessName}</span>
+        <span className="text-foreground font-medium">{merchant.storeName}</span>
       </nav>
 
       {/* Back Button */}

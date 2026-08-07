@@ -48,11 +48,20 @@ interface Product extends PricedProduct {
   updatedAt: string;
   merchant?: string | {
     _id: string;
-    businessName: string;
-    businessEmail: string;
+    storeName: string;
+    email?: string;
     status?: string;
   };
 }
+
+/** Keyed by the model's lowercase status enum — the badge used to hardcode green. */
+const STATUS_BADGE: Record<string, { label: string; className: string }> = {
+  pending: { label: "قيد المراجعة", className: "bg-yellow-100 text-yellow-800" },
+  approved: { label: "موافق عليه", className: "bg-green-100 text-green-800" },
+  rejected: { label: "مرفوض", className: "bg-red-100 text-red-800" },
+  needs_revision: { label: "يحتاج تعديل", className: "bg-blue-100 text-blue-800" },
+  suspended: { label: "معلق", className: "bg-orange-100 text-orange-800" },
+};
 
 interface MerchantDetailsViewProps {
   merchant: Merchant;
@@ -134,14 +143,14 @@ export function MerchantDetailsView({ merchant }: MerchantDetailsViewProps) {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold">{merchant.businessName}</h1>
+        <h1 className="text-3xl font-bold">{merchant.storeName}</h1>
         <p className="text-muted-foreground mt-1">معلومات العلامة التجارية والمنتجات المتاحة</p>
       </div>
 
       {/* Merchant Information */}
       <Card>
         <CardHeader>
-          <CardTitle>{merchant.businessName}</CardTitle>
+          <CardTitle>{merchant.storeName}</CardTitle>
           <CardDescription>معلومات العلامة التجارية</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -150,7 +159,7 @@ export function MerchantDetailsView({ merchant }: MerchantDetailsViewProps) {
               <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
               <div>
                 <p className="text-sm font-medium">البريد الإلكتروني</p>
-                <p className="text-sm text-muted-foreground">{merchant.businessEmail}</p>
+                <p className="text-sm text-muted-foreground">{merchant.email}</p>
               </div>
             </div>
             
@@ -159,17 +168,17 @@ export function MerchantDetailsView({ merchant }: MerchantDetailsViewProps) {
               <div>
                 <p className="text-sm font-medium">رقم الهاتف</p>
                 <p className="text-sm text-muted-foreground">
-                  {merchant.businessPhone || "غير محدد"}
+                  {merchant.phone || "غير محدد"}
                 </p>
               </div>
             </div>
             
-            {merchant.businessAddress && (
+            {merchant.city && (
               <div className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium">العنوان</p>
-                  <p className="text-sm text-muted-foreground">{merchant.businessAddress}</p>
+                  <p className="text-sm font-medium">المدينة</p>
+                  <p className="text-sm text-muted-foreground">{merchant.city}</p>
                 </div>
               </div>
             )}
@@ -185,23 +194,23 @@ export function MerchantDetailsView({ merchant }: MerchantDetailsViewProps) {
             </div>
           </div>
           
-          {merchant.businessDescription && (
+          {merchant.description && (
             <>
               <Separator />
               <div className="flex items-start gap-3">
                 <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="text-sm font-medium">الوصف</p>
-                  <p className="text-sm text-muted-foreground">{merchant.businessDescription}</p>
+                  <p className="text-sm text-muted-foreground">{merchant.description}</p>
                 </div>
               </div>
             </>
           )}
-          
+
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">الحالة:</span>
-            <Badge className="bg-green-100 text-green-800">
-              {merchant.status === "APPROVED" ? "موافق عليه" : merchant.status}
+            <Badge className={STATUS_BADGE[merchant.status]?.className ?? "bg-muted text-muted-foreground"}>
+              {STATUS_BADGE[merchant.status]?.label ?? merchant.status}
             </Badge>
           </div>
         </CardContent>

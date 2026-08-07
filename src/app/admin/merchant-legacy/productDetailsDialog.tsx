@@ -35,8 +35,8 @@ interface Product {
   updatedAt: string;
   merchant?: string | {
     _id: string;
-    businessName: string;
-    businessEmail: string;
+    storeName: string;
+    email?: string;
     status?: string;
   };
 }
