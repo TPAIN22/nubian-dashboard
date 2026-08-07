@@ -22,8 +22,17 @@ import {
 import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog'
 import BannerForm from './bannerForm'
 import type { BannerFormValues } from './bannerForm'
+import {
+  BANNER_TARGET_TYPE_LABELS,
+  toFormTarget,
+  type BannerTarget,
+} from '@/lib/bannerTarget'
 
-type Banner = BannerFormValues & { _id: string }
+/**
+ * `target` is optional here even though the form always produces one: banners
+ * created before targets existed come back from the API without the field.
+ */
+type Banner = Omit<BannerFormValues, 'target'> & { _id: string; target?: BannerTarget }
 
 /* ============================================================================
    Banners
@@ -131,6 +140,25 @@ export default function BannersPage() {
         header: 'العنوان',
         width: 'minmax(220px, 1fr)',
         cell: (b) => <CellTitle title={b.title || '—'} subtitle={b.description} />,
+      },
+      {
+        id: 'target',
+        header: 'الوجهة',
+        width: '150px',
+        cell: (b) => {
+          const target = toFormTarget(b.target)
+          if (target.type === 'none') return <span className="text-text-faint">—</span>
+          return (
+            <span className="inline-flex min-w-0 items-baseline gap-1.5">
+              <span>{BANNER_TARGET_TYPE_LABELS[target.type]}</span>
+              {target.type === 'url' && (
+                <span className="truncate text-text-faint" dir="ltr">
+                  {target.url}
+                </span>
+              )}
+            </span>
+          )
+        },
       },
       {
         id: 'order',

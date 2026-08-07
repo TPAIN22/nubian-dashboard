@@ -7,6 +7,7 @@ import {
   Gift,
   Image as ImageIcon,
   LayoutGrid,
+  LayoutList,
   LifeBuoy,
   MapPin,
   Megaphone,
@@ -106,6 +107,13 @@ export const ADMIN_GROUPS: NavGroup[] = [
         href: '/admin/banners',
         icon: ImageIcon,
         keywords: ['banners', 'campaigns', 'إعلانات', 'عروض'],
+      },
+      {
+        label: 'المجموعات',
+        href: '/admin/collections',
+        icon: LayoutList,
+        keywords: ['collections', 'curated', 'مجموعات', 'تشكيلات'],
+        children: [{ label: 'مجموعة جديدة', href: '/admin/collections/new' }],
       },
       {
         label: 'المسوقون',

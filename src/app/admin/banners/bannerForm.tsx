@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { SimpleImageUpload } from "@/components/simpleImageUpload";
 import { X, Loader2 } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
+import { BannerTargetField } from "./BannerTargetField";
+import { bannerTargetSchema, NONE_TARGET, toFormTarget } from "@/lib/bannerTarget";
 
 const bannerFormSchema = z.object({
   image: z.string()
@@ -27,6 +29,7 @@ const bannerFormSchema = z.object({
   description: z.string().trim(),
   order: z.coerce.number().min(0, "الترتيب يجب أن يكون رقم موجب"),
   isActive: z.boolean(),
+  target: bannerTargetSchema,
 });
 
 export type BannerFormValues = z.infer<typeof bannerFormSchema>;
@@ -45,7 +48,22 @@ const defaults: BannerFormValues = {
   description: "",
   order: 0,
   isActive: true,
+  target: NONE_TARGET,
 };
+
+/**
+ * Merge a banner being edited over the defaults.
+ *
+ * `target` goes through `toFormTarget` rather than a plain spread because a
+ * banner created before targets existed simply has no `target` key — and a
+ * spread would leave the field `undefined`, which the resolver would reject
+ * before the admin ever saw the form.
+ */
+const toFormValues = (banner?: BannerEdit): BannerFormValues => ({
+  ...defaults,
+  ...banner,
+  target: toFormTarget(banner?.target),
+});
 
 export default function BannerForm({ banner, onClose, onSuccess }: BannerFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,16 +71,12 @@ export default function BannerForm({ banner, onClose, onSuccess }: BannerFormPro
 
   const form = useForm<BannerFormValues>({
     resolver: zodResolver(bannerFormSchema),
-    defaultValues: banner ? { ...defaults, ...banner } : defaults,
+    defaultValues: toFormValues(banner),
     mode: "onChange",
   });
   const { getToken } = useAuth();
   useEffect(() => {
-    if (banner) {
-      form.reset({ ...defaults, ...banner });
-    } else {
-      form.reset(defaults);
-    }
+    form.reset(toFormValues(banner));
   }, [banner, form]);
 
   const onSubmit: SubmitHandler<BannerFormValues> = async (values) => {
@@ -242,10 +256,25 @@ export default function BannerForm({ banner, onClose, onSuccess }: BannerFormPro
             )}
           </div>
 
+          <BannerTargetField
+            value={form.watch("target")}
+            onChange={(target) =>
+              form.setValue("target", target, { shouldValidate: true, shouldDirty: true })
+            }
+            // The union reports errors on the active branch's field (target.id /
+            // target.url); fall back to the union-level message.
+            error={
+              (form.formState.errors.target as { message?: string } | undefined)?.message ??
+              (form.formState.errors.target as { id?: { message?: string } } | undefined)?.id?.message ??
+              (form.formState.errors.target as { url?: { message?: string } } | undefined)?.url?.message
+            }
+            disabled={isSubmitting}
+          />
+
           <div className="flex items-center gap-3">
-            <input 
-              type="checkbox" 
-              id="isActive" 
+            <input
+              type="checkbox"
+              id="isActive"
               {...form.register("isActive")} 
               className="w-4 h-4"
               disabled={isSubmitting}
