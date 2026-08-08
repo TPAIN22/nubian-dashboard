@@ -31,13 +31,16 @@ export default function Step4StoreProfile() {
   const description = watch('description')
   const categories = watch('categories') || []
   const logoUrl = watch('logoUrl')
+  const banner = watch('banner')
   const productSamples = watch('productSamples') || []
 
   const [isAiLoading, setIsAiLoading] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [isBannerUploading, setIsBannerUploading] = useState(false)
   const [suggestedCategories, setSuggestedCategories] = useState<string[]>([])
   const [categoryInput, setCategoryInput] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const bannerInputRef = useRef<HTMLInputElement>(null)
   const samplesInputRef = useRef<HTMLInputElement>(null)
   const [isSamplesUploading, setIsSamplesUploading] = useState(false)
 
@@ -96,6 +99,34 @@ export default function Step4StoreProfile() {
     } finally {
       setIsUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  /**
+   * Store cover. Optional, so a failed or skipped upload leaves the field empty
+   * and the application still submits — the app falls back to artwork derived
+   * from the logo.
+   */
+  const handleBannerUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('حجم الصورة يجب أن لا يتجاوز 15 ميجابايت')
+      return
+    }
+
+    setIsBannerUploading(true)
+    try {
+      const uploadedUrl = await uploadImageToImageKit(file, '/store-banners/')
+      setValue('banner', uploadedUrl, { shouldValidate: true })
+      toast.success('تم رفع صورة الغلاف!')
+    } catch (error) {
+      console.error('Banner upload error:', error)
+      toast.error('فشل رفع صورة الغلاف، يرجى المحاولة مرة أخرى')
+    } finally {
+      setIsBannerUploading(false)
+      if (bannerInputRef.current) bannerInputRef.current.value = ''
     }
   }
 
@@ -200,6 +231,51 @@ export default function Step4StoreProfile() {
           {errors.logoUrl && (
             <p className="text-sm text-red-500 mt-1.5">{errors.logoUrl.message as string}</p>
           )}
+        </div>
+
+        {/* Cover Upload — optional */}
+        <div>
+          <Label className="font-semibold block mb-2">غلاف المتجر</Label>
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            ref={bannerInputRef}
+            onChange={handleBannerUpload}
+          />
+          <div
+            onClick={() => !isBannerUploading && bannerInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-xl overflow-hidden transition-colors ${banner ? 'border-green-500' : 'border-border cursor-pointer hover:bg-muted/50'}`}
+          >
+            {isBannerUploading ? (
+              <div className="aspect-video flex flex-col items-center justify-center text-center">
+                <Loader2 className="w-8 h-8 text-primary animate-spin mb-2" />
+                <p className="text-sm font-medium">جاري الرفع...</p>
+              </div>
+            ) : banner ? (
+              <div className="relative group aspect-video">
+                <img src={banner} alt="Store cover" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setValue('banner', '')
+                  }}
+                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <div className="aspect-video flex flex-col items-center justify-center text-center p-6">
+                <UploadCloud className="w-8 h-8 text-muted-foreground mb-2" />
+                <p className="text-sm font-medium">اضغط لرفع صورة الغلاف</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  اختياري — صورة عريضة 16:9 تظهر أعلى صفحة متجرك
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Product Samples Upload */}

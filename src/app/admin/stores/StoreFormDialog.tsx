@@ -40,6 +40,7 @@ type FormState = {
   crNumber: string;
   iban: string;
   logoUrl: string;
+  banner: string;
 };
 
 const EMPTY: FormState = {
@@ -54,6 +55,7 @@ const EMPTY: FormState = {
   crNumber: "",
   iban: "",
   logoUrl: "",
+  banner: "",
 };
 
 const fromStore = (store: Store): FormState => ({
@@ -68,6 +70,7 @@ const fromStore = (store: Store): FormState => ({
   crNumber: store.crNumber ?? "",
   iban: store.iban ?? "",
   logoUrl: store.logoUrl ?? "",
+  banner: store.banner ?? "",
 });
 
 /**
@@ -120,9 +123,10 @@ export function StoreFormDialog({ store }: { store?: Store }) {
             crNumber: optional(form.crNumber),
             iban: optional(form.iban),
             // On edit an empty string is meaningful — it's how an admin clears
-            // an existing logo (the controller only applies keys that are
+            // an existing image (the controller only applies keys that are
             // present). On create it would just persist "", so send undefined.
             logoUrl: isEdit ? form.logoUrl.trim() : optional(form.logoUrl),
+            banner: isEdit ? form.banner.trim() : optional(form.banner),
           }),
         }
       );
@@ -263,6 +267,18 @@ export function StoreFormDialog({ store }: { store?: Store }) {
             />
             <p className="text-xs text-muted-foreground">
               اختياري — يظهر بجانب اسم المتجر في التطبيق. يمكن للتاجر تغييره بعد ربط المتجر بحسابه.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>غلاف المتجر</Label>
+            <SimpleImageUpload
+              value={form.banner || undefined}
+              onChange={(url) => set({ banner: url ?? "" })}
+            />
+            <p className="text-xs text-muted-foreground">
+              اختياري — صورة عريضة (16:9، 1600×900 على الأقل) تظهر خلف رأس صفحة المتجر في التطبيق.
+              إن تُركت فارغة يولّد التطبيق غلافاً من الشعار أو من اسم المتجر.
             </p>
           </div>
 

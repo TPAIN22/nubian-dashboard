@@ -37,9 +37,11 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
   const viewerSrc: string | null =
     viewerIndex === -2
       ? app?.logoUrl ?? null
-      : viewerIndex >= 0
-        ? app?.productSamples?.[viewerIndex] ?? null
-        : null;
+      : viewerIndex === -3
+        ? app?.banner ?? null
+        : viewerIndex >= 0
+          ? app?.productSamples?.[viewerIndex] ?? null
+          : null;
 
   useEffect(() => {
     if (viewerIndex === -1) return;
@@ -367,6 +369,28 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
                 </button>
               ) : (
                 <div className="w-24 h-24 rounded-xl border border-dashed border-border bg-muted flex items-center justify-center text-xs text-muted-foreground">No logo</div>
+              )}
+            </div>
+
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-3">Store Cover</p>
+              {app.banner ? (
+                <button
+                  type="button"
+                  onClick={() => setViewerIndex(-3)}
+                  className="group relative aspect-video w-full max-w-xs rounded-xl border border-border bg-background shadow-sm cursor-pointer hover:ring-2 hover:ring-primary transition-all overflow-hidden"
+                >
+                  <img src={app.banner} alt="Store Cover" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="text-white text-[10px] font-medium px-2 py-0.5 bg-black/50 rounded-full backdrop-blur-sm">View Full</span>
+                  </div>
+                </button>
+              ) : (
+                // Optional by design — the app generates a cover from the logo,
+                // so this is never a reason to hold up an application.
+                <div className="aspect-video w-full max-w-xs rounded-xl border border-dashed border-border bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                  No cover — the app will generate one
+                </div>
               )}
             </div>
 

@@ -91,6 +91,16 @@ export default function Step5Review() {
                 className="w-16 h-16 rounded-lg border object-cover"
               />
             </div>
+            {data.banner && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-2">غلاف المتجر</p>
+                <img
+                  src={data.banner}
+                  alt="Store cover"
+                  className="aspect-video w-full max-w-sm rounded-lg border object-cover"
+                />
+              </div>
+            )}
             <div>
               <p className="text-xs text-muted-foreground mb-2">
                 عينات المنتجات ({data.productSamples?.length || 0})

@@ -31,6 +31,8 @@ export type Store = {
   crNumber?: string;
   iban?: string;
   logoUrl?: string;
+  /** Wide storefront cover shown behind the store hero in the app. Optional. */
+  banner?: string;
   status: string;
   claimStatus: "unclaimed" | "claimed";
   claimRequestedBy?: string | null;

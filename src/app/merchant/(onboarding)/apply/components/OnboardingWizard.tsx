@@ -23,7 +23,7 @@ const steps = [
   {
     id: 4,
     title: 'ملف المتجر',
-    fields: ['description', 'categories', 'city', 'logoUrl', 'productSamples'],
+    fields: ['description', 'categories', 'city', 'logoUrl', 'banner', 'productSamples'],
   },
   { id: 5, title: 'المراجعة', fields: ['agreedToTerms'] },
 ]
@@ -94,6 +94,7 @@ export default function OnboardingWizard() {
       crNumber: '',
       iban: '',
       logoUrl: '',
+      banner: '',
       description: '',
       categories: [],
       city: '',
@@ -158,6 +159,7 @@ export default function OnboardingWizard() {
               crNumber: app.crNumber || '',
               iban: app.iban,
               logoUrl: app.logoUrl || '',
+              banner: app.banner || '',
               description: app.description,
               categories: app.categories || [],
               city: app.city,

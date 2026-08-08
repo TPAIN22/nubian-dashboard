@@ -14,6 +14,7 @@ import {
   Field,
   FieldGrid,
   FormSection,
+  ImageUploadField,
   Input,
   Page,
   PageBody,
@@ -51,6 +52,10 @@ const schema = z.object({
   phone: z.string().optional(),
   description: z.string().optional(),
   city: z.string().optional(),
+  // Empty string is a real value, not a missing one: it is how the merchant
+  // clears an existing image, and the API applies any key that is present.
+  logoUrl: z.string().optional(),
+  banner: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -61,6 +66,8 @@ const EMPTY: FormValues = {
   phone: '',
   description: '',
   city: '',
+  logoUrl: '',
+  banner: '',
 }
 
 export default function MerchantSettingsPage() {
@@ -74,8 +81,13 @@ export default function MerchantSettingsPage() {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors, isDirty },
   } = form
+
+  const logoUrl = watch('logoUrl')
+  const banner = watch('banner')
 
   // A 404 means there is no merchant record yet — that user belongs in the
   // application flow, not in settings.
@@ -93,6 +105,8 @@ export default function MerchantSettingsPage() {
       phone: profile.data.phone || '',
       description: profile.data.description || '',
       city: profile.data.city || '',
+      logoUrl: profile.data.logoUrl || '',
+      banner: profile.data.banner || '',
     })
   }, [profile.data, reset])
 
@@ -155,6 +169,40 @@ export default function MerchantSettingsPage() {
                   rows={4}
                   placeholder="أخبر عملاءك عن متجرك…"
                   {...register('description')}
+                />
+              </Field>
+            </FormSection>
+
+            <FormSection
+              title="صور المتجر"
+              description="الشعار والغلاف كما يظهران في أعلى صفحة متجرك داخل التطبيق."
+            >
+              <Field
+                label="شعار المتجر"
+                hint="اختياري — صورة مربعة. يظهر بجانب اسم متجرك وفي قائمة المتاجر."
+                error={errors.logoUrl?.message}
+              >
+                <ImageUploadField
+                  value={logoUrl}
+                  // `shouldDirty` is what raises the sticky save bar — without it
+                  // an upload would look saved while nothing had been sent.
+                  onChange={(url) => setValue('logoUrl', url, { shouldDirty: true })}
+                  aspect="square"
+                  folder="/merchant-logos/"
+                  placeholder="اسحب الشعار هنا أو اضغط للاختيار"
+                />
+              </Field>
+
+              <Field
+                label="صورة الغلاف"
+                hint="اختياري — مقاس 16:9 (يفضّل 1600×900). إن تركتها فارغة يعرض التطبيق غلافاً تلقائياً مستمداً من شعارك."
+                error={errors.banner?.message}
+              >
+                <ImageUploadField
+                  value={banner}
+                  onChange={(url) => setValue('banner', url, { shouldDirty: true })}
+                  folder="/store-banners/"
+                  placeholder="اسحب صورة الغلاف هنا أو اضغط للاختيار"
                 />
               </Field>
             </FormSection>

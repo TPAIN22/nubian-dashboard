@@ -25,6 +25,9 @@ export const merchantRegistrationSchema = z
       .min(12, 'رقم الآيبان قصير جداً'),
 
     logoUrl: z.string().min(1, 'يرجى رفع شعار المتجر'),
+    // Optional, unlike the logo: a cover improves the storefront but must never
+    // block an application. The app generates one from the logo when it is absent.
+    banner: z.string().optional(),
     description: z.string().min(35, 'يرجى تقديم وصف أدق للمتجر (350 حرفاً كحد أدنى)'),
     categories: z.array(z.string()).min(1, 'يرجى اختيار فئة واحدة على الأقل'),
     city: z.string().min(1, 'يرجى اختيار مدينتك'),
