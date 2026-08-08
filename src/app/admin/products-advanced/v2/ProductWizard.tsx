@@ -1217,7 +1217,7 @@ function BasicInfoStep({ categories, onUpload, addCategoryPath, showMerchantPick
                                                     {...field}
                                                     onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
                                                 />
-                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-bold opacity-40">SAR</span>
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-bold opacity-40">USD</span>
                                             </div>
                                         </FormControl>
                                         <FormMessage />
@@ -1264,7 +1264,7 @@ function BasicInfoStep({ categories, onUpload, addCategoryPath, showMerchantPick
                                                     value={field.value ?? 0}
                                                     onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
                                                 />
-                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-bold opacity-40">SAR</span>
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-bold opacity-40">USD</span>
                                             </div>
                                         </FormControl>
                                         <p className="text-xs text-muted-foreground">
@@ -1775,7 +1775,7 @@ function DiscountSection({
                                     onChange={(e) => setField("value", parseFloat(e.target.value) || 0)}
                                 />
                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground opacity-60">
-                                    {isPercentage ? "%" : "SAR"}
+                                    {isPercentage ? "%" : "USD"}
                                 </span>
                             </div>
                             {discountErrors?.value?.message && (
@@ -1801,7 +1801,7 @@ function DiscountSection({
                                         }}
                                     />
                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground opacity-60">
-                                        SAR
+                                        USD
                                     </span>
                                 </div>
                                 <p className="text-xs text-muted-foreground">
@@ -1920,7 +1920,7 @@ function MerchantDiscountInput({
                     onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
                 />
                 <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground opacity-60">
-                    SAR
+                    USD
                 </span>
             </div>
             {exceeds && (

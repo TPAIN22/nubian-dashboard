@@ -140,7 +140,7 @@ export function computeEnginePricing({
   //
   // With merchantPrice 0 the backend still runs its `if (final < 1) final = 1`
   // floor and returns finalPrice 1. Here we return zeros so an unpriced draft
-  // renders "—" instead of advertising a 1 SAR product to the admin. This is
+  // renders "—" instead of advertising a 1 USD product to the admin. This is
   // unreachable as a real product state: the wizard's zod schema requires
   // merchantPrice >= 1 and the backend rejects a variant with merchantPrice 0,
   // so nothing that can be SAVED takes this branch.
