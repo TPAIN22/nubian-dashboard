@@ -19,7 +19,7 @@ import {
   StatRowSkeleton,
 } from '@/components/admin'
 import { formatCurrency } from '@/lib/currency'
-import { useMerchantProducts, useMerchantStats, useMerchantStatus } from '@/features/merchant/api'
+import { useMerchantProducts, useMerchantProfile, useMerchantStats } from '@/features/merchant/api'
 
 /* ============================================================================
    Merchant overview
@@ -37,25 +37,35 @@ const nf = new Intl.NumberFormat('en-US')
 
 export default function MerchantOverviewPage() {
   const router = useRouter()
-  const status = useMerchantStatus()
+  const profile = useMerchantProfile()
   const stats = useMerchantStats()
   const products = useMerchantProducts()
 
-  const store = status.data?.application
-  const storeName = store?.storeName
+  const storeName = profile.data?.storeName
 
   // The middleware is the real gate, but Clerk claims can lag behind an admin
   // suspending a store mid-session. Trust the record, not the JWT.
+  //
+  // Read from my-profile, never my-status. `my-status` reports on the caller's
+  // own merchant APPLICATION, and somebody who joined a store by invitation
+  // does not have one — it answers `hasApplication: false`, which sent every
+  // staff member straight back to the apply form they could never complete.
+  // `my-profile` returns the store the backend resolved this request against.
   React.useEffect(() => {
-    if (!status.data) return
-    if (!status.data.hasApplication) {
+    const err = profile.error as { status?: number; code?: string } | null
+    if (!err) return
+
+    // No store at all — this person belongs in the application flow.
+    if (err.code === 'MERCHANT_NOT_FOUND') {
       router.replace('/merchant/apply')
       return
     }
-    if (store && store.status?.toUpperCase() !== 'APPROVED') {
+    // Any other refusal from this endpoint means a store exists but is not
+    // currently operable: suspended, or approval withdrawn mid-session.
+    if (err.status === 403) {
       router.replace('/merchant/pending')
     }
-  }, [status.data, store, router])
+  }, [profile.error, router])
 
   const isLoading = stats.isLoading || products.isLoading
   const isError = stats.isError && products.isError
