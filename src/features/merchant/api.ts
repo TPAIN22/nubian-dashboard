@@ -461,6 +461,24 @@ export type StoreMembership = {
   permissions: string[]
 }
 
+/**
+ * Permission strings, mirrored from the backend's `lib/merchantPermissions.js`.
+ *
+ * Routes are gated on these, never on the role name, so a screen that wants to
+ * know whether to render a control asks for the permission rather than
+ * comparing roles. Keep the values in step with the backend table.
+ */
+export const STORE_PERMISSIONS = {
+  /** Storefront identity: name, description, logo, banner. Owner only. */
+  PROFILE_WRITE: 'profile:write',
+  /** Payout and compliance fields. Owner only. */
+  PAYOUTS_WRITE: 'payouts:write',
+  /** Invite, re-role and revoke members. Owner only. */
+  TEAM_WRITE: 'team:write',
+  PRODUCTS_WRITE: 'products:write',
+  COUPONS_WRITE: 'coupons:write',
+} as const
+
 export const ROLE_LABELS: Record<StoreRole, string> = {
   owner: 'مالك المتجر',
   manager: 'مدير',
@@ -499,6 +517,40 @@ export function useStoreTeam() {
     },
     staleTime: 30_000,
   })
+}
+
+/**
+ * What the signed-in person may do in the store the console is currently
+ * operating.
+ *
+ * Derived from the team query rather than a second endpoint: reading the team
+ * is open to every member, it already reports the caller's own role and
+ * permissions in `meta`, and sharing the one query means a screen that shows
+ * both the team and a permission-gated control fetches once.
+ *
+ * Advisory only. The backend re-checks the permission on every write, so a
+ * hidden or disabled control is a courtesy to the user — never the thing that
+ * enforces the rule.
+ */
+export function useStorePermissions() {
+  const team = useStoreTeam()
+  const permissions = team.data?.permissions ?? []
+
+  return {
+    role: team.data?.role ?? null,
+    permissions,
+    can: (permission: string) => permissions.includes(permission),
+    // Callers gate on this so a form does not render editable for a moment and
+    // then lock itself once the answer lands.
+    isLoading: team.isLoading,
+    /**
+     * The request failed, so we know nothing — not "you may do nothing".
+     * A screen should fall open rather than closed here: locking an owner out
+     * of their own settings because an unrelated call timed out is worse than
+     * letting the request through to the backend, which enforces regardless.
+     */
+    isUnknown: team.isError,
+  }
 }
 
 /**

@@ -9,7 +9,9 @@ import * as z from 'zod'
 import { toast } from 'sonner'
 
 import {
+  Alert,
   Button,
+  DetailRow,
   ErrorState,
   Field,
   FieldGrid,
@@ -20,15 +22,19 @@ import {
   PageBody,
   PageHeader,
   Skeleton,
+  StatusBadge,
   StickyBar,
   Textarea,
 } from '@/components/admin'
 import {
+  ROLE_LABELS,
+  STORE_PERMISSIONS,
   merchantKeys,
   merchantRequest,
   useInvalidateMerchant,
   useMerchantProfile,
   useMerchantStatus,
+  useStorePermissions,
 } from '@/features/merchant/api'
 
 /* ============================================================================
@@ -38,6 +44,12 @@ import {
    save rail that only appears once something is dirty. The old version buried
    Save at the bottom of a card, so on a short viewport you had to scroll to
    find out whether you had already saved.
+
+   Who a store *is* belongs to whoever owns it. `PUT /merchants/my-profile` is
+   gated on `profile:write`, which only the owner holds, so for a manager or a
+   member of staff this screen is a read-only view of their shop: the controls
+   render disabled and the save rail never appears. Before this, they got the
+   full form and a 403 on save.
    ========================================================================== */
 
 /**
@@ -75,6 +87,15 @@ export default function MerchantSettingsPage() {
   const profile = useMerchantProfile()
   const status = useMerchantStatus()
   const invalidate = useInvalidateMerchant()
+  const perms = useStorePermissions()
+
+  // Until the answer is in, assume no — rendering an editable form and then
+  // locking it a moment later is worse than a beat of read-only. If the lookup
+  // *failed*, though, fall open: the backend rejects a save without
+  // `profile:write` anyway, and an owner shut out of their own settings by an
+  // unrelated timeout has no way forward.
+  const canEdit = perms.can(STORE_PERMISSIONS.PROFILE_WRITE) || perms.isUnknown
+  const readOnly = !canEdit
 
   const form = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: EMPTY })
   const {
@@ -126,6 +147,13 @@ export default function MerchantSettingsPage() {
     onError: (e: Error) => toast.error(e.message || 'تعذر حفظ التغييرات'),
   })
 
+  // Disabled inputs still leave Enter-to-submit on the form itself, so the
+  // permission is checked here too rather than only on the controls.
+  const submit = (values: FormValues) => {
+    if (!canEdit) return
+    save.mutate(values)
+  }
+
   const store = status.data?.application
 
   if (profile.isError && (profile.error as { status?: number })?.status !== 404) {
@@ -148,16 +176,27 @@ export default function MerchantSettingsPage() {
       <PageHeader title="إعدادات المتجر" description="البيانات التي يراها عملاؤك وفريق نُوبيان." />
 
       <PageBody variant="narrow">
-        {profile.isLoading ? (
+        {profile.isLoading || perms.isLoading ? (
           <FormSkeleton />
         ) : (
-          <form onSubmit={handleSubmit((v) => save.mutate(v))} noValidate>
+          <form onSubmit={handleSubmit(submit)} noValidate>
+            {readOnly && (
+              <Alert tone="neutral" className="mb-5">
+                هذه بيانات متجرك للاطلاع فقط. تعديل هوية المتجر وبيانات التواصل متاح لمالك المتجر
+                وحده.
+              </Alert>
+            )}
+
             <FormSection
               title="هوية المتجر"
               description="الاسم الذي يظهر للعملاء على صفحة متجرك وفي كل طلب."
             >
               <Field label="اسم المتجر" required error={errors.storeName?.message}>
-                <Input placeholder="مثال: متجر النيل" {...register('storeName')} />
+                <Input
+                  placeholder="مثال: متجر النيل"
+                  {...register('storeName')}
+                  disabled={readOnly}
+                />
               </Field>
 
               <Field
@@ -169,6 +208,7 @@ export default function MerchantSettingsPage() {
                   rows={4}
                   placeholder="أخبر عملاءك عن متجرك…"
                   {...register('description')}
+                  disabled={readOnly}
                 />
               </Field>
             </FormSection>
@@ -189,7 +229,10 @@ export default function MerchantSettingsPage() {
                   onChange={(url) => setValue('logoUrl', url, { shouldDirty: true })}
                   aspect="square"
                   folder="/merchant-logos/"
-                  placeholder="اسحب الشعار هنا أو اضغط للاختيار"
+                  // A read-only viewer with no logo should be told there isn't
+                  // one, not invited to drop a file onto a dead control.
+                  placeholder={readOnly ? 'لا يوجد شعار' : 'اسحب الشعار هنا أو اضغط للاختيار'}
+                  disabled={readOnly}
                 />
               </Field>
 
@@ -202,7 +245,10 @@ export default function MerchantSettingsPage() {
                   value={banner}
                   onChange={(url) => setValue('banner', url, { shouldDirty: true })}
                   folder="/store-banners/"
-                  placeholder="اسحب صورة الغلاف هنا أو اضغط للاختيار"
+                  placeholder={
+                    readOnly ? 'لا توجد صورة غلاف' : 'اسحب صورة الغلاف هنا أو اضغط للاختيار'
+                  }
+                  disabled={readOnly}
                 />
               </Field>
             </FormSection>
@@ -218,6 +264,7 @@ export default function MerchantSettingsPage() {
                     dir="ltr"
                     placeholder="business@example.com"
                     {...register('email')}
+                    disabled={readOnly}
                   />
                 </Field>
                 <Field label="رقم الهاتف" error={errors.phone?.message}>
@@ -226,6 +273,7 @@ export default function MerchantSettingsPage() {
                     dir="ltr"
                     placeholder="+249123456789"
                     {...register('phone')}
+                    disabled={readOnly}
                   />
                 </Field>
               </FieldGrid>
@@ -233,7 +281,7 @@ export default function MerchantSettingsPage() {
               {/* The Merchant model stores `city`, not a free-text address — the
                   old address textarea had nowhere to be saved. */}
               <Field label="المدينة" error={errors.city?.message}>
-                <Input placeholder="مثال: جدة" {...register('city')} />
+                <Input placeholder="مثال: جدة" {...register('city')} disabled={readOnly} />
               </Field>
             </FormSection>
 
@@ -242,21 +290,28 @@ export default function MerchantSettingsPage() {
                 title="حالة الحساب"
                 description="تُدار من قبل فريق نُوبيان ولا يمكن تعديلها من هنا."
               >
-                <dl className="rounded-lg border border-border bg-canvas px-3.5 py-1">
-                  <div className="flex items-baseline justify-between gap-4 border-b border-border py-2.5 last:border-b-0">
-                    <dt className="text-[12px] text-text-muted">حالة المتجر</dt>
-                    <dd className="text-[12px] font-medium text-foreground">
-                      {store.status?.toUpperCase() === 'APPROVED' ? 'معتمد' : store.status}
-                    </dd>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-4 border-b border-border py-2.5 last:border-b-0">
-                    <dt className="text-[12px] text-text-muted">تاريخ الانضمام</dt>
-                    <dd className="text-[12px] font-medium text-foreground nums">
-                      {store.createdAt
-                        ? new Date(store.createdAt).toLocaleDateString('en-CA')
-                        : '—'}
-                    </dd>
-                  </div>
+                {/* DetailRow + StatusBadge rather than a hand-built table: a
+                    store's status should read the same here as it does on the
+                    admin's view of the same store. */}
+                <dl className="divide-y divide-border rounded-lg border border-border bg-canvas px-3.5 py-1">
+                  <DetailRow label="حالة المتجر" className="py-2.5">
+                    <StatusBadge
+                      status={store.status}
+                      label={
+                        store.status?.toUpperCase() === 'APPROVED' ? 'معتمد' : store.status
+                      }
+                    />
+                  </DetailRow>
+                  <DetailRow label="تاريخ الانضمام" className="py-2.5">
+                    {store.createdAt
+                      ? new Date(store.createdAt).toLocaleDateString('en-CA')
+                      : '—'}
+                  </DetailRow>
+                  {perms.role && (
+                    <DetailRow label="دورك في المتجر" className="py-2.5">
+                      {ROLE_LABELS[perms.role]}
+                    </DetailRow>
+                  )}
                 </dl>
               </FormSection>
             )}
@@ -265,7 +320,7 @@ export default function MerchantSettingsPage() {
       </PageBody>
 
       <StickyBar
-        visible={isDirty || save.isPending}
+        visible={canEdit && (isDirty || save.isPending)}
         status={save.isPending ? 'جارٍ الحفظ…' : 'لديك تغييرات غير محفوظة'}
       >
         <Button
@@ -281,7 +336,7 @@ export default function MerchantSettingsPage() {
           variant="primary"
           size="sm"
           loading={save.isPending}
-          onClick={handleSubmit((v) => save.mutate(v))}
+          onClick={handleSubmit(submit)}
         >
           حفظ التغييرات
         </Button>

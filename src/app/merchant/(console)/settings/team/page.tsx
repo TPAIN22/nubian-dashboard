@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { UserPlus, Users } from 'lucide-react'
+import { RefreshCw, UserPlus, Users } from 'lucide-react'
 import { toast } from 'sonner'
 
 import {
@@ -13,19 +13,21 @@ import {
   ErrorState,
   Field,
   FieldGrid,
-  FormSection,
   Input,
   Page,
   PageBody,
   PageHeader,
+  Section,
   Select,
   StatusBadge,
   type Column,
 } from '@/components/admin'
 import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   ROLE_DESCRIPTIONS,
   ROLE_LABELS,
+  STORE_PERMISSIONS,
   useInviteMember,
   useRemoveMember,
   useStoreTeam,
@@ -42,6 +44,12 @@ import {
    store row. This screen is the front end of the membership model that replaced
    that: several people can run one shop, with what each may do decided by role.
 
+   Shaped like every other list in the console — a full-bleed panel holding the
+   table, actions on the page header, and the create flow in a dialog. It was
+   originally built out of the form primitives, which squeezed a five-column
+   member table into the field column of a 46rem reading measure and left it
+   looking like a screen from a different product.
+
    Everything here is advisory. The backend gates each route on a permission and
    re-checks membership on every request, so hiding a control is a courtesy to
    the user, never the thing that stops them.
@@ -57,19 +65,17 @@ function statusBadge(member: StoreMember) {
 
 export default function MerchantTeamPage() {
   const team = useStoreTeam()
-  const invite = useInviteMember()
   const updateRole = useUpdateMemberRole()
   const remove = useRemoveMember()
   const transfer = useTransferOwnership()
 
-  const [email, setEmail] = React.useState('')
-  const [role, setRole] = React.useState<StoreRole>('staff')
+  const [inviteOpen, setInviteOpen] = React.useState(false)
   const [confirmRemove, setConfirmRemove] = React.useState<StoreMember | null>(null)
   const [confirmTransfer, setConfirmTransfer] = React.useState<StoreMember | null>(null)
 
   // The caller's own role arrives in `meta`, not by matching the signed-in user
   // against the member list — the browser has no Clerk id to match on.
-  const canManage = team.data?.permissions?.includes('team:write') ?? false
+  const canManage = team.data?.permissions?.includes(STORE_PERMISSIONS.TEAM_WRITE) ?? false
   const isOwner = team.data?.role === 'owner'
 
   // Revoked rows are kept by the backend as an audit trail; they are not part of
@@ -78,22 +84,6 @@ export default function MerchantTeamPage() {
     () => (team.data?.members ?? []).filter((m) => m.status !== 'revoked'),
     [team.data?.members],
   )
-
-  const submitInvite = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!email.trim()) return
-    invite.mutate(
-      { email: email.trim(), role },
-      {
-        onSuccess: () => {
-          toast.success(`تم إرسال الدعوة إلى ${email.trim()}`)
-          setEmail('')
-          setRole('staff')
-        },
-        onError: (err: Error) => toast.error(err.message || 'تعذر إرسال الدعوة'),
-      },
-    )
-  }
 
   const columns: Column<StoreMember>[] = React.useMemo(
     () => [
@@ -211,59 +201,42 @@ export default function MerchantTeamPage() {
       <PageHeader
         title="فريق المتجر"
         description="من يستطيع الدخول إلى متجرك، وما الذي يستطيع فعله."
+        actions={
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => team.refetch()}
+              loading={team.isFetching && !team.isLoading}
+              aria-label="تحديث"
+            >
+              <RefreshCw />
+              تحديث
+            </Button>
+            {canManage && (
+              <Button variant="primary" size="sm" onClick={() => setInviteOpen(true)}>
+                <UserPlus />
+                دعوة عضو
+              </Button>
+            )}
+          </>
+        }
       />
 
-      <PageBody variant="narrow">
+      <PageBody variant="flush">
         {!canManage && !team.isLoading && (
-          <Alert tone="neutral">
-            يمكنك الاطلاع على أعضاء الفريق فقط. إدارة الفريق متاحة لمالك المتجر.
+          <Alert tone="neutral" className="mx-4 mt-4">
+            يمكنك الاطلاع على أعضاء الفريق فقط. إدارة الفريق وإعدادات المتجر متاحة لمالك المتجر.
           </Alert>
         )}
 
-        {canManage && (
-          <FormSection
-            title="دعوة عضو جديد"
-            description="سنرسل رابط انضمام إلى هذا البريد. لا يحتاج الشخص إلى حساب على نُوبيان مسبقاً."
-          >
-            <form onSubmit={submitInvite} noValidate>
-              <FieldGrid>
-                <Field label="البريد الإلكتروني" required>
-                  <Input
-                    type="email"
-                    dir="ltr"
-                    placeholder="colleague@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </Field>
-                <Field label="الصلاحية" hint={ROLE_DESCRIPTIONS[role]}>
-                  <Select value={role} onChange={(e) => setRole(e.target.value as StoreRole)}>
-                    {ASSIGNABLE.map((r) => (
-                      <option key={r} value={r}>
-                        {ROLE_LABELS[r]}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-              </FieldGrid>
-
-              <div className="mt-3 flex justify-end">
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="sm"
-                  loading={invite.isPending}
-                  disabled={!email.trim()}
-                >
-                  <UserPlus className="size-3.5" />
-                  إرسال الدعوة
-                </Button>
-              </div>
-            </form>
-          </FormSection>
-        )}
-
-        <FormSection title="الأعضاء" description="مالك واحد لكل متجر. الأدوار تراكمية.">
+        <Section
+          variant="panel"
+          flush
+          className="m-4 rounded-lg"
+          title="الأعضاء"
+          description="مالك واحد لكل متجر. الأدوار تراكمية."
+        >
           <DataTable
             data={visibleMembers}
             columns={columns}
@@ -275,11 +248,21 @@ export default function MerchantTeamPage() {
                 icon={<Users className="size-4" />}
                 title="لا يوجد أعضاء بعد"
                 description="ادعُ زميلاً ليساعدك في إدارة الطلبات والمنتجات."
+                action={
+                  canManage ? (
+                    <Button variant="primary" size="sm" onClick={() => setInviteOpen(true)}>
+                      <UserPlus />
+                      دعوة عضو
+                    </Button>
+                  ) : undefined
+                }
               />
             }
           />
-        </FormSection>
+        </Section>
       </PageBody>
+
+      <InviteDialog open={inviteOpen} onOpenChange={setInviteOpen} />
 
       <ConfirmDialog
         open={Boolean(confirmRemove)}
@@ -305,7 +288,7 @@ export default function MerchantTeamPage() {
         open={Boolean(confirmTransfer)}
         onOpenChange={(open) => !open && setConfirmTransfer(null)}
         title="نقل ملكية المتجر؟"
-        description={`سيصبح ${confirmTransfer?.email ?? ''} مالك المتجر، وستتحول أنت إلى مدير. لن تتمكن من التراجع عن هذا بنفسك.`}
+        description={`سيصبح ${confirmTransfer?.email ?? ''} مالك المتجر، وستتحول أنت إلى مدير — بما في ذلك فقدان تعديل إعدادات المتجر. لن تتمكن من التراجع عن هذا بنفسك.`}
         variant="destructive"
         confirmText="نقل الملكية"
         loading={transfer.isPending}
@@ -321,5 +304,101 @@ export default function MerchantTeamPage() {
         }}
       />
     </Page>
+  )
+}
+
+/* ============================================================================
+   Invite
+   ----------------------------------------------------------------------------
+   A dialog rather than a band above the table, for the same reason the support
+   composer is one: inviting is occasional, and a permanent form pushes the
+   thing you came to read down the page.
+   ========================================================================== */
+
+function InviteDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const invite = useInviteMember()
+  const [email, setEmail] = React.useState('')
+  const [role, setRole] = React.useState<StoreRole>('staff')
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email.trim()) return
+    invite.mutate(
+      { email: email.trim(), role },
+      {
+        onSuccess: () => {
+          toast.success(`تم إرسال الدعوة إلى ${email.trim()}`)
+          setEmail('')
+          setRole('staff')
+          onOpenChange(false)
+        },
+        onError: (err: Error) => toast.error(err.message || 'تعذر إرسال الدعوة'),
+      },
+    )
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-[15px]">دعوة عضو جديد</DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={submit} noValidate>
+          <p className="mb-4 text-[12px] leading-5 text-text-muted">
+            سنرسل رابط انضمام إلى هذا البريد. لا يحتاج الشخص إلى حساب على نُوبيان مسبقاً.
+          </p>
+
+          <FieldGrid>
+            <Field label="البريد الإلكتروني" required>
+              <Input
+                type="email"
+                dir="ltr"
+                placeholder="colleague@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </Field>
+            <Field label="الصلاحية" hint={ROLE_DESCRIPTIONS[role]}>
+              <Select value={role} onChange={(e) => setRole(e.target.value as StoreRole)}>
+                {ASSIGNABLE.map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_LABELS[r]}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </FieldGrid>
+
+          <div className="mt-5 flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => onOpenChange(false)}
+              disabled={invite.isPending}
+            >
+              إلغاء
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              loading={invite.isPending}
+              disabled={!email.trim()}
+            >
+              <UserPlus />
+              إرسال الدعوة
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
