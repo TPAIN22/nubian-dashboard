@@ -57,6 +57,7 @@ export function Sidebar({
   nav,
   counts,
   brandBadge,
+  brandSlot,
   collapsed,
   onToggle,
   /** Mobile drawer: renders inline without the fixed rail chrome. */
@@ -67,6 +68,12 @@ export function Sidebar({
   counts: Partial<Record<string, number>>
   /** Overrides `nav.badgeLabel` — the merchant rail shows the store name. */
   brandBadge?: string
+  /**
+   * Optional control under the brand. The merchant console puts its store
+   * switcher here; /admin passes nothing and is unaffected. Hidden in the
+   * collapsed rail, where there is no room for it.
+   */
+  brandSlot?: React.ReactNode
   collapsed: boolean
   onToggle: () => void
   inSheet?: boolean
@@ -143,6 +150,13 @@ export function Sidebar({
             </button>
           )}
         </div>
+
+        {/* ---- Brand slot (store switcher) --------------------------------
+            Rendered bare, with no wrapper: the slot is a component that returns
+            null when it has nothing to show, and a wrapper here would leave an
+            empty bordered band behind on every page that does. The slot owns
+            its own padding and border. */}
+        {!isRail && brandSlot}
 
         {/* ---- Primary action --------------------------------------------- */}
         {nav.primaryAction && (

@@ -8,6 +8,7 @@ import {
   ReceiptText,
   Store,
   Tags,
+  Users,
 } from 'lucide-react'
 
 import type { ConsoleNav, NavGroup } from '@/components/console/shell'
@@ -95,6 +96,12 @@ export const MERCHANT_GROUPS: NavGroup[] = [
         icon: Store,
         keywords: ['settings', 'profile', 'إعدادات', 'الملف'],
       },
+      {
+        label: 'الفريق',
+        href: '/merchant/settings/team',
+        icon: Users,
+        keywords: ['team', 'members', 'staff', 'فريق', 'أعضاء', 'موظفين', 'صلاحيات'],
+      },
     ],
   },
 ]
@@ -119,5 +126,6 @@ export const MERCHANT_CONSOLE: ConsoleNav = {
     categories: 'التصنيفات',
     settings: 'إعدادات المتجر',
     support: 'الدعم',
+    team: 'الفريق',
   },
 }

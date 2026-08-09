@@ -1,6 +1,11 @@
 'use client'
 
-import { useQuery, useQueryClient, type UseQueryOptions } from '@tanstack/react-query'
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseQueryOptions,
+} from '@tanstack/react-query'
 
 import type { PricedProduct } from '@/features/products/types/product'
 
@@ -30,6 +35,8 @@ export const merchantKeys = {
   coupons: ['merchant', 'coupons'] as const,
   tickets: (params: Record<string, string>) => ['merchant', 'tickets', params] as const,
   ticket: (id: string) => ['merchant', 'ticket', id] as const,
+  team: ['merchant', 'team'] as const,
+  memberships: ['merchant', 'memberships'] as const,
 }
 
 /* -------------------------------------------------------------------------- */
@@ -108,6 +115,14 @@ export type MerchantStatus = {
  * and ignores everything else, so a form posting `business*` keys saves nothing.
  */
 export type MerchantProfile = {
+  /**
+   * The ACTIVE store's id — the one the backend resolved this request against,
+   * which for a staff member is not a store keyed to their own account. Use
+   * this, never `my-status`, to say which store the console is operating:
+   * `my-status` reports on the caller's own *application* and is empty for
+   * anyone who was invited onto a team rather than applying.
+   */
+  _id?: string
   storeName?: string
   ownerName?: string
   description?: string
@@ -405,6 +420,176 @@ export function useMerchantTicket(id: string) {
         {} as MerchantTicket,
       ),
     enabled: Boolean(id),
+  })
+}
+
+/* -------------------------------------------------------------------------- */
+/* Team                                                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A store can be run by more than one person. Roles are cumulative —
+ * staff ⊆ manager ⊆ owner — and the backend gates every route on a permission
+ * string rather than on the role name, so this list is for rendering only.
+ * Never decide access from it; the API is the authority.
+ */
+export type StoreRole = 'owner' | 'manager' | 'staff'
+export type MemberStatus = 'invited' | 'active' | 'revoked'
+
+export type StoreMember = {
+  id: string
+  email: string
+  role: StoreRole
+  status: MemberStatus
+  userId: string | null
+  permissions: string[]
+  invitedAt: string | null
+  acceptedAt: string | null
+  revokedAt: string | null
+  createdAt: string
+}
+
+export type StoreMembership = {
+  membershipId: string
+  merchantId: string
+  storeName: string
+  storeStatus: string
+  logoUrl: string | null
+  city: string | null
+  role: StoreRole
+  status: MemberStatus
+  permissions: string[]
+}
+
+export const ROLE_LABELS: Record<StoreRole, string> = {
+  owner: 'مالك المتجر',
+  manager: 'مدير',
+  staff: 'موظف',
+}
+
+export const ROLE_DESCRIPTIONS: Record<StoreRole, string> = {
+  owner: 'صلاحية كاملة، بما فيها الفريق وبيانات التحويل وملف المتجر.',
+  manager: 'المنتجات والكوبونات والطلبات والتحليلات. لا يملك إدارة الفريق.',
+  staff: 'الطلبات فقط، مع الاطلاع على المنتجات.',
+}
+
+/**
+ * The team, plus the caller's own role and permissions.
+ *
+ * The role comes back in `meta` rather than being inferred by matching the
+ * signed-in user against the member list: the list is keyed on Clerk ids the
+ * browser does not have, and guessing wrong would render the wrong controls.
+ */
+export type StoreTeam = {
+  members: StoreMember[]
+  role: StoreRole | null
+  permissions: string[]
+}
+
+export function useStoreTeam() {
+  return useQuery<StoreTeam>({
+    queryKey: merchantKeys.team,
+    queryFn: async () => {
+      const body = await request<any>('/api/merchant/team')
+      return {
+        members: (Array.isArray(body?.data) ? body.data : []) as StoreMember[],
+        role: (body?.meta?.role ?? null) as StoreRole | null,
+        permissions: (body?.meta?.permissions ?? []) as string[],
+      }
+    },
+    staleTime: 30_000,
+  })
+}
+
+/**
+ * Stores the caller belongs to and invitations awaiting them.
+ *
+ * Not gated on being an approved merchant — an invitee has no store yet, and
+ * this is how the dashboard tells them an invitation is waiting.
+ */
+export function useMyMemberships() {
+  return useQuery<StoreMembership[]>({
+    queryKey: merchantKeys.memberships,
+    queryFn: async () => {
+      const body = await request<any>('/api/merchant/memberships')
+      return (Array.isArray(body?.data) ? body.data : []) as StoreMembership[]
+    },
+    staleTime: 60_000,
+  })
+}
+
+export function useInviteMember() {
+  const invalidate = useInvalidateMerchant()
+  return useMutation({
+    mutationFn: (values: { email: string; role: StoreRole }) =>
+      request('/api/merchant/team', { method: 'POST', body: JSON.stringify(values) }),
+    onSuccess: () => invalidate([merchantKeys.team]),
+  })
+}
+
+export function useUpdateMemberRole() {
+  const invalidate = useInvalidateMerchant()
+  return useMutation({
+    mutationFn: ({ memberId, role }: { memberId: string; role: StoreRole }) =>
+      request(`/api/merchant/team/${encodeURIComponent(memberId)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role }),
+      }),
+    onSuccess: () => invalidate([merchantKeys.team]),
+  })
+}
+
+export function useRemoveMember() {
+  const invalidate = useInvalidateMerchant()
+  return useMutation({
+    mutationFn: (memberId: string) =>
+      request(`/api/merchant/team/${encodeURIComponent(memberId)}`, { method: 'DELETE' }),
+    onSuccess: () => invalidate([merchantKeys.team]),
+  })
+}
+
+export function useTransferOwnership() {
+  const invalidate = useInvalidateMerchant()
+  return useMutation({
+    mutationFn: (memberId: string) =>
+      request('/api/merchant/team/transfer', {
+        method: 'POST',
+        body: JSON.stringify({ memberId }),
+      }),
+    // Ownership changes what the caller may do everywhere, not just on this
+    // screen — drop the whole merchant cache rather than one key.
+    onSuccess: () => invalidate(),
+  })
+}
+
+export function useAcceptInvite() {
+  const invalidate = useInvalidateMerchant()
+  return useMutation({
+    mutationFn: (merchantId?: string) =>
+      request<any>('/api/merchant/invite/accept', {
+        method: 'POST',
+        body: JSON.stringify(merchantId ? { merchantId } : {}),
+      }),
+    onSuccess: () => invalidate(),
+  })
+}
+
+/**
+ * Record which store the console is operating.
+ *
+ * The whole merchant cache is dropped afterwards: every cached list belongs to
+ * the store that was active when it was fetched, and showing one store's orders
+ * under another store's name is worse than a moment of loading.
+ */
+export function useSelectStore() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (merchantId: string) =>
+      request('/api/merchant/active-store', {
+        method: 'POST',
+        body: JSON.stringify({ merchantId }),
+      }),
+    onSuccess: () => qc.removeQueries({ queryKey: merchantKeys.all }),
   })
 }
 

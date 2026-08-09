@@ -29,11 +29,14 @@ export function ConsoleShell({
   nav,
   counts = {},
   brandBadge,
+  brandSlot,
   children,
 }: {
   nav: ConsoleNav
   counts?: Partial<Record<string, number>>
   brandBadge?: string
+  /** Optional control under the brand — the merchant store switcher. */
+  brandSlot?: React.ReactNode
   children: React.ReactNode
 }) {
   const { collapsed, toggle } = useSidebarCollapsed(nav.root.replace(/\W+/g, '') || 'console')
@@ -53,6 +56,7 @@ export function ConsoleShell({
               nav={nav}
               counts={counts}
               brandBadge={brandBadge}
+              brandSlot={brandSlot}
               collapsed={collapsed}
               onToggle={toggle}
             />
@@ -70,6 +74,7 @@ export function ConsoleShell({
                 nav={nav}
                 counts={counts}
                 brandBadge={brandBadge}
+                brandSlot={brandSlot}
                 collapsed={false}
                 onToggle={toggle}
                 inSheet

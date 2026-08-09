@@ -77,6 +77,15 @@ export default clerkMiddleware(async (auth, req) => {
 
   // ❌ Not logged in - redirect immediately to /sign-in
   if (!userId) {
+    // An invitation email is the only route into the dashboard for someone who
+    // has never signed in, so that destination has to survive the round trip.
+    // Dropping it would strand the invitee on a generic page with no way back
+    // to the invitation they were sent.
+    if (url.pathname.startsWith("/merchant/invite")) {
+      const signIn = new URL("/sign-in", req.url);
+      signIn.searchParams.set("redirect_url", `${url.pathname}${url.search}`);
+      return NextResponse.redirect(signIn);
+    }
     return NextResponse.redirect(new URL("/sign-in", req.url));
   }
 
@@ -132,9 +141,15 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   // 4. Merchant Business Tools Protection (/merchant/dashboard, etc.)
-  const isBusinessTool = 
-    url.pathname.startsWith("/merchant/") && 
-    !["apply", "pending", "dashboard"].some(p => url.pathname.startsWith(`/merchant/${p}`));
+  //
+  // `invite` is exempt for the same reason `apply` is: the visitor is not a
+  // merchant yet. Someone invited onto a store's team arrives from an email
+  // with no role and no merchantStatus — gating the accept page on
+  // `merchantStatus === "approved"` would bounce every invitee to /merchant/apply
+  // and make the invitation impossible to accept.
+  const isBusinessTool =
+    url.pathname.startsWith("/merchant/") &&
+    !["apply", "pending", "dashboard", "invite"].some(p => url.pathname.startsWith(`/merchant/${p}`));
 
   // Specific dashboard check to allow consistent routing
   if (url.pathname === "/merchant/dashboard") {
