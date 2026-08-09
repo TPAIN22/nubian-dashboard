@@ -17,6 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { StoreFormDialog } from '../StoreFormDialog'
+import { StoreTeamPanel } from './StoreTeamPanel'
 import type { Store } from '../StoresTable'
 
 export const dynamic = 'force-dynamic'
@@ -199,6 +200,11 @@ export default async function StoreDetailPage({
               </Table>
             </div>
           )}
+
+          {/* Who can actually operate this store. Sits below the catalogue
+              because it answers a support question rather than a daily one —
+              "why can this person not get in?" */}
+          <StoreTeamPanel storeId={id} storeName={store.storeName} />
         </Stack>
       </PageBody>
     </Page>
