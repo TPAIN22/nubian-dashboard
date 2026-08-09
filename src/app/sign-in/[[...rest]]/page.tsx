@@ -42,8 +42,27 @@ export default function SignInPage() {
     }
   }, [])
 
-  // Helper function to determine redirect URL based on role
+  /**
+   * Where to send someone once they are signed in.
+   *
+   * An explicit `redirect_url` wins over the role default. Middleware sets it
+   * when it bounces a signed-out visitor off a page they were invited to — a
+   * store invitation link being the case that matters. Ignoring it sent every
+   * invitee to their role default instead: a merchant whose application is not
+   * yet approved landed on /merchant/dashboard and was bounced again to
+   * /merchant/apply, with the invitation abandoned.
+   *
+   * Only same-origin relative paths are honoured; anything else would make this
+   * an open redirect.
+   */
   const getRedirectUrl = (role: string | undefined): string => {
+    if (typeof window !== 'undefined') {
+      const requested = new URLSearchParams(window.location.search).get('redirect_url')
+      // `//evil.com` is protocol-relative and leaves the site — reject it.
+      if (requested && requested.startsWith('/') && !requested.startsWith('//')) {
+        return requested
+      }
+    }
     if (role === 'admin') {
       return '/admin'
     } else if (role === 'merchant') {

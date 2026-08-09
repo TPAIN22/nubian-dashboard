@@ -44,7 +44,26 @@ export default function SignUpPage() {
     }
   }, [])
 
+  /**
+   * Where to send someone once they are signed up.
+   *
+   * An explicit `redirect_url` wins over the role default. Middleware sets it
+   * when it bounces a signed-out visitor off a page they were invited to — a
+   * store invitation link being the case that matters, since sending that
+   * person to the role default instead drops them somewhere they never asked
+   * for and abandons the invitation.
+   *
+   * Only same-origin relative paths are honoured; anything else would make this
+   * an open redirect.
+   */
   const getRedirectUrl = (role: string | undefined): string => {
+    if (typeof window !== 'undefined') {
+      const requested = new URLSearchParams(window.location.search).get('redirect_url')
+      // `//evil.com` is protocol-relative and leaves the site — reject it.
+      if (requested && requested.startsWith('/') && !requested.startsWith('//')) {
+        return requested
+      }
+    }
     if (role === 'admin') return '/admin'
     if (role === 'merchant') return '/merchant/dashboard'
     return '/'
