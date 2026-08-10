@@ -84,6 +84,8 @@ import {
 import { clearProductDraft, formatSavedAt, useProductDraft } from "./useProductDraft";
 import { DEFAULT_NUBIAN_MARKUP } from "@/lib/pricing.config";
 import { PricingPreview } from "@/components/product/PricingPreview";
+import { ConvertedHint, PricingCurrencyPicker } from "@/components/product/PricingCurrencyPicker";
+import { findCurrency, formatInput, useInputCurrencies } from "@/hooks/useInputCurrencies";
 import {
     computeEnginePricing,
     discountInactiveReason,
@@ -154,6 +156,15 @@ const productSchema = z.object({
     // the backend derives their merchant from the auth context. Required for
     // admins, enforced in onSubmit since the requirement depends on role.
     merchant: z.string().optional(),
+
+    // The currency every money field in this form is denominated in. The
+    // backend converts to USD at write time and stores the rate it used; the
+    // numbers below are always what the MERCHANT typed, never dollars (unless
+    // this is "USD", which it is for the overwhelming majority of products).
+    // No `.default()` here on purpose: it would make the schema's input type
+    // optional while its output stays required, and zodResolver rejects that
+    // mismatch. The default lives in the form's defaultValues instead.
+    pricingCurrency: z.string().length(3),
 
     // Simple product fields
     merchantPrice: z.number().min(0).optional(),
@@ -281,15 +292,36 @@ const toIsoOrNull = (v: string): string | null => {
     return Number.isNaN(d.getTime()) ? null : d.toISOString();
 };
 
-/** Server product.discount → form state. */
-function discountFromApi(raw: any): DiscountFormValue {
+/**
+ * Server product.discount → form state.
+ *
+ * `pricingInput` is the product's audit block (product.model.js). When the
+ * product was priced in a foreign currency, the stored `discount.value` and
+ * `maxDiscount` are USD; the merchant typed the amounts recorded there, and
+ * those are what must come back into the form.
+ *
+ * A PERCENTAGE value is never substituted — it is dimensionless, was never
+ * converted, and `pricingInput.discountValue` is null for it by construction.
+ */
+function discountFromApi(raw: any, pricingInput?: any): DiscountFormValue {
     if (!raw || typeof raw !== "object") return { ...EMPTY_DISCOUNT };
     const type = raw.type === "fixed" ? "fixed" : "percentage";
-    const max = Number(raw.maxDiscount);
+
+    const pricedInForeign = Boolean(pricingInput?.currency) && pricingInput.currency !== "USD";
+    const typedValue = pricedInForeign ? Number(pricingInput?.discountValue) : NaN;
+    const typedMax = pricedInForeign ? Number(pricingInput?.discountMaxDiscount) : NaN;
+
+    const value =
+        type === "fixed" && Number.isFinite(typedValue) && typedValue > 0
+            ? typedValue
+            : Number(raw.value) || 0;
+
+    const max = Number.isFinite(typedMax) && typedMax > 0 ? typedMax : Number(raw.maxDiscount);
+
     return {
         isActive: raw.isActive === true,
         type,
-        value: Number(raw.value) || 0,
+        value,
         maxDiscount: Number.isFinite(max) && max > 0 ? max : "",
         startsAt: toLocalInputValue(raw.startsAt),
         endsAt: toLocalInputValue(raw.endsAt),
@@ -396,6 +428,7 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
             isActive: true,
             images: [],
             productType: "simple",
+            pricingCurrency: "USD",
             merchantPrice: 1,
             merchantDiscount: 0,
             stock: 1,
@@ -492,12 +525,31 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
                 return { ...a, name, options };
             });
 
+            // The currency this product was PRICED in. Null/absent for every
+            // USD product, which is almost all of them.
+            const pricedIn: string = p.pricingInput?.currency || "USD";
+            const pricedInForeign = pricedIn !== "USD";
+
             const normVars = (p.variants || []).map((v: any) => {
                 const attrs = { ...v.attributes };
                 if (attrs['اللون']) { attrs['color'] = attrs['اللون']; delete attrs['اللون']; }
                 if (attrs['المقاس']) { attrs['size'] = attrs['المقاس']; delete attrs['المقاس']; }
                 if (attrs['المادة']) { attrs['material'] = attrs['المادة']; delete attrs['المادة']; }
-                return { ...v, attributes: attrs };
+
+                // Show the merchant the number they TYPED, not the stored USD.
+                // Re-converting the dollars instead would drift every time the
+                // rate moves: 375 SAR saved last month comes back as 372.4 and
+                // the merchant, quite reasonably, stops trusting the form.
+                // Falls back to the USD value for a product saved in a foreign
+                // currency before this block existed.
+                const typed = pricedInForeign ? v.pricingInput : null;
+
+                return {
+                    ...v,
+                    attributes: attrs,
+                    merchantPrice: Number(typed?.merchantPrice ?? v.merchantPrice ?? 0),
+                    merchantDiscount: Number(typed?.merchantDiscount ?? v.merchantDiscount ?? 0),
+                };
             });
 
             // Reconstruct attributes from variants if attributes array is completely missing
@@ -542,6 +594,9 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
                 isActive: p.isActive ?? true,
                 images: p.images || [],
                 productType: isSimple ? "simple" : "with_variants",
+                // normVars already swapped in the typed amounts when this
+                // product was priced in a foreign currency.
+                pricingCurrency: pricedIn,
                 merchantPrice: Number(soleVariant?.merchantPrice ?? 0) || 1,
                 merchantDiscount: Number(soleVariant?.merchantDiscount ?? 0) || 0,
                 stock: Number(soleVariant?.stock ?? p.stock ?? 0),
@@ -549,7 +604,7 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
                 merchant: p.merchant?._id || p.merchant || "",
                 // Load the product's current sale so editing anything else does
                 // not quietly clear it, and so an admin can see/end a running sale.
-                discount: discountFromApi(p.discount),
+                discount: discountFromApi(p.discount, p.pricingInput),
                 attributes: normAttrs,
                 variants: normVars,
                 colorImages: {},
@@ -624,6 +679,13 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
             isActive: data.isActive,
             status: data.isActive ? "active" : "draft",
             images: data.images,
+            // Declares what currency every money field below is in. The backend
+            // converts to USD at write time using ITS OWN rate — we deliberately
+            // do not convert here and submit dollars, because a client-supplied
+            // amount of money is untrusted and a client clock/cache can be stale.
+            // Always sent (including "USD") so switching a product back to
+            // dollars clears its stored FX audit block.
+            pricingCurrency: data.pricingCurrency || "USD",
         };
 
         // Discounts are admin-only for now. Omitting the key entirely (rather
@@ -1086,6 +1148,9 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
 function BasicInfoStep({ categories, onUpload, addCategoryPath, showMerchantPicker = false, merchants = [], loadingMerchants = false, canAuthorDiscounts = false }: { categories: any[]; onUpload: any; addCategoryPath: string; showMerchantPicker?: boolean; merchants?: any[]; loadingMerchants?: boolean; canAuthorDiscounts?: boolean }) {
     const { control, watch } = useFormContext<ProductFormData>();
     const productType = watch("productType");
+    const pricingCurrency = watch("pricingCurrency") || "USD";
+    const simplePrice = Number(watch("merchantPrice")) || 0;
+    const simpleDiscount = Number(watch("merchantDiscount")) || 0;
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in slide-in-from-right-4">
@@ -1202,30 +1267,46 @@ function BasicInfoStep({ categories, onUpload, addCategoryPath, showMerchantPick
 
                     {productType === "simple" && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-dashed animate-in fade-in slide-in-from-top-3">
+                            {/* Which currency the numbers below are in. Naming it
+                                is not cosmetic: this label used to read "(ريال)"
+                                while the value was stored verbatim as dollars, so
+                                anyone who believed it underpriced by ~3.75x. Now
+                                the declaration is real — the backend converts on
+                                write and records the rate it used. */}
+                            <FormField
+                                control={control}
+                                name="pricingCurrency"
+                                render={({ field }) => (
+                                    <FormItem className="md:col-span-2">
+                                        <FormControl>
+                                            <PricingCurrencyPicker
+                                                value={field.value || "USD"}
+                                                onChange={field.onChange}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                             <FormField
                                 control={control}
                                 name="merchantPrice"
                                 render={({ field }) => (
                                     <FormItem>
-                                        {/* Every money field in this wizard is USD — merchantPrice is
-                                            persisted verbatim as dollars (product.model.js `merchantPrice`)
-                                            and the dashboard never sends `x-currency`, so nothing converts
-                                            it. This label used to read "(ريال)", which invited merchants to
-                                            type riyals and get billed as dollars. Keep the currency named
-                                            here until backend-side input conversion exists. */}
-                                        <FormLabel className="font-bold text-primary">السعر الأساسي (بالدولار الأمريكي)</FormLabel>
+                                        <FormLabel className="font-bold text-primary">السعر الأساسي</FormLabel>
                                         <FormControl>
                                             <div className="relative">
                                                 <Input
                                                     type="number"
                                                     placeholder="0.00"
-                                                    className="h-11 pl-12 border-primary/30 focus-visible:ring-primary shadow-sm"
+                                                    className="h-11 pl-14 border-primary/30 focus-visible:ring-primary shadow-sm"
                                                     {...field}
                                                     onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
                                                 />
-                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-bold opacity-40">USD</span>
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-bold opacity-40">{pricingCurrency}</span>
                                             </div>
                                         </FormControl>
+                                        <ConvertedHint amount={simplePrice} currencyCode={pricingCurrency} />
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -1265,14 +1346,15 @@ function BasicInfoStep({ categories, onUpload, addCategoryPath, showMerchantPick
                                                     min="0"
                                                     step="0.01"
                                                     placeholder="0.00"
-                                                    className="h-11 pl-12"
+                                                    className="h-11 pl-14"
                                                     {...field}
                                                     value={field.value ?? 0}
                                                     onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
                                                 />
-                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-bold opacity-40">USD</span>
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-bold opacity-40">{pricingCurrency}</span>
                                             </div>
                                         </FormControl>
+                                        <ConvertedHint amount={simpleDiscount} currencyCode={pricingCurrency} />
                                         <p className="text-xs text-muted-foreground">
                                             مبلغ يُخصم من سعر البيع النهائي، <strong>وليس نسبة مئوية</strong>.
                                         </p>
@@ -1703,6 +1785,7 @@ function DiscountSection({
 }) {
     const { control, watch, setValue, formState: { errors } } = useFormContext<ProductFormData>();
     const discount = watch("discount") ?? EMPTY_DISCOUNT;
+    const pricingCurrency = watch("pricingCurrency") || "USD";
     const isPercentage = discount.type === "percentage";
 
     const discountErrors = (errors as any)?.discount ?? {};
@@ -1781,9 +1864,14 @@ function DiscountSection({
                                     onChange={(e) => setField("value", parseFloat(e.target.value) || 0)}
                                 />
                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground opacity-60">
-                                    {isPercentage ? "%" : "USD"}
+                                    {/* A percentage is dimensionless and is never
+                                        converted; a fixed amount is money and is. */}
+                                    {isPercentage ? "%" : pricingCurrency}
                                 </span>
                             </div>
+                            {!isPercentage && (
+                                <ConvertedHint amount={Number(discount.value) || 0} currencyCode={pricingCurrency} />
+                            )}
                             {discountErrors?.value?.message && (
                                 <p className="text-xs text-destructive">{discountErrors.value.message}</p>
                             )}
@@ -1807,9 +1895,13 @@ function DiscountSection({
                                         }}
                                     />
                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground opacity-60">
-                                        USD
+                                        {pricingCurrency}
                                     </span>
                                 </div>
+                                <ConvertedHint
+                                    amount={discount.maxDiscount === "" ? 0 : Number(discount.maxDiscount) || 0}
+                                    currencyCode={pricingCurrency}
+                                />
                                 <p className="text-xs text-muted-foreground">
                                     سقف لقيمة الخصم مهما بلغت النسبة.
                                 </p>
@@ -1880,6 +1972,7 @@ function DiscountSection({
                             nubianMarkup={DEFAULT_NUBIAN_MARKUP}
                             merchantDiscount={previewMerchantDiscount}
                             discount={discountToPreview(discount)}
+                            currencyCode={pricingCurrency}
                         />
                     )}
                 </CardContent>
@@ -1898,15 +1991,23 @@ function MerchantDiscountInput({
     merchantPrice,
     onChange,
     className = "",
+    currencyCode = "USD",
 }: {
     value: number | undefined;
     merchantPrice: number;
     onChange: (v: number) => void;
     className?: string;
+    /** What `value` and `merchantPrice` are denominated in — see pricingCurrency. */
+    currencyCode?: string;
 }) {
+    const { currencies } = useInputCurrencies();
+    const currency = findCurrency(currencies, currencyCode);
+
     const amount = Number(value) || 0;
     // Compare against the marked-up (listed) price — that's what the discount is
-    // actually subtracted from, not the merchant's cost.
+    // actually subtracted from, not the merchant's cost. Both operands are in
+    // the merchant's input currency, so the comparison holds without converting;
+    // only the DISPLAYED figure below needs to be formatted in that currency.
     const listed = computeEnginePricing({
         merchantPrice,
         nubianMarkup: DEFAULT_NUBIAN_MARKUP,
@@ -1926,12 +2027,13 @@ function MerchantDiscountInput({
                     onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
                 />
                 <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground opacity-60">
-                    USD
+                    {currency.code}
                 </span>
             </div>
+            <ConvertedHint amount={amount} currencyCode={currency.code} className="mt-1" />
             {exceeds && (
                 <p className="mt-1 text-[10px] text-destructive">
-                    أكبر من سعر البيع ({formatCurrency(listed)})
+                    أكبر من سعر البيع ({formatInput(listed, currency)})
                 </p>
             )}
         </div>
@@ -1939,10 +2041,11 @@ function MerchantDiscountInput({
 }
 
 function PricingStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: boolean }) {
-    const { watch, setValue } = useFormContext<ProductFormData>();
+    const { control, watch, setValue } = useFormContext<ProductFormData>();
     const attributes = watch("attributes");
     const colorPrices = watch("colorPrices") || {};
     const variants = watch("variants");
+    const pricingCurrency = watch("pricingCurrency") || "USD";
 
     const colorAttr = attributes.find((a: any) => a.name.toLowerCase() === 'color' || a.name === 'اللون');
     const colors = colorAttr?.options || [];
@@ -1970,6 +2073,29 @@ function PricingStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: bool
 
     return (
         <div className="space-y-6 animate-in slide-in-from-right-4">
+            {/* One currency for the whole product — the backend converts every
+                money field on it against a single rate, so a price and its
+                discount can never be struck at two different rates. */}
+            <Card>
+                <CardContent className="pt-6 md:max-w-md">
+                    <FormField
+                        control={control}
+                        name="pricingCurrency"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormControl>
+                                    <PricingCurrencyPicker
+                                        value={field.value || "USD"}
+                                        onChange={field.onChange}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </CardContent>
+            </Card>
+
             {colors.length === 0 ? (
                 <Card>
                     <CardHeader>
@@ -1978,7 +2104,7 @@ function PricingStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: bool
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>السعر الافتراضي للمتغيرات (بالدولار الأمريكي)</Label>
+                            <Label>السعر الافتراضي للمتغيرات ({pricingCurrency})</Label>
                             <Input
                                 type="number"
                                 min="0"
@@ -1990,7 +2116,7 @@ function PricingStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: bool
                         </div>
                         {canAuthorDiscounts && (
                             <div className="space-y-2">
-                                <Label>خصم التاجر الافتراضي — مبلغ ثابت (بالدولار الأمريكي)</Label>
+                                <Label>خصم التاجر الافتراضي — مبلغ ثابت ({pricingCurrency})</Label>
                                 <Input
                                     type="number"
                                     min="0"
@@ -2015,7 +2141,7 @@ function PricingStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: bool
                     <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {colors.map(color => (
                             <div key={color} className="space-y-2 p-4 border rounded-xl bg-background">
-                                <Label>سعر اللون: {color}</Label>
+                                <Label>سعر اللون: {color} ({pricingCurrency})</Label>
                                 <Input
                                     type="number"
                                     value={colorPrices[color] || ""}
@@ -2023,6 +2149,10 @@ function PricingStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: bool
                                     onChange={(e) => {
                                         setValue("colorPrices", { ...colorPrices, [color]: parseFloat(e.target.value) || 0 });
                                     }}
+                                />
+                                <ConvertedHint
+                                    amount={Number(colorPrices[color]) || 0}
+                                    currencyCode={pricingCurrency}
                                 />
                             </div>
                         ))}
@@ -2060,8 +2190,8 @@ function PricingStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: bool
                         <TableHeader>
                             <TableRow>
                                 <TableHead>المتغير (SKU)</TableHead>
-                                <TableHead>سعر التاجر (USD)</TableHead>
-                                {canAuthorDiscounts && <TableHead>خصم التاجر (مبلغ USD)</TableHead>}
+                                <TableHead>سعر التاجر ({pricingCurrency})</TableHead>
+                                {canAuthorDiscounts && <TableHead>خصم التاجر (مبلغ {pricingCurrency})</TableHead>}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -2077,6 +2207,11 @@ function PricingStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: bool
                                             className="h-8 w-32"
                                             onChange={(e) => setVariantField(idx, "merchantPrice", parseFloat(e.target.value) || 0)}
                                         />
+                                        <ConvertedHint
+                                            amount={Number(v.merchantPrice) || 0}
+                                            currencyCode={pricingCurrency}
+                                            className="mt-1"
+                                        />
                                     </TableCell>
                                     {canAuthorDiscounts && (
                                         <TableCell>
@@ -2084,6 +2219,7 @@ function PricingStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: bool
                                                 value={v.merchantDiscount}
                                                 merchantPrice={Number(v.merchantPrice) || 0}
                                                 onChange={(val) => setVariantField(idx, "merchantDiscount", val)}
+                                                currencyCode={pricingCurrency}
                                             />
                                         </TableCell>
                                     )}
@@ -2108,6 +2244,14 @@ function PricingStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: bool
 function ReviewStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: boolean }) {
     const { watch } = useFormContext<ProductFormData>();
     const data = watch();
+
+    // The review must restate the numbers in the currency they were TYPED in.
+    // Formatting them as dollars here is the same class of mistake as the old
+    // "(ريال)" label — it tells the merchant their 375 is $375 right at the
+    // moment they are confirming the product.
+    const { currencies } = useInputCurrencies();
+    const inputCurrency = findCurrency(currencies, data.pricingCurrency || "USD");
+    const money = (n: number) => formatInput(Number(n) || 0, inputCurrency);
 
     const discount = data.discount ?? EMPTY_DISCOUNT;
     // Same predicate the backend engine uses, so the review never claims a sale
@@ -2153,7 +2297,7 @@ function ReviewStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: boole
                             </>
                         ) : (
                             <>
-                                <div className="flex justify-between border-b pb-2"><span>السعر:</span> <span className="font-bold text-green-600 font-mono">{data.merchantPrice}</span></div>
+                                <div className="flex justify-between border-b pb-2"><span>السعر:</span> <span className="font-bold text-green-600 font-mono">{money(Number(data.merchantPrice))}</span></div>
                                 <div className="flex justify-between"><span>المخزون:</span> <span className="font-bold">{data.stock}</span></div>
                             </>
                         )}
@@ -2171,7 +2315,7 @@ function ReviewStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: boole
                                 <span className="font-bold">
                                     {discount.type === "percentage"
                                         ? `${discount.value}%`
-                                        : formatCurrency(discount.value)}
+                                        : money(discount.value)}
                                 </span>
                                 <Badge variant={inactiveReason ? "destructive" : "outline"}>
                                     {inactiveReason === "expired" && "منتهٍ — لن يُطبَّق"}
@@ -2196,7 +2340,7 @@ function ReviewStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: boole
                     {discount.isActive && discount.type === "percentage" && discount.maxDiscount !== "" && (
                         <div className="flex justify-between border-b pb-2 text-sm">
                             <span>الحد الأقصى للخصم:</span>
-                            <span className="font-bold">{formatCurrency(Number(discount.maxDiscount))}</span>
+                            <span className="font-bold">{money(Number(discount.maxDiscount))}</span>
                         </div>
                     )}
                     <div className="flex justify-between">
@@ -2204,7 +2348,7 @@ function ReviewStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: boole
                         <span className="font-bold">
                             {data.productType === "simple"
                                 ? simpleVariantDiscount > 0
-                                    ? formatCurrency(simpleVariantDiscount)
+                                    ? money(simpleVariantDiscount)
                                     : "بدون"
                                 : variantDiscountCount > 0
                                     ? `${variantDiscountCount} متغير`

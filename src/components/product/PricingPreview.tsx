@@ -7,6 +7,7 @@ import { AlertTriangle, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 import { formatCurrency } from "@/lib/currency";
+import { findCurrency, formatInput, useInputCurrencies } from "@/hooks/useInputCurrencies";
 import { DEFAULT_NUBIAN_MARKUP } from "@/lib/pricing.config";
 import type { ProductDiscountDTO } from "@/domain/product/product.types";
 // The pricing math lives in the domain layer, NOT in this component. Every
@@ -30,6 +31,18 @@ interface PricingPreviewProps {
   /** Server-computed final price. When present (> 0) it overrides the mirror. */
   finalPrice?: number;
   isMerchantView?: boolean;
+  /**
+   * Currency the amounts above are denominated in — the merchant's chosen
+   * pricing currency, not the shopper's. Defaults to USD, which is what every
+   * caller outside the wizard passes.
+   *
+   * The markup math needs no conversion: `merchantPrice x (1 + markup%)` is
+   * currency-invariant, so 375 SAR at 15% is 431.25 SAR exactly as 100 USD is
+   * 115 USD. Only the FORMATTING is currency-dependent — and getting that wrong
+   * is precisely the bug this whole feature exists to kill, so it is worth the
+   * prop rather than assuming dollars.
+   */
+  currencyCode?: string;
 }
 
 export function PricingPreview({
@@ -40,7 +53,18 @@ export function PricingPreview({
   discount = null,
   finalPrice,
   isMerchantView = false,
+  currencyCode = "USD",
 }: PricingPreviewProps) {
+  const { currencies } = useInputCurrencies();
+  const inputCurrency = findCurrency(currencies, currencyCode);
+  // One formatter for the whole card, so no single row can drift back to
+  // dollars while the rest of the breakdown is in the merchant's currency.
+  const money = React.useCallback(
+    (n: number) =>
+      inputCurrency.code === "USD" ? formatCurrency(n) : formatInput(n, inputCurrency),
+    [inputCurrency],
+  );
+
   const pricing = React.useMemo(
     () =>
       computeEnginePricing({
@@ -91,7 +115,7 @@ export function PricingPreview({
           <div className="flex justify-between">
             <span className="text-muted-foreground">سعر التاجر (التكلفة):</span>
             <span className="font-medium">
-              {merchantPrice > 0 ? formatCurrency(merchantPrice) : "—"}
+              {merchantPrice > 0 ? money(merchantPrice) : "—"}
             </span>
           </div>
           <div className="flex justify-between">
@@ -110,7 +134,7 @@ export function PricingPreview({
           <div className="flex justify-between">
             <span className="text-muted-foreground">السعر قبل الخصم:</span>
             <span className="font-medium">
-              {originalPrice > 0 ? formatCurrency(originalPrice) : "—"}
+              {originalPrice > 0 ? money(originalPrice) : "—"}
             </span>
           </div>
 
@@ -118,7 +142,7 @@ export function PricingPreview({
             <div className="flex justify-between">
               <span className="text-muted-foreground">خصم التاجر (مبلغ ثابت):</span>
               <span className="font-medium text-destructive">
-                − {formatCurrency(pricing.breakdown.variantDiscount)}
+                − {money(pricing.breakdown.variantDiscount)}
               </span>
             </div>
           )}
@@ -130,7 +154,7 @@ export function PricingPreview({
                 {discount?.type === "percentage" ? ` (${discount.value}%)` : ""}:
               </span>
               <span className="font-medium text-destructive">
-                − {formatCurrency(pricing.breakdown.productDiscount)}
+                − {money(pricing.breakdown.productDiscount)}
               </span>
             </div>
           )}
@@ -140,11 +164,11 @@ export function PricingPreview({
             <span className="flex items-baseline gap-2">
               {hasDiscount && (
                 <span className="text-xs text-muted-foreground line-through">
-                  {formatCurrency(originalPrice)}
+                  {money(originalPrice)}
                 </span>
               )}
               <span className="font-bold text-lg text-primary">
-                {calculatedFinalPrice > 0 ? formatCurrency(calculatedFinalPrice) : "—"}
+                {calculatedFinalPrice > 0 ? money(calculatedFinalPrice) : "—"}
               </span>
               {hasDiscount && (
                 <Badge variant="destructive" className="text-[10px]">
@@ -187,8 +211,8 @@ export function PricingPreview({
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              السعر النهائي ({formatCurrency(calculatedFinalPrice)}) أقل من سعر التاجر
-              ({formatCurrency(merchantPrice)}) — ستبيع بخسارة.
+              السعر النهائي ({money(calculatedFinalPrice)}) أقل من سعر التاجر
+              ({money(merchantPrice)}) — ستبيع بخسارة.
             </AlertDescription>
           </Alert>
         )}
@@ -206,7 +230,7 @@ export function PricingPreview({
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              السعر النهائي: {formatCurrency(calculatedFinalPrice)} (هامش {totalMarkupPercentage.toFixed(1)}%)
+              السعر النهائي: {money(calculatedFinalPrice)} (هامش {totalMarkupPercentage.toFixed(1)}%)
             </AlertDescription>
           </Alert>
         )}
