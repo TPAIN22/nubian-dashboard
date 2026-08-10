@@ -36,6 +36,7 @@ import {
   useMerchantStatus,
   useStorePermissions,
 } from '@/features/merchant/api'
+import { PricingCurrencyPicker } from '@/components/product/PricingCurrencyPicker'
 
 /* ============================================================================
    Store settings
@@ -54,7 +55,8 @@ import {
 
 /**
  * Field names are the API's, not the form's. `PUT /merchants/my-profile` reads
- * `storeName, description, email, phone, city, logoUrl, banner` off the body and
+ * `storeName, description, email, phone, city, logoUrl, banner,
+ * preferredInputCurrency` off the body and
  * silently drops anything else — the previous `business*` names meant every save
  * returned 200 having written nothing, and every field but the name loaded blank.
  */
@@ -68,6 +70,9 @@ const schema = z.object({
   // clears an existing image, and the API applies any key that is present.
   logoUrl: z.string().optional(),
   banner: z.string().optional(),
+  // Which currency this store's product forms open in. A DEFAULT only — it
+  // converts nothing and re-prices nothing already saved.
+  preferredInputCurrency: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -80,6 +85,7 @@ const EMPTY: FormValues = {
   city: '',
   logoUrl: '',
   banner: '',
+  preferredInputCurrency: 'USD',
 }
 
 export default function MerchantSettingsPage() {
@@ -109,6 +115,7 @@ export default function MerchantSettingsPage() {
 
   const logoUrl = watch('logoUrl')
   const banner = watch('banner')
+  const preferredInputCurrency = watch('preferredInputCurrency')
 
   // A 404 means there is no merchant record yet — that user belongs in the
   // application flow, not in settings.
@@ -128,6 +135,8 @@ export default function MerchantSettingsPage() {
       city: profile.data.city || '',
       logoUrl: profile.data.logoUrl || '',
       banner: profile.data.banner || '',
+      // Stores predating the field have none — they price in dollars.
+      preferredInputCurrency: profile.data.preferredInputCurrency || 'USD',
     })
   }, [profile.data, reset])
 
@@ -283,6 +292,28 @@ export default function MerchantSettingsPage() {
               <Field label="المدينة" error={errors.city?.message}>
                 <Input placeholder="مثال: جدة" {...register('city')} disabled={readOnly} />
               </Field>
+            </FormSection>
+
+            {/* A convenience default, deliberately in its own section so it is
+                not mistaken for a payout or display setting. Changing it does
+                NOT re-price anything already in the catalogue: existing
+                products keep the currency and rate they were saved with. */}
+            <FormSection
+              title="التسعير"
+              description="العملة التي تفتح بها نماذج المنتجات. الأسعار تُخزَّن بالدولار الأمريكي دائماً، والعميل يرى عملته هو."
+            >
+              <div className="max-w-sm">
+                <PricingCurrencyPicker
+                  value={preferredInputCurrency || 'USD'}
+                  onChange={(code) =>
+                    setValue('preferredInputCurrency', code, { shouldDirty: true })
+                  }
+                  disabled={readOnly}
+                />
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                تغيير هذه العملة يؤثر على المنتجات الجديدة فقط — المنتجات المحفوظة تحتفظ بعملتها وسعر صرفها.
+              </p>
             </FormSection>
 
             {store && (

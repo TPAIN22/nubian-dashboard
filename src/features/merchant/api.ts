@@ -111,8 +111,9 @@ export type MerchantStatus = {
 /**
  * The Merchant document as `/merchants/my-profile` returns it. These are the
  * only names the API knows — `updateMerchantProfile` reads exactly
- * `storeName, description, email, phone, city, logoUrl, banner` off the body
- * and ignores everything else, so a form posting `business*` keys saves nothing.
+ * `storeName, description, email, phone, city, logoUrl, banner,
+ * preferredInputCurrency` off the body and ignores everything else, so a form
+ * posting `business*` keys saves nothing.
  */
 export type MerchantProfile = {
   /**
@@ -131,6 +132,12 @@ export type MerchantProfile = {
   city?: string
   logoUrl?: string
   banner?: string
+  /**
+   * Currency this store's product forms DEFAULT to. Not a storage currency and
+   * not a display currency — amounts are still stored in USD and shoppers still
+   * see their own. Absent on stores that predate the field; treat as "USD".
+   */
+  preferredInputCurrency?: string
 }
 
 export type OrderStatusCounts = {
@@ -241,11 +248,17 @@ export function useMerchantStatus() {
   })
 }
 
-export function useMerchantProfile() {
-  return useQuery({
+/**
+ * `options` exists so callers who are not necessarily merchants can opt out:
+ * `/merchants/my-profile` is gated on an approved merchant, so an admin
+ * mounting a shared screen would otherwise fire a request that can only 403.
+ */
+export function useMerchantProfile(options?: Partial<UseQueryOptions<MerchantProfile>>) {
+  return useQuery<MerchantProfile>({
     queryKey: merchantKeys.profile,
     queryFn: async () => unwrap<MerchantProfile>(await request<any>('/api/merchant/profile'), {}),
     staleTime: 60_000,
+    ...options,
   })
 }
 

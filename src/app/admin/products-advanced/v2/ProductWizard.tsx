@@ -86,6 +86,7 @@ import { DEFAULT_NUBIAN_MARKUP } from "@/lib/pricing.config";
 import { PricingPreview } from "@/components/product/PricingPreview";
 import { ConvertedHint, PricingCurrencyPicker } from "@/components/product/PricingCurrencyPicker";
 import { findCurrency, formatInput, useInputCurrencies } from "@/hooks/useInputCurrencies";
+import { useMerchantProfile } from "@/features/merchant/api";
 import {
     computeEnginePricing,
     discountInactiveReason,
@@ -481,6 +482,43 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
             return (Array.isArray(list) ? list : []).filter((m: any) => m.status === "approved");
         }
     });
+
+    // ── Default the pricing currency to the store's preference ──────────────
+    //
+    // NEW products only. On edit the product carries its own currency (loaded
+    // from pricingInput) and must never be overwritten by the store's current
+    // default — that would silently reinterpret every saved amount.
+    //
+    // A merchant's own store comes from their profile; an admin's from whichever
+    // store they picked, re-applied when they switch store because the answer
+    // genuinely changes. The ref tracks WHICH store was applied rather than a
+    // bare boolean, so switching store updates the currency while a react-query
+    // refetch (window focus is enough) does not re-apply and clobber a currency
+    // the user has since chosen by hand.
+    const merchantProfile = useMerchantProfile({ enabled: !isAdmin && !productId });
+    const selectedMerchantId = watch("merchant");
+    const currencyAppliedFor = useRef<string | null>(null);
+
+    useEffect(() => {
+        if (productId) return;
+
+        const key = isAdmin ? (selectedMerchantId || "") : "self";
+        if (!key || currencyAppliedFor.current === key) return;
+
+        const preferred = isAdmin
+            ? merchants.find((m: any) => m._id === selectedMerchantId)?.preferredInputCurrency
+            : merchantProfile.data?.preferredInputCurrency;
+
+        // Wait for the source to resolve rather than locking in USD from a
+        // pending request — otherwise the guard below burns this store's slot
+        // and the real preference never lands.
+        if (preferred === undefined) return;
+
+        currencyAppliedFor.current = key;
+        setValue("pricingCurrency", String(preferred || "USD").toUpperCase(), {
+            shouldDirty: false,
+        });
+    }, [isAdmin, productId, selectedMerchantId, merchants, merchantProfile.data, setValue]);
 
     // Pre-select the store the admin came from (/admin/stores/<id> → إضافة منتج).
     //
