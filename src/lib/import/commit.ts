@@ -69,6 +69,16 @@ interface BackendRow {
    * present it is always the COMPLETE block — see ProductDiscountImport.
    */
   discount?: ProductDiscountImport;
+  /**
+   * What the money fields above are denominated in. OMITTED for USD, for the
+   * same reason `discount` is: the backend only stamps the FX audit block when
+   * the key is present, so a plain-dollar re-import cannot blank the record of
+   * a product that was originally priced in another currency.
+   *
+   * Amounts are sent AS TYPED. The backend converts and stores the rate it
+   * used — we never convert here and send dollars.
+   */
+  pricingCurrency?: string;
 }
 
 /**
@@ -106,6 +116,8 @@ function buildBackendRow(
           },
         ];
 
+  const currency = String(row.currency || 'USD').trim().toUpperCase();
+
   return {
     importSku: row.sku,
     name: row.name,
@@ -114,6 +126,7 @@ function buildBackendRow(
     images: resolvedImages,
     variants,
     ...(row.discount ? { discount: row.discount } : {}),
+    ...(currency && currency !== 'USD' ? { pricingCurrency: currency } : {}),
   };
 }
 

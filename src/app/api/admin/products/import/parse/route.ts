@@ -17,6 +17,41 @@ import {
   PREVIEW_ROWS_COUNT,
   ParseResponse,
 } from '@/lib/import';
+import axios from 'axios';
+
+const API_BASE = (() => {
+  const raw = process.env.NEXT_PUBLIC_API_URL || process.env.AUTH_API_URL || '';
+  if (!raw) return '';
+  const trimmed = raw.replace(/\/$/, '');
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+})();
+
+/**
+ * Currency codes the backend accepts for price entry.
+ *
+ * Best-effort by design: this only upgrades a commit-time failure into a
+ * preview-time one. Returning undefined (endpoint down, no API base) means
+ * validate.ts checks the column's FORMAT only and the backend — which re-checks
+ * every row regardless — stays the single authority on what is allowed.
+ */
+async function fetchAllowedCurrencies(): Promise<Set<string> | undefined> {
+  if (!API_BASE) return undefined;
+  try {
+    const res = await axios.get(`${API_BASE}/meta/input-currencies`, {
+      timeout: 10_000,
+      validateStatus: () => true,
+    });
+    if (res.status >= 400) return undefined;
+    const list = res.data?.data ?? res.data ?? [];
+    if (!Array.isArray(list) || list.length === 0) return undefined;
+    return new Set(list.map((c: { code: string }) => String(c.code).toUpperCase()));
+  } catch (error) {
+    logger.warn('Could not fetch input-eligible currencies for import validation', {
+      error: error instanceof Error ? error.message : 'unknown',
+    });
+    return undefined;
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -163,10 +198,17 @@ export async function POST(request: Request) {
       });
     }
     
+    // Which currencies the backend will accept prices in. Fetched so a file
+    // priced in an unconfigured currency fails HERE, in the preview, instead of
+    // row-by-row at commit after the images have already been uploaded.
+    // Best-effort: on failure we pass nothing and the backend still enforces it.
+    const allowedCurrencies = await fetchAllowedCurrencies();
+
     // Validate rows
     const validationResult = validateRows(parseResult.rows, {
       zipFiles,
-      existingSkusInFile: new Set()
+      existingSkusInFile: new Set(),
+      allowedCurrencies
     });
     
     // Create session to store parsed data

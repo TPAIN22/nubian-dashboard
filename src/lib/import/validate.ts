@@ -18,6 +18,13 @@ import {
 interface ValidationContext {
   zipFiles?: Map<string, { filename: string; size: number }>;
   existingSkusInFile: Set<string>;
+  /**
+   * Currency codes the backend will accept as price-entry currencies
+   * (GET /meta/input-currencies). Optional: when omitted, only the FORMAT of
+   * the currency column is checked and the backend remains the authority.
+   * Supplying it turns a per-row commit failure into a preview-time error.
+   */
+  allowedCurrencies?: Set<string>;
 }
 
 /**
@@ -194,27 +201,38 @@ function validateRow(
 
   // Validate currency.
   //
-  // The importer has always PARSED this column and always DROPPED it: commit.ts
-  // assigns `merchantPrice: Number(row.price)` verbatim, and merchantPrice is
-  // stored in USD (lib/currency.ts — the dashboard never sends `x-currency`, so
-  // nothing downstream converts it). A row saying `SAR` was therefore priced as
-  // if it said USD — a silent ~3.75x underprice on a file where the merchant had
-  // explicitly declared otherwise.
+  // This column declares what THIS ROW's price and discount columns are
+  // denominated in. It is forwarded to the backend as `pricingCurrency`; the
+  // backend converts to USD at write time using its own rate and records it.
+  // Nothing is converted here — a client-computed money value is untrusted, and
+  // the rate that matters is the one in force when the write lands.
   //
-  // Until write-time conversion exists on the backend, REJECT rather than
-  // misprice. Refusing the file is recoverable; committing a wrong price is not
-  // noticed until the merchant is selling at a loss.
   // Trim BEFORE defaulting: a whitespace-only cell (common in xlsx exports) is
-  // truthy, so `raw.currency || 'USD'` would keep "   " and fail the check below
-  // on a row the merchant left blank.
+  // truthy, so `raw.currency || 'USD'` would keep "   " and fail the checks
+  // below on a row the merchant left blank.
   const currency = String(raw.currency ?? '').trim().toUpperCase() || 'USD';
-  if (currency !== 'USD') {
+
+  if (!/^[A-Z]{3}$/.test(currency)) {
+    errors.push({
+      field: 'currency',
+      message: `"${currency}" is not a 3-letter ISO 4217 currency code (e.g. USD, SAR, AED).`,
+      code: 'UNSUPPORTED_CURRENCY',
+    });
+  } else if (
+    currency !== 'USD' &&
+    context.allowedCurrencies &&
+    !context.allowedCurrencies.has(currency)
+  ) {
+    // Pre-flight against the backend's input-eligible list when the caller
+    // supplied it, so a 500-row file fails in the preview rather than
+    // row-by-row at commit. The backend re-checks regardless — this is a
+    // courtesy, never the authority, so that "which currencies are allowed"
+    // has exactly one source of truth.
     errors.push({
       field: 'currency',
       message:
-        `Prices must be given in USD — got "${currency}". Non-USD import is not ` +
-        `supported yet: the value would be stored as dollars without conversion. ` +
-        `Convert the price column to USD and set currency to USD.`,
+        `${currency} is not enabled for price entry. An admin must activate it ` +
+        `and set an exchange rate before prices can be imported in it.`,
       code: 'UNSUPPORTED_CURRENCY',
     });
   }

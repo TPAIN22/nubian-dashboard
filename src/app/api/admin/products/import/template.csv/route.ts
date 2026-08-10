@@ -56,6 +56,27 @@ const EXAMPLE_ROWS = [
     discount_active: 'true'
   },
   {
+    // `currency` declares what THIS ROW's price / discount_value /
+    // discount_max / variant merchantPrice columns are in. The backend converts
+    // to USD on save at its own rate and records which one it used — the
+    // numbers here stay exactly as the merchant typed them.
+    //
+    // Leave the column blank (or USD) to price in dollars. Only currencies an
+    // admin has activated AND given an exchange rate are accepted; anything
+    // else fails in the preview with the code named.
+    sku: 'PROD-004',
+    name: 'Example Product (priced in SAR)',
+    description: 'Prices below are riyals, not dollars — the currency column says so',
+    price: '375',
+    currency: 'SAR',
+    category: 'Electronics',
+    stock: '25',
+    image_urls: 'https://example.com/prod4.jpg',
+    image_files: '',
+    variants_json: '',
+    ...NO_DISCOUNT
+  },
+  {
     sku: 'PROD-003',
     name: 'Product with Variants',
     description: 'A product demonstrating variant structure',
