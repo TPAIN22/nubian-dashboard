@@ -74,11 +74,7 @@ export function PricingCurrencyPicker({
           <span className="font-mono text-muted-foreground">
             1 USD = {selected.rate} {selected.code}
           </span>
-          {selected.rateProvider === "manual" ? (
-            <Badge variant="outline" className="text-[10px]">
-              سعر يدوي
-            </Badge>
-          ) : null}
+        
           {selected.rateDate ? (
             <span className="text-muted-foreground opacity-70">{selected.rateDate}</span>
           ) : null}
