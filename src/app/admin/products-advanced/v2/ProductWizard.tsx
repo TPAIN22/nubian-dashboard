@@ -1207,7 +1207,13 @@ function BasicInfoStep({ categories, onUpload, addCategoryPath, showMerchantPick
                                 name="merchantPrice"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel className="font-bold text-primary">السعر الأساسي (ريال)</FormLabel>
+                                        {/* Every money field in this wizard is USD — merchantPrice is
+                                            persisted verbatim as dollars (product.model.js `merchantPrice`)
+                                            and the dashboard never sends `x-currency`, so nothing converts
+                                            it. This label used to read "(ريال)", which invited merchants to
+                                            type riyals and get billed as dollars. Keep the currency named
+                                            here until backend-side input conversion exists. */}
+                                        <FormLabel className="font-bold text-primary">السعر الأساسي (بالدولار الأمريكي)</FormLabel>
                                         <FormControl>
                                             <div className="relative">
                                                 <Input
@@ -1972,7 +1978,7 @@ function PricingStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: bool
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>السعر الافتراضي للمتغيرات</Label>
+                            <Label>السعر الافتراضي للمتغيرات (بالدولار الأمريكي)</Label>
                             <Input
                                 type="number"
                                 min="0"
@@ -1984,7 +1990,7 @@ function PricingStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: bool
                         </div>
                         {canAuthorDiscounts && (
                             <div className="space-y-2">
-                                <Label>خصم التاجر الافتراضي — مبلغ ثابت</Label>
+                                <Label>خصم التاجر الافتراضي — مبلغ ثابت (بالدولار الأمريكي)</Label>
                                 <Input
                                     type="number"
                                     min="0"
@@ -2054,8 +2060,8 @@ function PricingStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: bool
                         <TableHeader>
                             <TableRow>
                                 <TableHead>المتغير (SKU)</TableHead>
-                                <TableHead>سعر التاجر</TableHead>
-                                {canAuthorDiscounts && <TableHead>خصم التاجر (مبلغ)</TableHead>}
+                                <TableHead>سعر التاجر (USD)</TableHead>
+                                {canAuthorDiscounts && <TableHead>خصم التاجر (مبلغ USD)</TableHead>}
                             </TableRow>
                         </TableHeader>
                         <TableBody>

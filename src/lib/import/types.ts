@@ -103,7 +103,8 @@ export type ErrorCode =
   | 'SKU_TOO_LONG'
   | 'SKU_INVALID_CHARS'
   | 'INVALID_DATE'
-  | 'INVALID_DISCOUNT';
+  | 'INVALID_DISCOUNT'
+  | 'UNSUPPORTED_CURRENCY';
 
 export interface ParseResult {
   rows: ImportRowValidated[];

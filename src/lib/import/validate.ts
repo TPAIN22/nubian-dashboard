@@ -192,9 +192,33 @@ function validateRow(
   // Product-level discount block
   const discount = parseDiscount(raw, errors);
 
-  // Validate currency
-  const currency = String(raw.currency || 'USD').trim().toUpperCase();
-  
+  // Validate currency.
+  //
+  // The importer has always PARSED this column and always DROPPED it: commit.ts
+  // assigns `merchantPrice: Number(row.price)` verbatim, and merchantPrice is
+  // stored in USD (lib/currency.ts — the dashboard never sends `x-currency`, so
+  // nothing downstream converts it). A row saying `SAR` was therefore priced as
+  // if it said USD — a silent ~3.75x underprice on a file where the merchant had
+  // explicitly declared otherwise.
+  //
+  // Until write-time conversion exists on the backend, REJECT rather than
+  // misprice. Refusing the file is recoverable; committing a wrong price is not
+  // noticed until the merchant is selling at a loss.
+  // Trim BEFORE defaulting: a whitespace-only cell (common in xlsx exports) is
+  // truthy, so `raw.currency || 'USD'` would keep "   " and fail the check below
+  // on a row the merchant left blank.
+  const currency = String(raw.currency ?? '').trim().toUpperCase() || 'USD';
+  if (currency !== 'USD') {
+    errors.push({
+      field: 'currency',
+      message:
+        `Prices must be given in USD — got "${currency}". Non-USD import is not ` +
+        `supported yet: the value would be stored as dollars without conversion. ` +
+        `Convert the price column to USD and set currency to USD.`,
+      code: 'UNSUPPORTED_CURRENCY',
+    });
+  }
+
   // Validate category (required by backend - warn if missing)
   const category = String(raw.category || '').trim();
   if (!category) {
