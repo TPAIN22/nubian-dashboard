@@ -87,6 +87,7 @@ import { PricingPreview } from "@/components/product/PricingPreview";
 import { ConvertedHint, PricingCurrencyPicker } from "@/components/product/PricingCurrencyPicker";
 import { findCurrency, formatInput, useInputCurrencies } from "@/hooks/useInputCurrencies";
 import { useMerchantProfile } from "@/features/merchant/api";
+import { ADD_PRODUCT_TOUR_ID, RestartTourButton } from "@/features/onboarding";
 import {
     computeEnginePricing,
     discountInactiveReason,
@@ -1040,9 +1041,17 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
                         />
                     }
                     actions={
-                        <AdminButton variant="ghost" size="sm" asChild>
-                            <Link href={redirectPath}>إلغاء</Link>
-                        </AdminButton>
+                        <>
+                            {/* Relaunches the add-a-product walkthrough. Renders
+                                nothing on /admin, where this wizard mounts
+                                outside the merchant console and there is no
+                                OnboardingProvider above it — so no prop
+                                threading and no isAdmin check here. */}
+                            <RestartTourButton tourId={ADD_PRODUCT_TOUR_ID} />
+                            <AdminButton variant="ghost" size="sm" asChild>
+                                <Link href={redirectPath}>إلغاء</Link>
+                            </AdminButton>
+                        </>
                     }
                 />
 
@@ -1088,7 +1097,7 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
 
                         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[190px_minmax(0,1fr)] xl:grid-cols-[190px_minmax(0,1fr)_270px]">
                             {/* Step rail */}
-                            <div className="lg:sticky lg:top-4 lg:self-start">
+                            <div data-onboarding="wizard-steps" className="lg:sticky lg:top-4 lg:self-start">
                                 <WizardNav steps={wizardSteps} onSelect={goToStep} />
                                 <div className="mt-4 hidden lg:block">
                                     <WizardHelp title="نصيحة">
@@ -1151,8 +1160,12 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
                         السابق
                     </AdminButton>
 
+                    {/* Both branches carry the same onboarding anchor: they are
+                        the same affordance at two moments in the wizard, and the
+                        tour's "saving and publishing" step points at whichever
+                        one is currently rendered. */}
                     {currentStep < 6 ? (
-                        <AdminButton variant="primary" size="md" onClick={nextStep}>
+                        <AdminButton variant="primary" size="md" onClick={nextStep} data-onboarding="wizard-publish">
                             التالي
                             <ChevronLeft />
                         </AdminButton>
@@ -1160,6 +1173,7 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
                         <AdminButton
                             variant="primary"
                             size="md"
+                            data-onboarding="wizard-publish"
                             loading={mutation.isPending}
                             onClick={handleSubmit(
                                 (d) => mutation.mutate(d as any),
@@ -1235,7 +1249,10 @@ function BasicInfoStep({ categories, onUpload, addCategoryPath, showMerchantPick
                         control={control}
                         name="name"
                         render={({ field }) => (
-                            <FormItem>
+                            /* `data-onboarding` marks this as an anchor for the
+                               add-a-product tour. Inert on /admin, where the
+                               wizard mounts without an OnboardingProvider. */
+                            <FormItem data-onboarding="wizard-basics">
                                 <FormLabel className="font-semibold">اسم المنتج</FormLabel>
                                 <FormControl><Input placeholder="مثل: حذاء رياضي نايك" className="h-11" {...field} /></FormControl>
                                 <FormMessage />
@@ -1258,7 +1275,7 @@ function BasicInfoStep({ categories, onUpload, addCategoryPath, showMerchantPick
                             control={control}
                             name="category"
                             render={({ field }) => (
-                                <FormItem>
+                                <FormItem data-onboarding="wizard-category">
                                     <FormLabel className="font-semibold">التصنيف</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                                         <FormControl>
@@ -1286,7 +1303,7 @@ function BasicInfoStep({ categories, onUpload, addCategoryPath, showMerchantPick
                             control={control}
                             name="productType"
                             render={({ field }) => (
-                                <FormItem>
+                                <FormItem data-onboarding="wizard-type">
                                     <FormLabel className="font-semibold">نوع المنتج</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl>
@@ -1304,7 +1321,10 @@ function BasicInfoStep({ categories, onUpload, addCategoryPath, showMerchantPick
                     </div>
 
                     {productType === "simple" && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-dashed animate-in fade-in slide-in-from-top-3">
+                        /* Anchor for the tour's pricing step. It exists only for
+                           a simple product — a variant product prices on step 5 —
+                           which the step handles with its own `missingHint`. */
+                        <div data-onboarding="wizard-pricing" className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-dashed animate-in fade-in slide-in-from-top-3">
                             {/* Which currency the numbers below are in. Naming it
                                 is not cosmetic: this label used to read "(ريال)"
                                 while the value was stored verbatim as dollars, so
@@ -1405,7 +1425,7 @@ function BasicInfoStep({ categories, onUpload, addCategoryPath, showMerchantPick
                 </CardContent>
             </Card>
 
-            <Card className="lg:col-span-1">
+            <Card className="lg:col-span-1" data-onboarding="wizard-images">
                 <CardHeader>
                     <CardTitle className="text-xl">صور المنتج</CardTitle>
                     <CardDescription>ارفع الصور الرئيسية للمنتج</CardDescription>

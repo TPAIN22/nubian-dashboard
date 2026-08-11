@@ -1,6 +1,8 @@
 import type {
   MerchantContext,
+  OnboardingPatch,
   OnboardingState,
+  OnboardingStateMap,
   OnboardingStatus,
   OnboardingStep,
 } from './types'
@@ -60,37 +62,62 @@ export function normalizeState(raw: unknown): OnboardingState {
   }
 }
 
+/**
+ * Coerces the whole per-tour map, tolerating anything.
+ *
+ * A tour the merchant has never opened simply has no key; callers read a
+ * missing entry as `DEFAULT_STATE`, which is the same thing.
+ */
+export function normalizeStateMap(raw: unknown): OnboardingStateMap {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  return Object.fromEntries(
+    Object.entries(raw as Record<string, unknown>).map(([id, tour]) => [id, normalizeState(tour)]),
+  )
+}
+
+/** A tour's state, or the default for one that has never been opened. */
+export function stateFor(map: OnboardingStateMap | null, tourId: string): OnboardingState {
+  return map?.[tourId] ?? { ...DEFAULT_STATE }
+}
+
 /** Union, so progress made in one tab cannot erase progress made in another. */
 export function mergeCompleted(a: readonly string[], b: readonly string[]): string[] {
   return Array.from(new Set([...a, ...b]))
 }
 
 /**
- * Applies a partial write the same way the backend does, so the optimistic copy
- * in the query cache and the row in Mongo cannot disagree.
+ * Applies a partial write to one tour, the same way the backend does, so the
+ * optimistic copy in the query cache and the row in Mongo cannot disagree.
  *
- * Two rules worth stating: `completedSteps` is unioned rather than replaced,
- * and reaching a terminal status clears `currentStep`.
+ * Three rules worth stating: other tours are untouched, `completedSteps` is
+ * unioned rather than replaced, and reaching a terminal status clears
+ * `currentStep`.
  */
 export function applyPatch(
-  state: OnboardingState,
-  patch: Partial<Pick<OnboardingState, 'status' | 'currentStep' | 'completedSteps' | 'version'>>,
-): OnboardingState {
-  const status = patch.status ?? state.status
-  const completedSteps = patch.completedSteps
-    ? mergeCompleted(state.completedSteps, patch.completedSteps)
+  map: OnboardingStateMap,
+  patch: OnboardingPatch,
+): OnboardingStateMap {
+  const { tourId, ...fields } = patch
+  const state = stateFor(map, tourId)
+
+  const status = fields.status ?? state.status
+  const completedSteps = fields.completedSteps
+    ? mergeCompleted(state.completedSteps, fields.completedSteps)
     : state.completedSteps
 
   return {
-    status,
-    currentStep: isTerminal(status)
-      ? null
-      : patch.currentStep !== undefined
-        ? patch.currentStep
-        : state.currentStep,
-    completedSteps,
-    version: patch.version ?? state.version,
-    updatedAt: new Date().toISOString(),
+    ...map,
+    [tourId]: {
+      status,
+      currentStep: isTerminal(status)
+        ? null
+        : fields.currentStep !== undefined
+          ? fields.currentStep
+          : state.currentStep,
+      completedSteps,
+      version: fields.version ?? state.version,
+      updatedAt: new Date().toISOString(),
+    },
   }
 }
 

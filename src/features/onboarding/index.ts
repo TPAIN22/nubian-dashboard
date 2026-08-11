@@ -1,14 +1,25 @@
 /**
- * Merchant dashboard onboarding.
+ * Merchant dashboard guided tours.
  *
- * Mounted once by `MerchantShell`. Everything else — which step is next, when a
- * step is genuinely done, where the popover sits — is internal. The only things
- * the rest of the app touches are the provider, the `useOnboarding()` controls
- * (for the "جولة تعريفية" action in Help), and the `data-onboarding` attributes
- * on the elements the tour points at.
+ * Two of them today — a walkthrough of the console and a walkthrough of the
+ * product wizard — sharing one engine, mounted once by `MerchantShell`. Which
+ * one runs is decided by the route (see `tours/index.ts`).
+ *
+ * Everything else is internal. The rest of the app touches four things: the
+ * provider, the `useOnboarding()` controls, `<RestartTourButton>` for a help
+ * surface, and the `data-onboarding` attributes on the elements a tour points
+ * at.
  */
 
 export { OnboardingProvider, useOnboarding } from './OnboardingProvider'
 export { RestartTourButton } from './RestartTourButton'
-export { MERCHANT_TOUR, TOUR_COPY, TOUR_VERSION } from './steps'
-export type { MerchantContext, OnboardingState, OnboardingStatus, OnboardingStep } from './types'
+export { TOUR_COPY } from './copy'
+export { ADD_PRODUCT_TOUR_ID, MERCHANT_TOUR_ID, TOURS, tourById, tourForPath } from './tours'
+export type {
+  MerchantContext,
+  OnboardingState,
+  OnboardingStateMap,
+  OnboardingStatus,
+  OnboardingStep,
+  Tour,
+} from './types'

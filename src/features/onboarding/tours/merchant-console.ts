@@ -1,7 +1,7 @@
-import type { MerchantContext, OnboardingStep } from './types'
+import type { OnboardingStep, Tour } from '../types'
 
 /* ============================================================================
-   The merchant tour, as data
+   The merchant console tour, as data
    ----------------------------------------------------------------------------
    One array drives the popovers, the progress counter, the resume point and
    the keyboard order. Adding a stop means adding an entry here — no component
@@ -20,13 +20,12 @@ import type { MerchantContext, OnboardingStep } from './types'
         speaks, so a store with 200 products is not told to add its first one.
    ========================================================================== */
 
-/**
- * Bumped only when the sequence changes enough that a stored `currentStep`
- * would resume somebody in the wrong place. Cosmetic copy edits do not count.
- */
-export const TOUR_VERSION = 1
+export const MERCHANT_TOUR_ID = 'merchant-console'
 
-export const MERCHANT_TOUR: OnboardingStep[] = [
+/** Routes the console tour hands over to the add-a-product tour. */
+export const WIZARD_ROUTES = ['/merchant/products/new', '/merchant/categories/new']
+
+const STEPS: OnboardingStep[] = [
   {
     id: 'welcome',
     variant: 'dialog',
@@ -67,7 +66,8 @@ export const MERCHANT_TOUR: OnboardingStep[] = [
     route: '/merchant/products',
     placement: 'block-end',
     title: 'أضف أول منتج',
-    description: () => 'ابدأ بإضافة منتج واحد على الأقل عشان متجرك يكون جاهز للبيع.',
+    description: () =>
+      'ابدأ بإضافة منتج واحد على الأقل عشان متجرك يكون جاهز للبيع. في شاشة الإضافة في جولة تانية بتمشي معاك حقل حقل.',
     action: { label: 'إضافة منتج', href: '/merchant/products/new' },
     // Real completion, read from the catalogue the backend returns — clicking
     // "next" past this step never marks it done.
@@ -104,43 +104,25 @@ export const MERCHANT_TOUR: OnboardingStep[] = [
     chromeOnly: true,
     title: 'تمام، متجرك جاهز 🎉',
     description: () => 'عرفت أهم أجزاء الداشبورد. أضف منتجاتك وابدأ استقبل طلباتك.',
+    // The finish card's primary button. A tour that ends somewhere useful says
+    // so here rather than the renderer hard-coding a route.
+    action: { label: 'ابدأ البيع', href: '/merchant/products' },
   },
 ]
 
-/**
- * Routes where the tour steps aside entirely.
- *
- * The product wizard is the whole point of the "add your first product" step —
- * hovering a popover over it while somebody fills it in would be the tour
- * getting in the way of the thing it just asked for. Progress is already
- * persisted, so the tour picks up where it left off on the way back.
- */
-export const TOUR_PAUSED_ROUTES = ['/merchant/products/new', '/merchant/categories/new']
-
-/** Copy that lives outside any one step. */
-export const TOUR_COPY = {
-  start: 'يلا نبدأ',
-  later: 'لاحقاً',
-  next: 'التالي',
-  back: 'رجوع',
-  skipStep: 'تخطي',
-  skipTour: 'تخطي الجولة',
-  finishPrimary: 'ابدأ البيع',
-  finishSecondary: 'إغلاق',
-  restart: 'جولة تعريفية',
-  progress: (current: number, total: number) => `${current} من ${total}`,
-  confirmTitle: 'متأكد عايز تتخطى الجولة؟',
-  confirmBody: 'تقدر ترجع لها من المساعدة في أي وقت.',
-  confirmSkip: 'تخطي',
-  confirmBack: 'رجوع',
-  /** Shown when a step's target is not on this screen (mobile rail, other route). */
-  offRoute: 'افتح القسم عشان نوريك المكان بالظبط.',
-  close: 'إغلاق الجولة',
-} as const
-
-export const EMPTY_CONTEXT: MerchantContext = {
-  ready: false,
-  productCount: 0,
-  orderCount: 0,
-  storeConfigured: false,
+export const MERCHANT_CONSOLE_TOUR: Tour = {
+  id: MERCHANT_TOUR_ID,
+  version: 1,
+  steps: STEPS,
+  // The whole console EXCEPT the wizards. The product wizard is the one screen
+  // this tour spent a step asking the merchant to open — floating a popover
+  // over it would be the tour getting in the way of the thing it just
+  // recommended. The add-a-product tour takes over there instead.
+  scope: (pathname) =>
+    pathname.startsWith('/merchant') &&
+    !WIZARD_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`)),
+  autoStart: true,
+  needsMerchantContext: true,
+  restartHref: '/merchant/dashboard',
+  restartLabel: 'جولة تعريفية',
 }

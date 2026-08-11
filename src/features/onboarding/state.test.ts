@@ -8,14 +8,20 @@ import {
   mergeCompleted,
   nextStepId,
   normalizeState,
+  normalizeStateMap,
   prevStepId,
   progressFor,
   resolveEntry,
   satisfiedSteps,
+  stateFor,
   visibleSteps,
 } from './state'
-import { MERCHANT_TOUR, TOUR_VERSION } from './steps'
+import { ADD_PRODUCT_TOUR, MERCHANT_CONSOLE_TOUR, TOURS, tourForPath } from './tours'
 import type { MerchantContext, OnboardingState } from './types'
+
+const MERCHANT_TOUR = MERCHANT_CONSOLE_TOUR.steps
+const TOUR_VERSION = MERCHANT_CONSOLE_TOUR.version
+const TOUR_ID = MERCHANT_CONSOLE_TOUR.id
 
 /* ============================================================================
    The rules a merchant actually feels
@@ -74,26 +80,138 @@ describe('normalizeState', () => {
   })
 })
 
+describe('normalizeStateMap', () => {
+  it('reads a tour the merchant has never opened as not started', () => {
+    expect(stateFor(normalizeStateMap({}), TOUR_ID)).toEqual(DEFAULT_STATE)
+    expect(stateFor(null, 'anything').status).toBe('NOT_STARTED')
+  })
+
+  it('survives junk without taking the console down with it', () => {
+    expect(normalizeStateMap(null)).toEqual({})
+    expect(normalizeStateMap(['nope'])).toEqual({})
+    expect(stateFor(normalizeStateMap({ [TOUR_ID]: 'garbage' }), TOUR_ID).status).toBe(
+      'NOT_STARTED',
+    )
+  })
+})
+
 describe('applyPatch', () => {
+  const map = (s: Partial<OnboardingState> = {}) => ({ [TOUR_ID]: state(s) })
+
   it('unions completed steps rather than replacing them', () => {
     // Two tabs, two steps finished. Last-write-wins on the array would lose one.
-    const next = applyPatch(state({ completedSteps: ['store'] }), { completedSteps: ['orders'] })
-    expect(next.completedSteps.sort()).toEqual(['orders', 'store'])
+    const next = applyPatch(map({ completedSteps: ['store'] }), {
+      tourId: TOUR_ID,
+      completedSteps: ['orders'],
+    })
+    expect(next[TOUR_ID]!.completedSteps.sort()).toEqual(['orders', 'store'])
   })
 
   it('clears the resume point when the tour ends', () => {
-    const next = applyPatch(state({ currentStep: 'orders', status: 'IN_PROGRESS' }), {
+    const next = applyPatch(map({ currentStep: 'orders', status: 'IN_PROGRESS' }), {
+      tourId: TOUR_ID,
       status: 'COMPLETED',
     })
-    expect(next.currentStep).toBeNull()
+    expect(next[TOUR_ID]!.currentStep).toBeNull()
   })
 
   it('leaves untouched fields alone', () => {
-    const next = applyPatch(state({ currentStep: 'store', completedSteps: ['welcome'] }), {
+    const next = applyPatch(map({ currentStep: 'store', completedSteps: ['welcome'] }), {
+      tourId: TOUR_ID,
       status: 'IN_PROGRESS',
     })
-    expect(next.currentStep).toBe('store')
-    expect(next.completedSteps).toEqual(['welcome'])
+    expect(next[TOUR_ID]!.currentStep).toBe('store')
+    expect(next[TOUR_ID]!.completedSteps).toEqual(['welcome'])
+  })
+
+  it('does not disturb the other tour', () => {
+    // Finishing the wizard walkthrough must not touch the console one, and vice
+    // versa — they are separate lifecycles that happen to share a document.
+    const both = {
+      [TOUR_ID]: state({ status: 'IN_PROGRESS', currentStep: 'orders' }),
+      [ADD_PRODUCT_TOUR.id]: state({ status: 'COMPLETED' }),
+    }
+    const next = applyPatch(both, { tourId: TOUR_ID, status: 'SKIPPED' })
+    expect(next[ADD_PRODUCT_TOUR.id]).toEqual(both[ADD_PRODUCT_TOUR.id])
+    expect(next[TOUR_ID]!.status).toBe('SKIPPED')
+  })
+
+  it('creates an entry for a tour opened for the first time', () => {
+    const next = applyPatch({}, { tourId: ADD_PRODUCT_TOUR.id, status: 'IN_PROGRESS' })
+    expect(next[ADD_PRODUCT_TOUR.id]!.status).toBe('IN_PROGRESS')
+  })
+})
+
+describe('tour scoping', () => {
+  it('gives the product wizard to the add-a-product tour', () => {
+    expect(tourForPath('/merchant/products/new')?.id).toBe(ADD_PRODUCT_TOUR.id)
+  })
+
+  it('gives the rest of the console to the console tour', () => {
+    for (const path of [
+      '/merchant/dashboard',
+      '/merchant/products',
+      '/merchant/orders',
+      '/merchant/settings',
+      '/merchant/support',
+    ]) {
+      expect(tourForPath(path)?.id).toBe(MERCHANT_CONSOLE_TOUR.id)
+    }
+  })
+
+  it('leaves the console tour out of the wizards entirely', () => {
+    // It spent a step asking the merchant to open this screen; hovering a
+    // popover over it would be the tour obstructing its own advice.
+    expect(MERCHANT_CONSOLE_TOUR.scope('/merchant/products/new')).toBe(false)
+    expect(MERCHANT_CONSOLE_TOUR.scope('/merchant/categories/new')).toBe(false)
+  })
+
+  it('runs no tour outside the merchant console', () => {
+    expect(tourForPath('/admin/products-advanced/new')).toBeUndefined()
+    expect(tourForPath('/')).toBeUndefined()
+  })
+
+  it('does not claim the edit screen — that merchant already has a product', () => {
+    expect(ADD_PRODUCT_TOUR.scope('/merchant/products/abc123/edit')).toBe(false)
+  })
+
+  it('gives every tour a distinct id and a way to be relaunched', () => {
+    expect(new Set(TOURS.map((t) => t.id)).size).toBe(TOURS.length)
+    for (const t of TOURS) expect(t.restartLabel.length).toBeGreaterThan(0)
+  })
+})
+
+describe('the add-a-product tour', () => {
+  const steps = ADD_PRODUCT_TOUR.steps
+
+  it('opens and closes with a dialog and teaches in between', () => {
+    expect(steps[0]!.variant).toBe('dialog')
+    expect(steps[steps.length - 1]!.variant).toBe('dialog')
+    expect(progressFor(steps, 'wizard-basics')).toEqual({ current: 2, total: 7 })
+  })
+
+  it('anchors every teaching step to a stable handle, never a selector', () => {
+    for (const step of steps.filter((s) => !s.chromeOnly)) {
+      expect(step.target).toMatch(/^wizard-[a-z-]+$/)
+    }
+  })
+
+  it('explains the pricing step even when the field is not there to point at', () => {
+    // Price lives on wizard step 1 for a simple product and on step 5 for a
+    // variant one, so this target legitimately disappears.
+    const pricing = findStep(steps, 'wizard-pricing')!
+    expect(pricing.missingHint).toMatch(/التسعير/)
+  })
+
+  it('needs no store data, so it opens without waiting on queries', () => {
+    expect(ADD_PRODUCT_TOUR.needsMerchantContext).toBe(false)
+    expect(steps.some((s) => s.skipWhen || s.satisfiedWhen)).toBe(false)
+  })
+
+  it('ends where the merchant already is', () => {
+    // No onward action: the finish card closes and leaves them in the wizard.
+    expect(steps[steps.length - 1]!.action).toBeUndefined()
+    expect(ADD_PRODUCT_TOUR.restartHref).toBeUndefined()
   })
 })
 

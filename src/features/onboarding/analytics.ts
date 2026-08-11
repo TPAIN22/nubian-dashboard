@@ -25,6 +25,8 @@ export type OnboardingEventPayload = {
   properties: {
     /** Clerk user id — the identifier the rest of the platform keys on. */
     userId?: string | null
+    /** Which tour. Without it, two tours' funnels arrive as one. */
+    tourId?: string
     stepId?: string | null
     stepIndex?: number
     stepTotal?: number

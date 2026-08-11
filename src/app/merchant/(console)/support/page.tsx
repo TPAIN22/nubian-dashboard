@@ -42,7 +42,7 @@ import {
   useMerchantTickets,
   type MerchantTicket,
 } from '@/features/merchant/api'
-import { RestartTourButton } from '@/features/onboarding'
+import { MERCHANT_TOUR_ID, RestartTourButton } from '@/features/onboarding'
 
 /* ============================================================================
    Support
@@ -193,10 +193,11 @@ function SupportView() {
         description="الشكاوى والطلبات المتعلقة بمتجرك."
         actions={
           <>
-            {/* Support is the console's help surface, so it is where the guided
-                tour lives once it has been finished or skipped — rather than a
-                permanent control on the dashboard itself. */}
-            <RestartTourButton />
+            {/* Support is the console's help surface, so it is where the
+                console walkthrough lives once it has been finished or skipped —
+                rather than a permanent control on the dashboard itself. The
+                add-a-product walkthrough has its own launcher, in the wizard. */}
+            <RestartTourButton tourId={MERCHANT_TOUR_ID} />
             <Button
               variant="ghost"
               size="sm"

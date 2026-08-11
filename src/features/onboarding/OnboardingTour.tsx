@@ -16,11 +16,11 @@ import {
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 
+import { TOUR_COPY } from './copy'
 import { OnboardingCard } from './OnboardingCard'
 import { OnboardingPopover } from './OnboardingPopover'
 import { OnboardingSpotlight } from './OnboardingSpotlight'
 import { progressFor } from './state'
-import { TOUR_COPY } from './steps'
 import { useDirection, useTargetRect } from './use-target'
 import type { MerchantContext, OnboardingStep } from './types'
 
@@ -113,15 +113,24 @@ export function OnboardingTour({
     }
 
     if (isDialog && isLast) {
+      // A tour that ends somewhere useful declares that as the finish step's
+      // `action`. One that just ends — the wizard walkthrough, which leaves the
+      // merchant exactly where they need to be — gets a single close button
+      // rather than a "go somewhere" button pointing at nowhere in particular.
+      const onward = step.action
       return {
-        primary: {
-          label: TOUR_COPY.finishPrimary,
-          onClick: () => {
-            onComplete()
-            onNavigate('/merchant/products')
-          },
-        },
-        secondary: { label: TOUR_COPY.finishSecondary, onClick: onComplete },
+        primary: onward
+          ? {
+              label: onward.label,
+              onClick: () => {
+                onComplete()
+                onNavigate(onward.href)
+              },
+            }
+          : { label: TOUR_COPY.finishSecondary, onClick: onComplete },
+        secondary: onward
+          ? { label: TOUR_COPY.finishSecondary, onClick: onComplete }
+          : undefined,
         onBack: undefined,
         onSkip: undefined,
       }
@@ -190,7 +199,10 @@ export function OnboardingTour({
     title: step.title,
     description,
     progress,
-    hint: !anchored && !isDialog ? TOUR_COPY.offRoute : undefined,
+    // A missing target has two quite different causes — a phone with no rail,
+    // or a field the merchant's own choices removed — so a step may supply its
+    // own sentence instead of the generic one.
+    hint: !anchored && !isDialog ? (step.missingHint ?? TOUR_COPY.offRoute) : undefined,
     titleId,
     descriptionId,
     onDismiss: dismissAction,

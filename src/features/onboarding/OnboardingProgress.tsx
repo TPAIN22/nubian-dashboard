@@ -1,7 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { TOUR_COPY } from './steps'
+import { TOUR_COPY } from './copy'
 
 /* ============================================================================
    Progress

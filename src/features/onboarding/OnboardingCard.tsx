@@ -7,7 +7,7 @@ import { Button } from '@/components/admin'
 import { cn } from '@/lib/utils'
 
 import { OnboardingProgress } from './OnboardingProgress'
-import { TOUR_COPY } from './steps'
+import { TOUR_COPY } from './copy'
 
 /* ============================================================================
    The card

@@ -1,5 +1,5 @@
-import { normalizeState } from './state'
-import type { OnboardingState } from './types'
+import { normalizeStateMap } from './state'
+import type { OnboardingStateMap } from './types'
 
 /* ============================================================================
    Local snapshot
@@ -19,12 +19,12 @@ const PREFIX = 'nubian.merchant.onboarding'
 
 const keyFor = (userId: string) => `${PREFIX}.${userId}`
 
-export function readSnapshot(userId: string | null | undefined): OnboardingState | null {
+export function readSnapshot(userId: string | null | undefined): OnboardingStateMap | null {
   if (!userId || typeof window === 'undefined') return null
   try {
     const raw = window.localStorage.getItem(keyFor(userId))
     if (!raw) return null
-    return normalizeState(JSON.parse(raw))
+    return normalizeStateMap(JSON.parse(raw))
   } catch {
     // Private mode, quota, or a value from an older build. Either way the
     // server answer is authoritative — behave as if there were no cache.
@@ -34,7 +34,7 @@ export function readSnapshot(userId: string | null | undefined): OnboardingState
 
 export function writeSnapshot(
   userId: string | null | undefined,
-  state: OnboardingState,
+  state: OnboardingStateMap,
 ): void {
   if (!userId || typeof window === 'undefined') return
   try {

@@ -5,8 +5,11 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { applyPatch, DEFAULT_STATE } from './state'
-import { TOUR_VERSION } from './steps'
-import type { MerchantContext, OnboardingPatch, OnboardingState } from './types'
+import { ADD_PRODUCT_TOUR, MERCHANT_CONSOLE_TOUR } from './tours'
+import type { MerchantContext, OnboardingPatch, OnboardingStateMap } from './types'
+
+const TOUR_ID = MERCHANT_CONSOLE_TOUR.id
+const TOUR_VERSION = MERCHANT_CONSOLE_TOUR.version
 
 /* ============================================================================
    The tour, from a merchant's seat
@@ -30,7 +33,7 @@ import type { MerchantContext, OnboardingPatch, OnboardingState } from './types'
    ========================================================================== */
 
 const h = vi.hoisted(() => ({
-  state: null as OnboardingState | null,
+  tours: null as OnboardingStateMap | null,
   loaded: true,
   ctx: null as MerchantContext | null,
   pathname: '/merchant/dashboard',
@@ -40,6 +43,9 @@ const h = vi.hoisted(() => ({
   push: vi.fn(),
   refresh: vi.fn(),
 }))
+
+/** Progress for the tour under test, as the provider would read it. */
+const tourState = (tourId = TOUR_ID) => h.tours?.[tourId]
 
 function emit() {
   h.version += 1
@@ -74,7 +80,7 @@ vi.mock('./api', async () => {
   return {
     useOnboardingState: () => {
       React_.useSyncExternalStore(subscribe, snapshot, snapshot)
-      return { state: h.state, loaded: h.loaded, degraded: false }
+      return { tours: h.tours, loaded: h.loaded, degraded: false }
     },
     useMerchantContext: () => {
       React_.useSyncExternalStore(subscribe, snapshot, snapshot)
@@ -83,7 +89,8 @@ vi.mock('./api', async () => {
     useSaveOnboarding: () => ({
       mutate: (patch: OnboardingPatch) => {
         h.saves.push(patch)
-        h.state = applyPatch(h.state ?? DEFAULT_STATE, patch)
+        // The real `applyPatch`, so "progress persists" is not a test of a stub.
+        h.tours = applyPatch(h.tours ?? {}, patch)
         emit()
       },
     }),
@@ -104,13 +111,21 @@ const CONTEXT: MerchantContext = {
   storeName: 'متجر النيل',
 }
 
-/** Every anchor the tour points at, as the console renders them. */
+/** Every anchor either tour points at, as the console and wizard render them. */
 const TARGET_IDS = [
   'merchant-store',
   'merchant-products',
   'merchant-add-product',
   'merchant-orders',
   'merchant-analytics',
+  'wizard-steps',
+  'wizard-basics',
+  'wizard-category',
+  'wizard-type',
+  'wizard-images',
+  'wizard-publish',
+  // `wizard-pricing` is deliberately absent: it only exists for a simple
+  // product, and its absence is a case the tour has to handle.
 ]
 
 /**
@@ -131,21 +146,35 @@ function layOutTargets() {
   })
 }
 
+/** Shorthand: progress for the console tour, everything else untouched. */
+const at = (
+  step: string | null,
+  over: Partial<(typeof DEFAULT_STATE)> = {},
+): OnboardingStateMap => ({
+  [TOUR_ID]: {
+    ...DEFAULT_STATE,
+    status: step ? 'IN_PROGRESS' : 'NOT_STARTED',
+    currentStep: step,
+    version: TOUR_VERSION,
+    ...over,
+  },
+})
+
 function setup({
-  state = { ...DEFAULT_STATE, version: TOUR_VERSION },
+  tours = at(null),
   ctx = CONTEXT,
   loaded = true,
   pathname = '/merchant/dashboard',
   /** False reproduces a viewport where the rail is not rendered at all. */
   desktop = true,
 }: {
-  state?: OnboardingState | null
+  tours?: OnboardingStateMap | null
   ctx?: MerchantContext
   loaded?: boolean
   pathname?: string
   desktop?: boolean
 } = {}) {
-  h.state = state
+  h.tours = tours
   h.ctx = ctx
   h.loaded = loaded
   h.pathname = pathname
@@ -189,33 +218,27 @@ describe('who sees the tour', () => {
   })
 
   it('leaves a merchant who completed it alone', () => {
-    setup({ state: { ...DEFAULT_STATE, status: 'COMPLETED', version: TOUR_VERSION } })
+    setup({ tours: at(null, { status: 'COMPLETED' }) })
     expect(screen.queryByText(/أهلاً بيك في نوبيان/)).toBeNull()
     dashboardStillWorks()
   })
 
   it('leaves a merchant who skipped it alone', () => {
-    setup({ state: { ...DEFAULT_STATE, status: 'SKIPPED', version: TOUR_VERSION } })
+    setup({ tours: at(null, { status: 'SKIPPED' }) })
     expect(screen.queryByText(/أهلاً بيك في نوبيان/)).toBeNull()
     dashboardStillWorks()
   })
 
   it('resumes a half-finished tour at the right step', async () => {
     setup({
-      state: {
-        ...DEFAULT_STATE,
-        status: 'IN_PROGRESS',
-        currentStep: 'orders',
-        completedSteps: ['welcome', 'store', 'products'],
-        version: TOUR_VERSION,
-      },
+      tours: at('orders', { completedSteps: ['welcome', 'store', 'products'] }),
     })
     expect(await screen.findByText('الطلبات 🛍️')).toBeTruthy()
     expect(screen.queryByText(/أهلاً بيك في نوبيان/)).toBeNull()
   })
 
   it('shows nothing — and breaks nothing — when the state cannot be loaded', () => {
-    setup({ state: null, loaded: false })
+    setup({ tours: null, loaded: false })
     expect(screen.queryByText(/أهلاً بيك في نوبيان/)).toBeNull()
     dashboardStillWorks()
   })
@@ -229,12 +252,7 @@ describe('who sees the tour', () => {
 
   it('stands aside entirely on the product wizard', () => {
     setup({
-      state: {
-        ...DEFAULT_STATE,
-        status: 'IN_PROGRESS',
-        currentStep: 'add-product',
-        version: TOUR_VERSION,
-      },
+      tours: at('add-product'),
       pathname: '/merchant/products/new',
     })
     expect(screen.queryByText('أضف أول منتج')).toBeNull()
@@ -251,25 +269,20 @@ describe('moving through the tour', () => {
 
     // Persisted, not just rendered — this is what survives a reload.
     expect(h.saves.at(-1)).toMatchObject({ status: 'IN_PROGRESS', currentStep: 'store' })
-    expect(h.state?.currentStep).toBe('store')
+    expect(tourState()?.currentStep).toBe('store')
 
     // `findBy`, not `getBy`: the card opens as a floating fallback and swaps to
     // the anchored popover once the rail row has been located, which is a frame
     // later. "التالي" is the anchored spelling of the primary action.
     await user.click(await screen.findByRole('button', { name: 'التالي' }))
     expect(await screen.findByText('منتجاتك 📦')).toBeTruthy()
-    expect(h.state?.completedSteps).toContain('store')
+    expect(tourState()?.completedSteps).toContain('store')
   })
 
   it('goes back', async () => {
     const user = userEvent.setup()
     setup({
-      state: {
-        ...DEFAULT_STATE,
-        status: 'IN_PROGRESS',
-        currentStep: 'orders',
-        version: TOUR_VERSION,
-      },
+      tours: at('orders'),
     })
 
     await user.click(await screen.findByRole('button', { name: 'رجوع' }))
@@ -278,12 +291,7 @@ describe('moving through the tour', () => {
 
   it('shows how far along the merchant is', async () => {
     setup({
-      state: {
-        ...DEFAULT_STATE,
-        status: 'IN_PROGRESS',
-        currentStep: 'orders',
-        version: TOUR_VERSION,
-      },
+      tours: at('orders'),
     })
     // welcome and finish are not counted.
     expect(await screen.findByText('4 من 5')).toBeTruthy()
@@ -291,12 +299,7 @@ describe('moving through the tour', () => {
 
   it('renumbers when a step does not apply to this merchant', async () => {
     setup({
-      state: {
-        ...DEFAULT_STATE,
-        status: 'IN_PROGRESS',
-        currentStep: 'orders',
-        version: TOUR_VERSION,
-      },
+      tours: at('orders'),
       ctx: { ...CONTEXT, productCount: 7 },
     })
     expect(await screen.findByText('3 من 4')).toBeTruthy()
@@ -305,16 +308,11 @@ describe('moving through the tour', () => {
   it('finishes, and marks itself completed', async () => {
     const user = userEvent.setup()
     setup({
-      state: {
-        ...DEFAULT_STATE,
-        status: 'IN_PROGRESS',
-        currentStep: 'finish',
-        version: TOUR_VERSION,
-      },
+      tours: at('finish'),
     })
 
     await user.click(await screen.findByRole('button', { name: 'إغلاق' }))
-    await waitFor(() => expect(h.state?.status).toBe('COMPLETED'))
+    await waitFor(() => expect(tourState()?.status).toBe('COMPLETED'))
     expect(screen.queryByText(/متجرك جاهز/)).toBeNull()
   })
 })
@@ -323,12 +321,7 @@ describe('skipping', () => {
   it('confirms before skipping, and can be backed out of', async () => {
     const user = userEvent.setup()
     setup({
-      state: {
-        ...DEFAULT_STATE,
-        status: 'IN_PROGRESS',
-        currentStep: 'orders',
-        version: TOUR_VERSION,
-      },
+      tours: at('orders'),
     })
 
     await user.click(await screen.findByRole('button', { name: 'تخطي الجولة' }))
@@ -336,25 +329,20 @@ describe('skipping', () => {
 
     await user.click(screen.getByRole('button', { name: 'رجوع' }))
     await waitFor(() => expect(screen.queryByText('متأكد عايز تتخطى الجولة؟')).toBeNull())
-    expect(h.state?.status).toBe('IN_PROGRESS')
+    expect(tourState()?.status).toBe('IN_PROGRESS')
     expect(screen.getByText('الطلبات 🛍️')).toBeTruthy()
   })
 
   it('persists SKIPPED once confirmed, and closes', async () => {
     const user = userEvent.setup()
     setup({
-      state: {
-        ...DEFAULT_STATE,
-        status: 'IN_PROGRESS',
-        currentStep: 'orders',
-        version: TOUR_VERSION,
-      },
+      tours: at('orders'),
     })
 
     await user.click(await screen.findByRole('button', { name: 'تخطي الجولة' }))
     await user.click(await screen.findByRole('button', { name: 'تخطي' }))
 
-    await waitFor(() => expect(h.state?.status).toBe('SKIPPED'))
+    await waitFor(() => expect(tourState()?.status).toBe('SKIPPED'))
     expect(screen.queryByText('الطلبات 🛍️')).toBeNull()
     dashboardStillWorks()
   })
@@ -363,7 +351,7 @@ describe('skipping', () => {
     const user = userEvent.setup()
     setup()
     await user.click(await screen.findByRole('button', { name: 'لاحقاً' }))
-    await waitFor(() => expect(h.state?.status).toBe('SKIPPED'))
+    await waitFor(() => expect(tourState()?.status).toBe('SKIPPED'))
   })
 })
 
@@ -371,12 +359,7 @@ describe('the actionable step', () => {
   it('sends the merchant to the real product form', async () => {
     const user = userEvent.setup()
     setup({
-      state: {
-        ...DEFAULT_STATE,
-        status: 'IN_PROGRESS',
-        currentStep: 'add-product',
-        version: TOUR_VERSION,
-      },
+      tours: at('add-product'),
       pathname: '/merchant/products',
     })
 
@@ -387,28 +370,18 @@ describe('the actionable step', () => {
   it('does not mark the step done just because Next was pressed', async () => {
     const user = userEvent.setup()
     setup({
-      state: {
-        ...DEFAULT_STATE,
-        status: 'IN_PROGRESS',
-        currentStep: 'add-product',
-        version: TOUR_VERSION,
-      },
+      tours: at('add-product'),
       pathname: '/merchant/products',
     })
 
     await user.click(await screen.findByRole('button', { name: 'تخطي' }))
     expect(await screen.findByText('الطلبات 🛍️')).toBeTruthy()
-    expect(h.state?.completedSteps ?? []).not.toContain('add-product')
+    expect(tourState()?.completedSteps ?? []).not.toContain('add-product')
   })
 
   it('marks it done when a product actually exists', async () => {
     setup({
-      state: {
-        ...DEFAULT_STATE,
-        status: 'IN_PROGRESS',
-        currentStep: 'add-product',
-        version: TOUR_VERSION,
-      },
+      tours: at('add-product'),
       pathname: '/merchant/products',
     })
     expect(await screen.findByText('أضف أول منتج')).toBeTruthy()
@@ -417,18 +390,13 @@ describe('the actionable step', () => {
     h.ctx = { ...CONTEXT, productCount: 1 }
     emit()
 
-    await waitFor(() => expect(h.state?.completedSteps).toContain('add-product'))
+    await waitFor(() => expect(tourState()?.completedSteps).toContain('add-product'))
     expect(await screen.findByText('الطلبات 🛍️')).toBeTruthy()
   })
 
   it('re-reads the catalogue on the way back from the wizard', async () => {
     setup({
-      state: {
-        ...DEFAULT_STATE,
-        status: 'IN_PROGRESS',
-        currentStep: 'add-product',
-        version: TOUR_VERSION,
-      },
+      tours: at('add-product'),
       pathname: '/merchant/products/new',
     })
 
@@ -440,12 +408,7 @@ describe('the actionable step', () => {
 describe('route changes', () => {
   it('follows the merchant when they click the highlighted section', async () => {
     setup({
-      state: {
-        ...DEFAULT_STATE,
-        status: 'IN_PROGRESS',
-        currentStep: 'products',
-        version: TOUR_VERSION,
-      },
+      tours: at('products'),
     })
     expect(await screen.findByText('منتجاتك 📦')).toBeTruthy()
 
@@ -453,17 +416,12 @@ describe('route changes', () => {
 
     // Continues on the products page rather than ending the tour.
     expect(await screen.findByText('أضف أول منتج')).toBeTruthy()
-    expect(h.state?.completedSteps).toContain('products')
+    expect(tourState()?.completedSteps).toContain('products')
   })
 
   it('survives a navigation that has nothing to do with the current step', async () => {
     setup({
-      state: {
-        ...DEFAULT_STATE,
-        status: 'IN_PROGRESS',
-        currentStep: 'orders',
-        version: TOUR_VERSION,
-      },
+      tours: at('orders'),
     })
     expect(await screen.findByText('الطلبات 🛍️')).toBeTruthy()
 
@@ -482,12 +440,7 @@ describe('on a phone, where the rail is not rendered', () => {
     const user = userEvent.setup()
     setup({
       desktop: false,
-      state: {
-        ...DEFAULT_STATE,
-        status: 'IN_PROGRESS',
-        currentStep: 'orders',
-        version: TOUR_VERSION,
-      },
+      tours: at('orders'),
     })
 
     expect(await screen.findByText('الطلبات 🛍️')).toBeTruthy()
@@ -500,12 +453,7 @@ describe('on a phone, where the rail is not rendered', () => {
   it('does not crash the dashboard when a target is missing entirely', async () => {
     setup({
       desktop: false,
-      state: {
-        ...DEFAULT_STATE,
-        status: 'IN_PROGRESS',
-        currentStep: 'sales',
-        version: TOUR_VERSION,
-      },
+      tours: at('sales'),
     })
     expect(await screen.findByText('مبيعاتك 💰')).toBeTruthy()
     dashboardStillWorks()
@@ -515,12 +463,7 @@ describe('on a phone, where the rail is not rendered', () => {
 describe('accessibility', () => {
   it('labels the step card with its own title and description', async () => {
     setup({
-      state: {
-        ...DEFAULT_STATE,
-        status: 'IN_PROGRESS',
-        currentStep: 'orders',
-        version: TOUR_VERSION,
-      },
+      tours: at('orders'),
     })
 
     const dialog = await screen.findByRole('dialog')
@@ -533,12 +476,7 @@ describe('accessibility', () => {
   it('opens the skip confirmation on Escape rather than silently vanishing', async () => {
     const user = userEvent.setup()
     setup({
-      state: {
-        ...DEFAULT_STATE,
-        status: 'IN_PROGRESS',
-        currentStep: 'orders',
-        version: TOUR_VERSION,
-      },
+      tours: at('orders'),
     })
 
     await screen.findByText('الطلبات 🛍️')
@@ -547,19 +485,14 @@ describe('accessibility', () => {
 
     expect(await screen.findByText('متأكد عايز تتخطى الجولة؟')).toBeTruthy()
     // Nothing has been persisted yet — Escape asks, it does not decide.
-    expect(h.state?.status).toBe('IN_PROGRESS')
+    expect(tourState()?.status).toBe('IN_PROGRESS')
   })
 
   it('walks forward with the RTL-forward arrow key', async () => {
     const user = userEvent.setup()
     document.documentElement.setAttribute('dir', 'rtl')
     setup({
-      state: {
-        ...DEFAULT_STATE,
-        status: 'IN_PROGRESS',
-        currentStep: 'store',
-        version: TOUR_VERSION,
-      },
+      tours: at('store'),
     })
 
     // Wait for the anchored frame, where the primary action is "next" rather
@@ -570,5 +503,104 @@ describe('accessibility', () => {
     await user.keyboard('{ArrowLeft}')
 
     expect(await screen.findByText('منتجاتك 📦')).toBeTruthy()
+  })
+})
+
+/* -------------------------------------------------------------------------- */
+
+describe('the add-a-product tour', () => {
+  const WIZARD = '/merchant/products/new'
+  const ADD_ID = ADD_PRODUCT_TOUR.id
+
+  /** Progress for the wizard tour, everything else untouched. */
+  const atWizard = (
+    step: string | null,
+    over: Partial<typeof DEFAULT_STATE> = {},
+  ): OnboardingStateMap => ({
+    [ADD_ID]: {
+      ...DEFAULT_STATE,
+      status: step ? 'IN_PROGRESS' : 'NOT_STARTED',
+      currentStep: step,
+      version: ADD_PRODUCT_TOUR.version,
+      ...over,
+    },
+  })
+
+  it('takes over on the product wizard, and the console tour stands down', async () => {
+    // Both tours untouched. The route decides which one speaks.
+    setup({ pathname: WIZARD, tours: {} })
+
+    expect(await screen.findByText(/نضيف منتجك سوا/)).toBeTruthy()
+    expect(screen.queryByText(/أهلاً بيك في نوبيان/)).toBeNull()
+  })
+
+  it('keeps its progress under its own id', async () => {
+    const user = userEvent.setup()
+    setup({ pathname: WIZARD, tours: {} })
+
+    await user.click(await screen.findByRole('button', { name: 'يلا نبدأ' }))
+    await screen.findByText('خطوات الإضافة')
+
+    expect(h.saves.at(-1)).toMatchObject({ tourId: ADD_ID, currentStep: 'wizard-steps' })
+    expect(tourState(ADD_ID)?.currentStep).toBe('wizard-steps')
+    // The console walkthrough was never written to.
+    expect(tourState(TOUR_ID)).toBeUndefined()
+  })
+
+  it('does not replay for a merchant who already finished it', () => {
+    setup({ pathname: WIZARD, tours: atWizard(null, { status: 'COMPLETED' }) })
+    expect(screen.queryByText(/نضيف منتجك سوا/)).toBeNull()
+    dashboardStillWorks()
+  })
+
+  it('runs even though the console walkthrough was skipped', async () => {
+    // Separate lifecycles: dismissing the dashboard tour says nothing about
+    // whether this merchant wants help filling in a product form.
+    setup({
+      pathname: WIZARD,
+      tours: { ...at(null, { status: 'SKIPPED' }), ...atWizard(null) },
+    })
+    expect(await screen.findByText(/نضيف منتجك سوا/)).toBeTruthy()
+  })
+
+  it('opens without waiting on store data it never reads', async () => {
+    // `ready: false` would hold the console tour shut. This one consults no
+    // product count and no order history, so it has nothing to wait for.
+    setup({ pathname: WIZARD, tours: {}, ctx: { ...CONTEXT, ready: false } })
+    expect(await screen.findByText(/نضيف منتجك سوا/)).toBeTruthy()
+  })
+
+  it('explains pricing with its own wording when the field is not on screen', async () => {
+    // A variant product prices on step 5, so `wizard-pricing` is not rendered.
+    setup({ pathname: WIZARD, tours: atWizard('wizard-pricing') })
+
+    expect(await screen.findByText('السعر والكمية')).toBeTruthy()
+    // The step's own hint, not the generic "open the section" line.
+    expect(screen.getByText(/الأسعار والكميات بتحددها لكل متغير/)).toBeTruthy()
+    expect(screen.queryByText(/افتح القسم عشان نوريك/)).toBeNull()
+  })
+
+  it('ends with a single close button and leaves the merchant in the wizard', async () => {
+    const user = userEvent.setup()
+    setup({ pathname: WIZARD, tours: atWizard('finish') })
+
+    expect(await screen.findByText('جاهز 🎉')).toBeTruthy()
+    // No "go somewhere" button — they are already where they need to be.
+    expect(screen.queryByRole('button', { name: 'ابدأ البيع' })).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'إغلاق' }))
+    await waitFor(() => expect(tourState(ADD_ID)?.status).toBe('COMPLETED'))
+    expect(h.push).not.toHaveBeenCalled()
+  })
+
+  it('hands back to the console tour on the way out', async () => {
+    setup({ pathname: WIZARD, tours: { ...at('add-product'), ...atWizard(null, { status: 'COMPLETED' }) } })
+    expect(screen.queryByText(/نضيف منتجك سوا/)).toBeNull()
+
+    navigate('/merchant/products')
+
+    // Catalogue re-read, and the console walkthrough is back on screen.
+    await waitFor(() => expect(h.refresh).toHaveBeenCalled())
+    expect(await screen.findByText('أضف أول منتج')).toBeTruthy()
   })
 })
