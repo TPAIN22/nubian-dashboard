@@ -149,7 +149,10 @@ export default function MerchantProductsPage() {
               <Download />
               تصدير
             </Button>
-            <Button variant="primary" size="sm" asChild>
+            {/* `data-onboarding` is the anchor the guided tour highlights for
+                its "add your first product" step — a stable handle rather than
+                a CSS path through the header's markup. */}
+            <Button variant="primary" size="sm" asChild data-onboarding="merchant-add-product">
               <Link href="/merchant/products/new">
                 <Plus />
                 منتج جديد

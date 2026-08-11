@@ -326,7 +326,7 @@ function ProductCard({ product, onUpdate, getToken }: ProductCardProps) {
       <CardContent className="p-4">
         <div className="flex gap-4">
           {product.images && product.images.length > 0 && !imageError ? (
-            <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
+            <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0">
               <img
                 src={product.images[0]}
                 alt={product.name}
@@ -335,7 +335,7 @@ function ProductCard({ product, onUpdate, getToken }: ProductCardProps) {
               />
             </div>
           ) : (
-            <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+            <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center shrink-0">
               <span className="text-xs text-muted-foreground">لا توجد صورة</span>
             </div>
           )}

@@ -46,6 +46,7 @@ export const MERCHANT_GROUPS: NavGroup[] = [
         icon: ReceiptText,
         badge: 'pendingOrders',
         keywords: ['orders', 'sales', 'مبيعات', 'شحنات'],
+        onboardingId: 'merchant-orders',
       },
       {
         label: 'المنتجات',
@@ -53,6 +54,7 @@ export const MERCHANT_GROUPS: NavGroup[] = [
         icon: Package,
         keywords: ['products', 'inventory', 'مخزون', 'sku', 'منتجاتي'],
         children: [{ label: 'منتج جديد', href: '/merchant/products/new' }],
+        onboardingId: 'merchant-products',
       },
       {
         label: 'التصنيفات',
@@ -71,6 +73,10 @@ export const MERCHANT_GROUPS: NavGroup[] = [
         href: '/merchant/analytics',
         icon: ChartNoAxesColumn,
         keywords: ['analytics', 'reports', 'تقارير', 'إحصائيات'],
+        // The tour's "مبيعاتك" stop. It points here rather than at an invented
+        // wallet or earnings page — this is where Nubian shows a merchant how
+        // their store is doing, and the tour uses the console's own vocabulary.
+        onboardingId: 'merchant-analytics',
       },
       {
         label: 'الكوبونات',
@@ -95,6 +101,7 @@ export const MERCHANT_GROUPS: NavGroup[] = [
         href: '/merchant/settings',
         icon: Store,
         keywords: ['settings', 'profile', 'إعدادات', 'الملف'],
+        onboardingId: 'merchant-store',
       },
       {
         label: 'الفريق',

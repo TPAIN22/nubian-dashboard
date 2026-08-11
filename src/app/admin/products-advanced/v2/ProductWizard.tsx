@@ -1018,7 +1018,7 @@ export default function ProductWizard({ productId, redirectPath = "/admin/produc
             <Page>
                 <PageHeader title={productId ? "تعديل منتج" : "منتج جديد"} />
                 <PageBody>
-                    <div className="flex min-h-[320px] flex-col items-center justify-center gap-3">
+                    <div className="flex min-h-80 flex-col items-center justify-center gap-3">
                         <Spinner className="size-5" />
                         <p className="text-[12px] text-text-muted">جارٍ تحميل بيانات المنتج…</p>
                     </div>
@@ -1598,7 +1598,7 @@ function VariantSetupStep({ generate }: { generate: () => void }) {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel className="text-sm font-bold">الخيارات المتاحة (اكتب القيمة ثم اضغط Enter)</FormLabel>
-                                                    <div className="border border-muted rounded-xl p-3 bg-muted/10 min-h-[50px] flex flex-wrap gap-2 focus-within:ring-1 ring-primary/20 transition-all">
+                                                    <div className="border border-muted rounded-xl p-3 bg-muted/10 min-h-12.5 flex flex-wrap gap-2 focus-within:ring-1 ring-primary/20 transition-all">
                                                         {field.value.map((opt: string, oi: number) => (
                                                             <Badge key={oi} variant="secondary" className="px-3 py-1.5 gap-2 bg-background border-primary/10 hover:bg-destructive hover:text-white transition-colors cursor-pointer group/badge" onClick={() => {
                                                                 const newOpts = [...field.value];
@@ -1858,7 +1858,7 @@ function DiscountSection({
                                         onCheckedChange={(checked) => setField("isActive", checked)}
                                     />
                                 </FormControl>
-                                <FormLabel className="!mt-0 whitespace-nowrap font-semibold">
+                                <FormLabel className="mt-0! whitespace-nowrap font-semibold">
                                     {field.value ? "الخصم مُفعَّل" : "بدون خصم"}
                                 </FormLabel>
                             </FormItem>
@@ -2223,7 +2223,7 @@ function PricingStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: bool
                         </CardDescription>
                     )}
                 </CardHeader>
-                <CardContent className="max-h-[340px] overflow-auto">
+                <CardContent className="max-h-85 overflow-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>

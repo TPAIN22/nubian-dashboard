@@ -310,6 +310,9 @@ function NavGroupBlock({
           <Link
             href={item.href}
             onClick={onNavigate}
+            // Anchor for the merchant onboarding tour. Absent on /admin, whose
+            // nav declares no ids, so this renders nothing there.
+            data-onboarding={item.onboardingId}
             aria-current={active ? 'page' : undefined}
             className={cn(
               'group relative flex h-[30px] items-center rounded-[6px] transition-colors focus-ring',

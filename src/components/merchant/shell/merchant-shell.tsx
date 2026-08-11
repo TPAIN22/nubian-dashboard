@@ -2,6 +2,7 @@
 
 import { ConsoleShell } from '@/components/console/shell'
 import { useMerchantCounts, useMerchantProfile } from '@/features/merchant/api'
+import { OnboardingProvider } from '@/features/onboarding'
 import { MERCHANT_CONSOLE } from './nav'
 import { StoreSwitcher } from './store-switcher'
 
@@ -20,6 +21,11 @@ import { StoreSwitcher } from './store-switcher'
  * Since a store can be run by a team, one person may also belong to several
  * shops. The switcher under the brand renders only in that case; with a single
  * store it returns null and the rail looks exactly as it did before.
+ *
+ * The onboarding tour is mounted INSIDE the shell, not around it. It points at
+ * elements the shell renders — the nav rows — so it has to be able to see them;
+ * and being inside the routed subtree without being part of any one page is
+ * what lets it survive a navigation it caused itself.
  */
 export function MerchantShell({ children }: { children: React.ReactNode }) {
   const { data: profile } = useMerchantProfile()
@@ -32,7 +38,7 @@ export function MerchantShell({ children }: { children: React.ReactNode }) {
       brandBadge={profile?.storeName}
       brandSlot={<StoreSwitcher activeStoreId={profile?._id} />}
     >
-      {children}
+      <OnboardingProvider>{children}</OnboardingProvider>
     </ConsoleShell>
   )
 }

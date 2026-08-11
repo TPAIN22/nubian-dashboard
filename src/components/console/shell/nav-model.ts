@@ -25,6 +25,12 @@ export type NavItem = {
   /** Sub-routes surfaced in the palette and breadcrumbs, not in the sidebar. */
   children?: { label: string; href: string }[]
   /**
+   * Stable handle for the onboarding tour, emitted as `data-onboarding` on the
+   * rendered row. Declared here rather than matched with a CSS path so a
+   * restyle of the rail cannot silently unhook the tour.
+   */
+  onboardingId?: string
+  /**
    * Free-form gate evaluated against the viewer. Consoles decide what the flag
    * means — `/admin` uses it for platform-financial surfaces that `support`
    * must not see.

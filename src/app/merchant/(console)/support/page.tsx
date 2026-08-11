@@ -42,6 +42,7 @@ import {
   useMerchantTickets,
   type MerchantTicket,
 } from '@/features/merchant/api'
+import { RestartTourButton } from '@/features/onboarding'
 
 /* ============================================================================
    Support
@@ -192,6 +193,10 @@ function SupportView() {
         description="الشكاوى والطلبات المتعلقة بمتجرك."
         actions={
           <>
+            {/* Support is the console's help surface, so it is where the guided
+                tour lives once it has been finished or skipped — rather than a
+                permanent control on the dashboard itself. */}
+            <RestartTourButton />
             <Button
               variant="ghost"
               size="sm"

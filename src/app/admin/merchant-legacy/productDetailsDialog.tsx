@@ -128,7 +128,7 @@ export function ProductDetailsDialog({ product }: ProductDetailsDialogProps) {
                         <button
                           key={index}
                           onClick={() => setSelectedImageIndex(index)}
-                          className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                          className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
                             selectedImageIndex === index
                               ? "border-primary"
                               : "border-transparent hover:border-muted-foreground"
