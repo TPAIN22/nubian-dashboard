@@ -259,3 +259,758 @@
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15);
   }
 }
+
+/* ============================================
+   STOREFRONT THEME
+   ============================================
+   The public storefront is an editorial shopping surface, not a console, so
+   it scopes its own semantic tokens to a `.storefront-theme` wrapper rather
+   than mutating `:root` — the admin and merchant panels keep the palette they
+   were designed against.
+
+   It is a refinement of the existing Nubian system, not a new palette. The
+   warm white ground (#FAFAF7), the near-black ink (#1A1A1A) and Nubian gold
+   (#D4AF37, the colour of the logo monogram) all carry over unchanged. What
+   changes:
+
+   - **Radius.** The console's 0.75rem is right for dense cards; on full-bleed
+     photography it rounds every corner of every image and reads as a widget
+     board. The storefront uses 0.25rem.
+   - **Surfaces.** `--card` and `--border` are translucent in the console
+     (`rgba(255,255,255,0.85)`, `rgba(0,0,0,0.12)`) because they sit over the
+     glass treatment. Over photography a translucent card tints whatever is
+     behind it, so these are opaque and warm.
+   - **Gold as text.** #D4AF37 on #FAFAF7 is 2.0:1 — unreadable as body or
+     label text, though fine as a fill behind black (9.99:1). `--sf-accent`
+     is the darkened gold used wherever the brand colour has to be *read*:
+     #8A6D12 is 4.70:1 on the light ground, #D4AF37 is 9.24:1 on the dark one.
+
+   Every pair below was checked against WCAG AA; the ratios are in the
+   comments so a future edit can see what it is spending. */
+.storefront-theme {
+  /* One family carries both scripts. IBM Plex Sans Arabic ships Latin glyphs
+     drawn on the IBM Plex skeleton, so an English product name keeps the same
+     baseline and optical weight as the Arabic beside it — the usual failure
+     mode of pairing an Arabic face with a separate Latin one.
+
+     Declared here rather than with a `font-ibm-plex-arabic` utility class:
+     Tailwind v4 only generates `font-*` utilities for families registered
+     under a `--font-*` theme key, and this project registers none, so that
+     class resolves to nothing and the page silently falls back to the system
+     stack. `src/styles/admin.css` sets its family the same way, for the same
+     reason. The variable itself comes from `next/font` in the root layout. */
+  font-family: var(--font-ibm-plex-arabic), "IBM Plex Sans Arabic", ui-sans-serif,
+    system-ui, "Segoe UI", sans-serif;
+
+  --radius: 0.25rem;
+
+  /* Ground and ink */
+  /* Warmed a step toward the sand of the campaign photography, so the
+     catalogue reads as the same daylight as the frames above it rather
+     than as a white page that follows them. */
+  --background: #f8f5ef;
+  --foreground: #1a1a1a; /* 16.3:1 */
+  --card: #ffffff;
+  --card-foreground: #1a1a1a;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1a;
+
+  /* Brand gold. Black on gold is 10.0:1, so fills stay legible. */
+  --primary: #d4af37;
+  --primary-foreground: #000000;
+
+  --secondary: #f2f1ec;
+  --secondary-foreground: #1a1a1a;
+
+  /* Image wells and quiet bands: warm, never grey. */
+  --muted: #f2f1ec;
+  --muted-foreground: #5f5a50; /* 6.6:1 */
+
+  --accent: #f2f1ec;
+  --accent-foreground: #1a1a1a;
+
+  --border: #e5e1d6;
+  --input: #e5e1d6;
+  --ring: #8a6d12;
+
+  /* Storefront-only tokens, named for the role they play on the page. */
+  --sf-ink: #1a1a1a;
+  --sf-ink-soft: #5f5a50;
+  --sf-accent: #8a6d12; /* 4.7:1 — brand gold, readable */
+  --sf-rule: #e5e1d6;
+  --sf-rule-strong: #cfc8b6;
+  --sf-well: #efe9df;
+  /* Sand: the ground of the campaign frames, sampled from the plaster and
+     stone in the photography. Ink on sand is 13.9:1. */
+  --sf-sand: #ebe2d3;
+  --sf-sand-deep: #dfd2bd;
+  /* The closing frame's ground: the graded plaster in palm-plaster.jpg,
+     sampled from the render. The same in both themes, because the
+     photograph it continues is. Ink on it is 7.8:1. */
+  --sf-plaster: #c1a47c;
+  --sf-inverse: #17130f;
+  --sf-inverse-foreground: #f5f3ee; /* 15.6:1 on --sf-inverse */
+  --sf-inverse-muted: rgba(245, 243, 238, 0.66);
+  --sf-inverse-rule: rgba(245, 243, 238, 0.16);
+}
+
+.dark .storefront-theme {
+  --background: #0d0d0d;
+  --foreground: #f0f0f0;
+  --card: #141414;
+  --card-foreground: #f0f0f0;
+  --popover: #141414;
+  --popover-foreground: #f0f0f0;
+
+  --primary: #d4af37;
+  --primary-foreground: #000000;
+
+  --secondary: #1e1e1e;
+  --secondary-foreground: #f0f0f0;
+
+  --muted: #1b1a18;
+  --muted-foreground: #a8a296; /* 7.6:1 */
+
+  --accent: #1e1e1e;
+  --accent-foreground: #f0f0f0;
+
+  --border: #2a2823;
+  --input: #2a2823;
+  --ring: #d4af37;
+
+  --sf-ink: #f0f0f0;
+  --sf-ink-soft: #a8a296;
+  --sf-accent: #d4af37; /* 9.2:1 on the dark ground */
+  --sf-rule: #2a2823;
+  --sf-rule-strong: #3d3a33;
+  --sf-well: #1b1a18;
+  --sf-sand: #1f1a14;
+  --sf-sand-deep: #2a231b;
+  --sf-inverse: #0b0907;
+  --sf-inverse-foreground: #f0f0f0;
+  --sf-inverse-muted: rgba(240, 240, 240, 0.62);
+  --sf-inverse-rule: rgba(240, 240, 240, 0.14);
+}
+
+@theme inline {
+  --color-sf-ink: var(--sf-ink);
+  --color-sf-ink-soft: var(--sf-ink-soft);
+  --color-sf-accent: var(--sf-accent);
+  --color-sf-rule: var(--sf-rule);
+  --color-sf-rule-strong: var(--sf-rule-strong);
+  --color-sf-well: var(--sf-well);
+  --color-sf-sand: var(--sf-sand);
+  --color-sf-sand-deep: var(--sf-sand-deep);
+  --color-sf-plaster: var(--sf-plaster);
+  --color-sf-inverse: var(--sf-inverse);
+  --color-sf-inverse-foreground: var(--sf-inverse-foreground);
+  --color-sf-inverse-muted: var(--sf-inverse-muted);
+  --color-sf-inverse-rule: var(--sf-inverse-rule);
+}
+
+@layer components {
+  /* ---- Storefront type scale -------------------------------------------
+     One family (IBM Plex Sans Arabic) carries both scripts. It ships Latin
+     glyphs drawn on the IBM Plex skeleton, so an English product name sits on
+     the same baseline and optical weight as the Arabic around it — the usual
+     failure mode of pairing an Arabic face with a separate Latin one.
+
+     Note what is NOT here: `letter-spacing` on Arabic. Tracking breaks the
+     cursive joins between Arabic letterforms, and `text-transform` does
+     nothing to a unicameral script. The old sections set both
+     (`tracking-widest uppercase`) on Arabic eyebrow labels. Here the eyebrow
+     is differentiated by size, weight and colour instead. */
+
+  /* Headlines are set in Reem Kufi, a geometric Kufic, and everything a
+     shopper reads at length stays in Plex. One voice for statements, one
+     for information. No negative tracking: it breaks Arabic joins, which is
+     the rule this block already states for eyebrows and was not following
+     for its own headlines. */
+  .sf-display,
+  .sf-title,
+  .sf-kufi {
+    font-family: var(--font-reem-kufi), var(--font-ibm-plex-arabic), "IBM Plex Sans Arabic",
+      ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: 0;
+  }
+
+  .sf-display {
+    font-size: clamp(2.6rem, 1.5rem + 4.4vw, 5.25rem);
+    line-height: 1.16;
+    font-weight: 600;
+    text-wrap: balance;
+  }
+
+  .sf-title {
+    font-size: clamp(1.75rem, 1.35rem + 1.6vw, 2.6rem);
+    line-height: 1.22;
+    font-weight: 600;
+    text-wrap: balance;
+  }
+
+  /* One grade across the campaign stills. They come from four different
+     photographers and cameras; a warm soft-light wash is what makes them
+     read as one shoot, and it pulls the one cool frame (the rail) into the
+     same afternoon as the others. Applied to campaign imagery only — never
+     to product photography, whose colour has to be the colour you receive. */
+  .sf-grade {
+    position: relative;
+    isolation: isolate;
+  }
+  .sf-grade::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: #b87a3c;
+    mix-blend-mode: soft-light;
+    opacity: 0.24;
+  }
+
+  .sf-subtitle {
+    font-size: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
+    line-height: 1.7;
+    font-weight: 400;
+    color: var(--muted-foreground);
+    text-wrap: pretty;
+  }
+
+  /* Section eyebrow. Deliberately un-tracked — see note above. */
+  .sf-eyebrow {
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    font-weight: 600;
+    color: var(--sf-accent);
+  }
+
+  .sf-body {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: var(--muted-foreground);
+    text-wrap: pretty;
+  }
+
+  .sf-product-name {
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    font-weight: 500;
+    color: var(--sf-ink);
+  }
+
+  .sf-price {
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--sf-ink);
+  }
+
+  .sf-meta {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--muted-foreground);
+  }
+
+  /* Shared focus ring. Visible on every interactive storefront element,
+     including the image links that have no other chrome. */
+  .sf-focus {
+    outline: none;
+  }
+  .sf-focus:focus-visible {
+    outline: 2px solid var(--sf-accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+}
+
+/* ============================================
+   STORY — scroll-driven chapter engine
+   ============================================
+   The homepage narrative is animated entirely in CSS, by the browser's
+   compositor, with no JavaScript and no animation dependency.
+
+   Why not GSAP/ScrollTrigger: the whole technique here is "a scene pins while
+   its shots cross-dissolve against scroll position", and that is precisely
+   what position:sticky and scroll-driven animations already do natively.
+   Adding ~70 KB of library, a hydration boundary and a rAF loop to a
+   storefront's critical path — to reproduce behaviour the platform ships —
+   would be paying in the one currency a shop cannot spare.
+
+   Three rendering modes, and the story is complete in all three:
+
+   1. Full — animation-timeline supported, motion allowed. Scenes pin, shots
+      cross-dissolve, copy is revealed on its beat.
+   2. Static — no animation-timeline support. The @supports block at the
+      bottom unpins every scene and lets the beats fall into normal flow, so
+      the chapter reads as an editorial sequence of image-and-text spreads.
+   3. Reduced motion — the same static layout. A visitor who asks for less
+      motion gets the entire narrative, just without having to scrub it.
+
+   Modes 2 and 3 share one rule set rather than being separate code paths,
+   which is what keeps them honest: the fallback is the default and the
+   animation is layered on top.
+
+   Progressive enhancement is load-bearing here. Every beat is opacity:1 in
+   the base cascade; the reveal animations only ever attach inside the
+   @supports block, so an unsupported browser cannot strand content at
+   opacity:0 the way a JS-gated reveal does when its bundle fails. */
+
+.storefront-theme {
+  /* Height of the sticky header, so a pinned stage sits exactly beneath it
+     instead of being overlapped.
+
+     Two rows below `lg`: the 64px bar plus the search row (1px rule + 10px,
+     a 44px field, 10px) = 130px. One row above: 72px plus its rule = 73px.
+     Both measured in the browser rather than derived on paper — an earlier
+     121px guess left a 9px sliver where a pinned stage showed above the
+     header. */
+  --sf-header-h: 130px;
+}
+
+@media (min-width: 1024px) {
+  .storefront-theme {
+    --sf-header-h: 73px;
+  }
+}
+
+@layer components {
+  /* The scroll runway. Its height is what buys scroll distance for the pin:
+     a fraction of a viewport per beat, plus a short tail to read the last
+     beat before release. It is the only thing that decides how long a
+     visitor is held, so see the budget below before raising it. */
+  .sf-track {
+    position: relative;
+    view-timeline-name: --sf-chapter;
+    view-timeline-axis: block;
+
+    /* The runway buys scroll distance for the pin. `--sf-beat-travel` is how
+       much scrolling each shot costs; `--sf-beat-tail` is what is left over to
+       read the last shot before the chapter releases.
+
+       These two numbers are the entire budget for how long a visitor is held
+       in place, so they are deliberately small. At one viewport per beat plus
+       a full viewport of tail, four department shots pinned the stage for
+       roughly four screens of scrolling: the opening frame had already left,
+       nothing in the document moved for four more screens, and the honest
+       reading of that from the visitor's seat is that the page had stopped
+       responding — which is what it was reported as.
+
+       0.7 of a viewport per beat with half a viewport of tail keeps every
+       shot, every dissolve and every word, and cuts the hold to roughly two
+       and a half screens. The phone gets 0.5, because a pinned scene is paid
+       for in thumb travel rather than in a wheel flick. */
+    --sf-beat-travel: 0.5;
+    --sf-beat-tail: 0.5;
+    height: calc((var(--beats, 2) * var(--sf-beat-travel) + var(--sf-beat-tail)) * 100svh);
+  }
+
+  @media (min-width: 1024px) {
+    .sf-track {
+      --sf-beat-travel: 0.7;
+    }
+  }
+
+  /* The opening section owns its own view timeline; see the note on
+     `.sf-opening-media` for why it cannot be an anonymous `view()`. */
+  .sf-opening {
+    view-timeline-name: --sf-opening;
+    view-timeline-axis: block;
+  }
+
+  /* The opening still is a column of a split frame, so its push is clipped
+     to the column — scaling the column itself would slide the photograph
+     over the headline beside it. */
+  .sf-opening-media {
+    overflow: hidden;
+  }
+
+  /* Closing still fades into the plaster ground: downward on a phone,
+     toward the copy from lg. */
+  .sf-closing-fade {
+    mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+  }
+  @media (min-width: 1024px) {
+    .sf-closing-fade {
+      mask-image: linear-gradient(to right, #000 50%, transparent 100%);
+    }
+  }
+
+  /* The pinned frame. svh, not vh, so collapsing mobile browser chrome does
+     not resize the scene mid-scroll — the classic iOS vh jitter. */
+  .sf-stage {
+    position: sticky;
+    top: var(--sf-header-h);
+    height: calc(100svh - var(--sf-header-h));
+    overflow: hidden;
+    display: grid;
+  }
+
+  /* One shot. Beats stack in a single grid cell; later beats paint over
+     earlier ones, so a cross-dissolve is one fade-in with no gap where the
+     stage would otherwise flash empty. */
+  .sf-beat {
+    grid-area: 1 / 1;
+    position: relative;
+    opacity: 1;
+  }
+
+  /* Full-bleed shot: the photograph is the frame. */
+  .sf-beat-media {
+    position: absolute;
+    inset: 0;
+  }
+
+  .sf-beat-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Composed shot: the photograph sits in a panel beside the copy, on the
+     chapter's own ground. Used where the source art is too small to survive
+     full-bleed — the category images are 1340px portraits shot as banners,
+     and stretching one to 1920 is visibly soft. A panel renders them at
+     roughly half that, which is sharp. */
+  .sf-shot {
+    overflow: hidden;
+  }
+
+  /* Legibility scrim. A vertical ramp rather than a flat wash, so the
+     photograph keeps its midtones where no type sits over it. */
+  .sf-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(10, 8, 5, 0.62) 0%,
+      rgba(10, 8, 5, 0.32) 38%,
+      rgba(10, 8, 5, 0.46) 72%,
+      rgba(10, 8, 5, 0.74) 100%
+    );
+  }
+
+  .sf-beat-copy {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Chapter numeral, set in the corner of the frame the way a film slate is. */
+  .sf-slate {
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    /* Inherits the frame's colour at 66% so it reads on ink or on light. */
+    color: color-mix(in srgb, currentColor 66%, transparent);
+  }
+
+  /* Progress rule: fills across the chapter so a pin reads as deliberate
+     rather than as a stuck page. Grows along the reading direction. */
+  .sf-progress {
+    transform-origin: right center;
+    transform: scaleX(0);
+  }
+
+  :dir(ltr) .sf-progress {
+    transform-origin: left center;
+  }
+}
+
+/* ---- The animation layer -------------------------------------------------
+   Enhancement only. Attaches where the browser can drive an animation from
+   scroll position, and where the visitor has not asked for less motion. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* Pictures and words are animated separately, because they want
+       opposite things from a dissolve.
+     
+       A cross-dissolve between two *photographs* at 50/50 is the effect.
+       A cross-dissolve between two *headlines* at 50/50 is two headlines
+       printed over each other, which is simply unreadable — and fading the
+       whole beat as one unit forces both to share a curve.
+     
+       So: media layers cross-dissolve (later shot fades up over the one
+       beneath and covers it — no empty frame), while each copy block owns
+       an exclusive slice of the chapter and fades out before the next one
+       fades in. Adjacent copy windows meet end-to-end at zero opacity, so
+       two headlines are never on screen together. */
+    .sf-beat[data-reveal] .sf-beat-media,
+    .sf-beat[data-reveal] .sf-shot {
+      opacity: 0;
+      animation: sf-shot-in linear both;
+      animation-timeline: --sf-chapter;
+      animation-range: contain var(--from, 0%) contain var(--to, 20%);
+    }
+
+    /* The slow push. Runs the length of the chapter on every shot, so the
+       frame is never completely still while it is held. */
+    .sf-beat-media img,
+    .sf-shot img {
+      animation: sf-shot-drift linear both;
+      animation-timeline: --sf-chapter;
+      animation-range: contain 0% contain 100%;
+    }
+
+    /* Copy: in, hold, out — across this beat's slot only. */
+    .sf-beat-copy {
+      animation: sf-copy-beat linear both;
+      animation-timeline: --sf-chapter;
+      animation-range: contain var(--copy-from, 0%) contain var(--copy-to, 100%);
+    }
+
+    /* The opening copy is already on screen when the pin engages, and the
+       closing copy has to survive until the chapter releases. Neither gets
+       the matching half of the transition. */
+    .sf-beat[data-first] .sf-beat-copy {
+      animation-name: sf-copy-beat-first;
+    }
+
+    .sf-beat[data-last] .sf-beat-copy {
+      animation-name: sf-copy-beat-last;
+    }
+
+    .sf-beat[data-first][data-last] .sf-beat-copy {
+      animation: none;
+    }
+
+    .sf-progress {
+      animation: sf-progress-fill linear both;
+      animation-timeline: --sf-chapter;
+      animation-range: contain 0% contain 100%;
+    }
+
+    /* Opening chapter: one shot, no dissolve — a long slow push as the frame
+       scrolls away.
+
+       The timeline is *named on the section* rather than written as an
+       anonymous `view()` on the media itself. `view()` resolves against the
+       element's nearest scrollport, and the media sits inside the section's
+       `overflow: hidden`, which counts as one — so the element never moved
+       relative to its own scroller, the timeline was degenerate, and
+       `fill: both` pinned the image at the end of the push. It read as a
+       static, slightly over-scaled hero.
+
+       Declared on the section, the timeline resolves against the document,
+       which is the thing actually scrolling. */
+    .sf-opening-media img {
+      animation: sf-opening-push linear both;
+      animation-timeline: --sf-opening;
+
+      /* The range is passed through `var()` deliberately: written literally,
+         the build's CSS minifier rewrites `entry 100% exit 100%` to
+         `entry 100% exit 0`, collapsing the range so the push completes in
+         the first ~70px of scroll. A `var()` cannot be constant-folded.
+         Confirmed in the emitted stylesheet, not the source. */
+      --sf-open-from: entry 100%;
+      --sf-open-to: exit 100%;
+      animation-range: var(--sf-open-from) var(--sf-open-to);
+    }
+
+    /* Closing frame owns its own timeline for the same reason the opening
+       does — its media sits inside an `overflow: hidden` section. */
+    .sf-closing {
+      view-timeline-name: --sf-closing;
+      view-timeline-axis: block;
+    }
+
+    .sf-closing-media {
+      animation: sf-closing-push linear both;
+      animation-timeline: --sf-closing;
+      --sf-close-from: entry 0%;
+      --sf-close-to: exit 100%;
+      animation-range: var(--sf-close-from) var(--sf-close-to);
+    }
+
+    /* The handover frame rises as it enters. `view()` is correct here: this
+       element is in normal flow, not inside a clipped section. */
+    .sf-handover-rise {
+      animation: sf-handover-rise linear both;
+      animation-timeline: view();
+      --sf-rise-from: entry 10%;
+      --sf-rise-to: entry 85%;
+      animation-range: var(--sf-rise-from) var(--sf-rise-to);
+    }
+
+  }
+}
+
+@keyframes sf-shot-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 5.5% of travel across a whole chapter. Enough to feel alive on a 100svh
+   frame, far too little to read as a zoom effect. */
+@keyframes sf-shot-drift {
+  from {
+    transform: scale(1.055);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* One copy block's whole life: rise in, hold for the bulk of the beat, leave.
+   The 16/84 split is what keeps the hold long enough to actually read a
+   sentence at a comfortable scroll speed. */
+@keyframes sf-copy-beat {
+  0% {
+    opacity: 0;
+    transform: translateY(1.1rem);
+  }
+  16% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  84% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-0.6rem);
+  }
+}
+
+@keyframes sf-copy-beat-first {
+  0%,
+  84% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-0.6rem);
+  }
+}
+
+@keyframes sf-copy-beat-last {
+  0% {
+    opacity: 0;
+    transform: translateY(1.1rem);
+  }
+  16%,
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sf-progress-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* The opening push — one strand of Chapter I's exit, not the whole of it.
+
+   The scale was chased from 1.085 up to 1.14 trying to make the frame feel
+   alive, which was treating the wrong symptom. Scale spread across a whole
+   viewport of scroll was never going to be the thing that sells motion: 14%
+   over 768px is nearly the same rate per pixel the eye already failed to
+   register at 8.5%, and the frame was not short of movement anyway — it
+   travels 1:1 with the scroll. What it was short of was *change*, and that
+   now comes from the copy and the scrim. So the push goes back to being a
+   push: 7% across the frame's whole departure, front-loaded so the first
+   turn of the wheel is the most of it, and restrained enough that no single
+   moment reads as a zoom. */
+@keyframes sf-opening-push {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.045);
+  }
+  100% {
+    transform: scale(1.07);
+  }
+}
+
+/* Closing frame: the same push, mirrored, so the film opens and ends on the
+   same gesture. */
+@keyframes sf-closing-push {
+  from {
+    transform: scale(1.1);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* Chapter III hands over on a product; the frame rises into place rather
+   than simply appearing with the rest of the section. */
+@keyframes sf-handover-rise {
+  from {
+    opacity: 0;
+    transform: translateY(2.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Static mode ---------------------------------------------------------
+   No scroll timelines, or the visitor asked for reduced motion. The chapter
+   stops being a pinned scene and becomes what it always was underneath: a
+   sequence of full-width editorial spreads, in order, all legible, with no
+   motion required to reach any of it. */
+@supports not (animation-timeline: view()) {
+  .sf-track {
+    height: auto;
+  }
+  .sf-stage {
+    position: static;
+    height: auto;
+    display: block;
+  }
+  .sf-beat {
+    position: relative;
+    display: grid;
+  }
+  .sf-beat[data-full] {
+    min-height: min(78svh, 620px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-track {
+    height: auto;
+  }
+  .sf-stage {
+    position: static;
+    height: auto;
+    display: block;
+  }
+  .sf-beat {
+    position: relative;
+    display: grid;
+    opacity: 1;
+    animation: none;
+  }
+  .sf-beat[data-full] {
+    min-height: min(78svh, 620px);
+  }
+  .sf-beat-media,
+  .sf-shot,
+  .sf-shot img,
+  .sf-beat-copy,
+  .sf-progress,
+  .sf-opening-media img,
+  .sf-closing-media,
+  .sf-handover-rise {
+    animation: none;
+    transform: none;
+    opacity: 1;
+  }
+  .sf-progress {
+    transform: scaleX(1);
+  }
+}
