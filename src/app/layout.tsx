@@ -28,7 +28,7 @@ if (typeof window === 'undefined') {
 }
 
 
-import { Outfit, Inter, IBM_Plex_Sans_Arabic } from 'next/font/google'
+import { Outfit, Inter, IBM_Plex_Sans_Arabic, Reem_Kufi } from 'next/font/google'
 
 const outfit = Outfit({
   subsets: ['latin', 'latin-ext'],
@@ -46,6 +46,15 @@ const ibmPlexArabic = IBM_Plex_Sans_Arabic({
   subsets: ['arabic'],
   weight: ['100', '200', '300', '400', '500', '600', '700'],
   variable: '--font-ibm-plex-arabic',
+  display: 'swap',
+})
+
+// Storefront display face: headlines only (see `.sf-display` / `.sf-title`).
+// A geometric Kufic gives the storefront a voice of its own; body copy stays
+// on Plex, which is the more legible of the two at reading sizes.
+const reemKufi = Reem_Kufi({
+  subsets: ['arabic', 'latin'],
+  variable: '--font-reem-kufi',
   display: 'swap',
 })
 
@@ -185,13 +194,13 @@ export default function RootLayout({
       <html lang="ar" dir="rtl" suppressHydrationWarning className="overflow-x-clip">
         <head>
         </head>
-        <body className={`${outfit.variable} ${inter.variable} ${ibmPlexArabic.variable} antialiased`}>
+        <body className={`${outfit.variable} ${inter.variable} ${ibmPlexArabic.variable} ${reemKufi.variable} antialiased`}>
           <QueryProvider>
             <ErrorBoundary>
               <StructuredData />
               <ThemeProvider
                 attribute="class"
-                defaultTheme="system"
+                defaultTheme="light"
                 enableSystem
                 disableTransitionOnChange
               >
