@@ -44,14 +44,14 @@ interface Frame {
 const FRAMES: Frame[] = [
   {
     match: /عطور|عطر/,
-    image: "/story/bottle-shadow.jpg",
+    image: "/story/bottle-shadow.webp",
     alt: "ظل زجاجة عطر على حجر جيري تحت شمس العصر",
     imagePosition: "50% 55%",
     body: "عود، ومسك، وزهر. ولكل يومٍ رائحته.",
   },
   {
     match: /ملابس|أزياء|ازياء/,
-    image: "/story/rail-shadow.jpg",
+    image: "/story/rail-shadow.webp",
     alt: "علّاقات خشبية على راف ملابس وظلّه على الجدار",
     imagePosition: "64% 50%",
     title: "ملابس",
@@ -60,7 +60,7 @@ const FRAMES: Frame[] = [
   },
   {
     match: /احذية|أحذية/,
-    image: "/story/sandals-wall.jpg",
+    image: "/story/sandals-wall.webp",
     alt: "صندل جلدي وبنطال أبيض أمام جدار بلون الرمل",
     imagePosition: "50% 70%",
     title: "أحذية",

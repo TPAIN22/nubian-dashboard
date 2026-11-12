@@ -26,7 +26,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
 import { cn } from "@/lib/utils";
-import { ik } from "@/lib/storefront/image";
+import { ik, isImageKit } from "@/lib/storefront/image";
 
 interface StoryVideoProps {
   src: string;
@@ -73,6 +73,7 @@ export function StoryVideo({
     <div className={cn("relative overflow-hidden", className)}>
       <Image
         src={ik(poster, { width: 1800, quality: 80 })}
+        unoptimized={isImageKit(poster)}
         alt={alt}
         fill
         priority={priority}

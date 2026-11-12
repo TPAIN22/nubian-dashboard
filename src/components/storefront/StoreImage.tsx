@@ -22,7 +22,7 @@ import { useState } from "react";
 import Image from "next/image";
 
 import { cn } from "@/lib/utils";
-import { ik } from "@/lib/storefront/image";
+import { ik, isImageKit, isStoryImage, storyLoader } from "@/lib/storefront/image";
 
 interface StoreImageProps {
   src: string | null | undefined;
@@ -91,6 +91,15 @@ export function StoreImage({
       {usable ? (
         <Image
           src={ik(resolved, { width: transformWidth, quality })}
+          // ImageKit has already resized and re-encoded (`f-auto`) this URL.
+          // Sending it through `/_next/image` as well made our own Node
+          // process decode and re-encode every catalogue photo with sharp —
+          // dozens at once on a cold homepage — which blew the instance's
+          // memory limit. Let the CDN do the work it is already doing.
+          unoptimized={isImageKit(resolved)}
+          // Homepage stills are pre-encoded at two widths; pick one without
+          // touching the server-side optimizer either.
+          loader={isStoryImage(resolved) ? storyLoader : undefined}
           alt={alt}
           fill
           sizes={sizes}

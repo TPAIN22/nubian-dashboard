@@ -36,7 +36,7 @@ export function StoryClosing() {
           that side regardless of reading direction. */}
       <div className="sf-closing-media sf-closing-fade absolute inset-x-0 top-0 -z-10 h-[58%] lg:inset-y-0 lg:right-auto lg:left-0 lg:h-full lg:w-[64%] [&_img]:-scale-x-100">
         <StoryVisual
-          image="/story/palm-plaster.jpg"
+          image="/story/palm-plaster.webp"
           alt=""
           // Transparent while loading, so the plaster ground shows through
           // the mask instead of the image well's lighter placeholder.

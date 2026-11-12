@@ -77,7 +77,7 @@ export function StoryOpening() {
             the first screen — with the CTA, below a 130px phone header. */}
         <div className="sf-opening-media order-1 h-[38svh] min-h-[240px] md:h-[48svh] lg:order-2 lg:h-auto lg:min-h-[calc(100svh-var(--sf-header-h))]">
           <StoryVisual
-            image="/story/amber-light.jpg"
+            image="/story/amber-light.webp"
             alt="زجاجة عطر كهرمانية تحت ضوء شمس العصر"
             className="h-full w-full"
             imageClassName="object-[50%_42%]"
