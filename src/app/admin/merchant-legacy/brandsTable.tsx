@@ -185,7 +185,7 @@ export function BrandsTable({ merchants }: BrandsTableProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
-              إخفاء/إظهار <ChevronDown className="mr-2 h-4 w-4" />
+              إخفاء/إظهار <ChevronDown className="ms-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

@@ -81,7 +81,7 @@ export function ProductDetailsDialog({ product }: ProductDetailsDialogProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="w-full">
-          <Eye className="h-4 w-4 ml-2" />
+          <Eye className="h-4 w-4 me-2" />
           عرض التفاصيل الكاملة
         </Button>
       </DialogTrigger>
@@ -175,7 +175,7 @@ export function ProductDetailsDialog({ product }: ProductDetailsDialogProps) {
                       <p className="text-lg line-through text-muted-foreground">
                         {formatCurrency(originalPrice)}
                       </p>
-                      <Badge className="mt-2 bg-red-100 text-red-800">
+                      <Badge className="mt-2 bg-danger-soft text-danger">
                         خصم {discountPercentage}%
                       </Badge>
                     </div>

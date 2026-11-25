@@ -93,7 +93,7 @@ export function Step6_Review({ state, onChange }: Step6Props) {
                                             onChange({ images: newImages });
                                         }}
                                     >
-                                        <img src={img} alt={`Product ${i + 1}`} className="object-cover w-full h-full" />
+                                        <img src={img} alt={`صورة المنتج ${i + 1}`} className="object-cover w-full h-full" />
                                         {i === 0 && (
                                             <Badge className="absolute top-2 right-2 bg-primary text-white">الرئيسية</Badge>
                                         )}

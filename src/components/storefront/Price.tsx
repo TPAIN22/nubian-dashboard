@@ -21,9 +21,11 @@ interface PriceProps {
   className?: string;
   /** Larger treatment for the product page. */
   size?: "default" | "lg";
+  /** The card shows the discount as a badge on the photo instead. */
+  hideDiscount?: boolean;
 }
 
-export function Price({ price, className, size = "default" }: PriceProps) {
+export function Price({ price, className, size = "default", hideDiscount = false }: PriceProps) {
   if (!price) return null;
 
   const final = formatCurrency(price.final.amount, price.final.currency);
@@ -47,8 +49,8 @@ export function Price({ price, className, size = "default" }: PriceProps) {
           {original}
         </bdi>
       )}
-      {price.discountPercentage !== undefined && (
-        <span className="text-sf-accent text-[0.8em] font-semibold">
+      {price.discountPercentage !== undefined && !hideDiscount && (
+        <span className="bg-sf-sale/10 text-sf-sale rounded-full px-2 py-0.5 text-[0.75em] font-bold">
           <bdi>−{price.discountPercentage}%</bdi>
         </span>
       )}

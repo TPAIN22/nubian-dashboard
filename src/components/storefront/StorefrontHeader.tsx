@@ -1,25 +1,16 @@
 /**
  * Storefront header.
  *
- * A server component. Navigation comes from the live category taxonomy, so
- * the header cannot advertise a department that was deleted, and it costs no
- * client JavaScript — the only interactive pieces are two small islands
- * (`HeaderAccount` for Clerk, `MobileNav` for the drawer).
+ * A server component: navigation comes from the live category taxonomy, and
+ * the only client JavaScript is two small islands (`HeaderAccount` for Clerk,
+ * `MobileNav` for the drawer) plus the theme switch.
  *
- * Sticky, with one hairline rule and nothing else. The old header animated
- * its padding, background and border on every scroll event via a
- * `useState` + `scroll` listener; that is a layout-shifting re-render per
- * frame in exchange for an effect nobody asked for.
+ * Layout:
+ *   - >=1024px: lockup | wide search | theme + account, then a quiet row of
+ *     department links underneath.
+ *   - <1024px:  drawer + lockup + account, then a full-width search row.
  *
- * Shape differs by breakpoint rather than shrinking:
- *   - >=1024px: one row — lockup, departments, search, account
- *   - <1024px:  two rows — drawer + lockup + account, then full-width search
- *
- * The split is at `lg`, not `md`. At 834px (iPad portrait) the single-row
- * layout measured 843px of content against an 834px viewport and pushed the
- * page into horizontal scroll; a tablet gets the drawer, which is what a
- * tablet expects anyway. Search stays visible at every width rather than
- * hiding behind a tap — it is the primary action on a marketplace.
+ * Search is visible at every width: it is the primary action on a marketplace.
  */
 
 import Link from "next/link";
@@ -33,68 +24,75 @@ import { Container } from "./Section";
 import { getCategories } from "@/lib/storefront/api";
 import { visibleCategories } from "./CategoryTile";
 import { routes } from "@/lib/storefront/routes";
+import { cn } from "@/lib/utils";
 
-/**
- * `py-1.5` is not decoration: the text alone is a 20px line box, and WCAG 2.5.8
- * wants 24px of target. The padding takes each link to 32px without moving it,
- * since the row is centred.
- */
+/** `py-2.5` takes each link to a 40px target. */
 const NAV_LINK =
-  "sf-focus text-sf-ink hover:text-sf-accent inline-flex items-center py-1.5 text-sm font-medium transition-colors whitespace-nowrap";
+  "sf-focus text-sf-ink-soft hover:text-sf-ink inline-flex items-center py-2.5 text-[0.875rem] font-medium transition-colors whitespace-nowrap";
 
 export async function StorefrontHeader() {
   const categories = await getCategories();
-  // Four departments in the bar, the full list in the drawer and the footer.
-  const departments = visibleCategories(categories, 4);
-  const drawerCategories = visibleCategories(categories, 10);
+  const departments = visibleCategories(categories, 7);
+  const drawerCategories = visibleCategories(categories, 12);
 
   return (
-    <header className="bg-background/95 border-sf-rule sticky top-0 z-50 border-b backdrop-blur-sm">
+    <header className="bg-background/90 border-sf-rule sticky top-0 z-50 border-b backdrop-blur-md">
       {/* Skip link: the first tab stop on every storefront page. */}
       <a
         href="#main"
-        className="sf-focus bg-sf-ink text-background sr-only focus:not-sr-only focus:absolute focus:top-2 focus:z-50 focus:rounded-[3px] focus:px-4 focus:py-2 focus:text-sm focus:start-4"
+        className="sf-focus bg-primary text-primary-foreground sr-only focus:not-sr-only focus:absolute focus:top-2 focus:z-50 focus:rounded-full focus:px-4 focus:py-2 focus:text-sm focus:start-4"
       >
         تخطَّ إلى المحتوى
       </a>
 
       <Container>
-        <div className="flex h-16 items-center justify-between gap-4 lg:h-[72px] lg:gap-8">
-          <div className="flex min-w-0 items-center gap-1 lg:gap-8">
+        <div className="flex h-16 items-center gap-3 lg:h-[72px] lg:gap-8">
+          <div className="flex shrink-0 items-center gap-1">
             <MobileNav categories={drawerCategories} />
             <StorefrontLogo priority />
-
-            <nav aria-label="الأقسام" className="hidden items-center gap-6 lg:flex xl:gap-7">
-              <Link href={routes.shop()} className={NAV_LINK}>
-                كل المنتجات
-              </Link>
-              {departments.map((category) => (
-                <Link
-                  key={category.id}
-                  href={routes.category(category.id)}
-                  className={NAV_LINK}
-                >
-                  {category.name}
-                </Link>
-              ))}
-            </nav>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2 lg:gap-4">
-            <SearchForm
-              id="header-search"
-              className="hidden lg:block lg:w-56 xl:w-72"
-            />
+          <SearchForm
+            id="header-search"
+            className="mx-auto hidden w-full max-w-xl lg:block"
+          />
+
+          <div className="ms-auto flex shrink-0 items-center gap-1.5 lg:ms-0 lg:gap-3">
             <ThemeToggle />
             <HeaderAccount />
           </div>
         </div>
 
         {/* Mobile search row. Separate instance so each input keeps a unique id. */}
-        <div className="border-sf-rule/70 -mx-5 border-t px-5 py-2.5 md:-mx-8 md:px-8 lg:hidden">
+        <div className="pb-3 lg:hidden">
           <SearchForm id="header-search-mobile" />
         </div>
       </Container>
+
+      {/* Department row, desktop only. */}
+      <nav aria-label="الأقسام" className="border-sf-rule hidden border-t lg:block">
+        <Container>
+          <ul className="flex h-[45px] items-center gap-7 overflow-hidden">
+            <li>
+              <Link href={routes.shop()} className={cn(NAV_LINK, "text-sf-ink font-semibold")}>
+                كل المنتجات
+              </Link>
+            </li>
+            {departments.map((category) => (
+              <li key={category.id}>
+                <Link href={routes.category(category.id)} className={NAV_LINK}>
+                  {category.name}
+                </Link>
+              </li>
+            ))}
+            <li className="ms-auto">
+              <Link href="/merchant/apply" className={cn(NAV_LINK, "text-sf-accent hover:text-sf-accent-hover")}>
+                بِع على نوبيان
+              </Link>
+            </li>
+          </ul>
+        </Container>
+      </nav>
     </header>
   );
 }

@@ -71,7 +71,7 @@ function SourceBadge({
     return (
       <Badge
         variant="outline"
-        className="text-red-600 border-red-300 bg-red-50 gap-1"
+        className="text-danger border-danger/30 bg-danger-soft gap-1"
       >
         <IconCloudOff className="h-3 w-3" />
         غير متوفر
@@ -82,7 +82,7 @@ function SourceBadge({
     return (
       <Badge
         variant="outline"
-        className="text-amber-700 border-amber-300 bg-amber-50"
+        className="text-warning border-warning/30 bg-warning-soft"
       >
         يدوي ✎
       </Badge>
@@ -92,7 +92,7 @@ function SourceBadge({
     return (
       <Badge
         variant="outline"
-        className="text-blue-700 border-blue-300 bg-blue-50"
+        className="text-info border-info/30 bg-info-soft"
       >
         ثابت
       </Badge>
@@ -101,7 +101,7 @@ function SourceBadge({
   return (
     <Badge
       variant="outline"
-      className="text-green-700 border-green-300 bg-green-50 gap-1"
+      className="text-success border-success/30 bg-success-soft gap-1"
     >
       <IconCheck className="h-3 w-3" />
       API
@@ -228,7 +228,7 @@ function EditRateDialog({
           </Button>
           <Button onClick={handleSave} disabled={saving || !value.trim()}>
             {saving && (
-              <IconLoader2 className="h-4 w-4 animate-spin ml-2" />
+              <IconLoader2 className="h-4 w-4 animate-spin me-2" />
             )}
             حفظ السعر
           </Button>
@@ -352,12 +352,12 @@ export default function FxRatesClient() {
         >
           {refreshing ? (
             <>
-              <IconLoader2 className="h-4 w-4 animate-spin ml-2" />
+              <IconLoader2 className="h-4 w-4 animate-spin me-2" />
               جارٍ الجلب...
             </>
           ) : (
             <>
-              <IconRefresh className="h-4 w-4 ml-2" />
+              <IconRefresh className="h-4 w-4 me-2" />
               تحديث من API
             </>
           )}
@@ -385,8 +385,8 @@ export default function FxRatesClient() {
                 <span
                   className={`font-medium ${
                     apiStatus.ageHours > 24
-                      ? "text-red-600"
-                      : "text-green-600"
+                      ? "text-danger"
+                      : "text-success"
                   }`}
                 >
                   {apiStatus.ageHours} ساعة
@@ -397,12 +397,12 @@ export default function FxRatesClient() {
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">الحالة:</span>
                 {apiStatus.fetchStatus === "success" && (
-                  <Badge className="bg-green-100 text-green-700 border border-green-200 hover:bg-green-100">
+                  <Badge className="bg-success-soft text-success border border-success/30 hover:bg-success-soft">
                     ناجح
                   </Badge>
                 )}
                 {apiStatus.fetchStatus === "partial" && (
-                  <Badge className="bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-100">
+                  <Badge className="bg-warning-soft text-warning border border-warning/30 hover:bg-warning-soft">
                     جزئي
                   </Badge>
                 )}
@@ -417,9 +417,9 @@ export default function FxRatesClient() {
 
       {/* Missing rates alert */}
       {missing.length > 0 && (
-        <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
+        <Card className="border-warning/30 bg-warning-soft">
           <CardContent className="pt-4">
-            <div className="flex items-start gap-2 text-amber-800 dark:text-amber-300">
+            <div className="flex items-start gap-2 text-warning">
               <IconAlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold">
@@ -507,14 +507,14 @@ export default function FxRatesClient() {
                         <span
                           className={
                             currency.rateSource === "manual"
-                              ? "text-amber-700 font-semibold"
+                              ? "text-warning font-semibold"
                               : ""
                           }
                         >
                           {Number(currency.currentRate).toFixed(4)}
                         </span>
                       ) : (
-                        <span className="text-red-500">—</span>
+                        <span className="text-danger">—</span>
                       )}
                     </TableCell>
 
@@ -541,7 +541,7 @@ export default function FxRatesClient() {
                     {/* Active */}
                     <TableCell>
                       {currency.isActive ? (
-                        <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border border-green-200">
+                        <Badge className="bg-success-soft text-success hover:bg-success-soft border border-success/30">
                           نشط
                         </Badge>
                       ) : (
@@ -569,7 +569,7 @@ export default function FxRatesClient() {
                           }
                           onClick={() => setEditTarget(currency)}
                         >
-                          <IconEdit className="h-4 w-4 ml-1" />
+                          <IconEdit className="h-4 w-4 me-1" />
                           تعديل السعر
                         </Button>
                       )}

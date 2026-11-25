@@ -511,7 +511,7 @@ export function ImageUpload({ onUploadComplete, initialUrls = [] }: ImageUploadP
             او اضغط لرفع ملف (يدعم اختيار عدة ملفات)
           </p>
           <div className="inline-flex items-center px-4 py-2 bg-[#fff] text-[#1c1b1b] rounded-lg hover:bg-[#838282] transition-colors">
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 me-2" />
             Add Files
           </div>
         </div>
@@ -530,7 +530,7 @@ export function ImageUpload({ onUploadComplete, initialUrls = [] }: ImageUploadP
                 onClick={clearAllFiles}
                 className="text-sm text-red-600 hover:text-red-800 flex items-center"
               >
-                <Trash2 className="w-4 h-4 mr-1" />
+                <Trash2 className="w-4 h-4 me-1" />
                 Clear All
               </button>
             </div>
@@ -584,7 +584,7 @@ export function ImageUpload({ onUploadComplete, initialUrls = [] }: ImageUploadP
                         {fileObj.size && <span>{formatFileSize(fileObj.size)}</span>}
                         {uploadStatus[fileObj.id] === "success" && (
                           <span className="text-green-600 flex items-center">
-                            <Check className="w-3 h-3 mr-1" />
+                            <Check className="w-3 h-3 me-1" />
                             {fileObj.isExisting ? "Existing" : "Uploaded"}
                           </span>
                         )}
@@ -595,7 +595,7 @@ export function ImageUpload({ onUploadComplete, initialUrls = [] }: ImageUploadP
                         )}
                         {uploadStatus[fileObj.id] === "error" && (
                           <span className="text-red-600 flex items-center">
-                            <AlertCircle className="w-3 h-3 mr-1" />
+                            <AlertCircle className="w-3 h-3 me-1" />
                             Failed
                           </span>
                         )}

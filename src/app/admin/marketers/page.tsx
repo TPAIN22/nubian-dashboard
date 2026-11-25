@@ -287,7 +287,7 @@ export default function MarketersAdminPage() {
                         {formatDate(m.createdAt)}
                       </TableCell>
                       <TableCell className="font-bold">{formatCurrency(m.totalEarnings)}</TableCell>
-                      <TableCell className="text-amber-600">{formatCurrency(m.pendingEarnings)}</TableCell>
+                      <TableCell className="text-warning">{formatCurrency(m.pendingEarnings)}</TableCell>
                       <TableCell>{m.totalOrders}</TableCell>
                       <TableCell>
                         <Badge variant={m.status === 'active' ? 'default' : 'destructive'} className={m.status === 'active' ? 'bg-green-500' : ''}>
@@ -297,7 +297,7 @@ export default function MarketersAdminPage() {
                       <TableCell className="text-end">
                         <DropdownMenu dir="rtl">
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon" aria-label="خيارات المسوق">
                               <IconDotsVertical size={18} />
                             </Button>
                           </DropdownMenuTrigger>
@@ -320,7 +320,7 @@ export default function MarketersAdminPage() {
                               </DropdownMenuItem>
                             ) : (
                               <DropdownMenuItem
-                                className="text-green-600 flex items-center justify-end gap-2 cursor-pointer"
+                                className="text-success flex items-center justify-end gap-2 cursor-pointer"
                                 onClick={() => toggleStatus(m._id, m.status)}
                               >
                                 تفعيل الحساب <IconShieldCheck size={16} />
@@ -452,16 +452,16 @@ export default function MarketersAdminPage() {
                     <p className="text-2xl font-bold">{formatCurrency(stats.stats.totalSales)}</p>
                   </CardContent>
                 </Card>
-                <Card className="bg-green-500/5 border-green-500/20">
+                <Card className="bg-success-soft border-success/30">
                   <CardContent className="pt-6 text-center">
                     <p className="text-sm text-muted-foreground mb-1">إجمالي العمولات</p>
-                    <p className="text-2xl font-bold text-green-600">{formatCurrency(stats.stats.totalEarnings)}</p>
+                    <p className="text-2xl font-bold text-success">{formatCurrency(stats.stats.totalEarnings)}</p>
                   </CardContent>
                 </Card>
-                <Card className="bg-blue-500/5 border-blue-500/20">
+                <Card className="bg-info-soft border-info/30">
                   <CardContent className="pt-6 text-center">
                     <p className="text-sm text-muted-foreground mb-1">عدد الطلبات</p>
-                    <p className="text-2xl font-bold text-blue-600">{stats.stats.totalOrders}</p>
+                    <p className="text-2xl font-bold text-info">{stats.stats.totalOrders}</p>
                   </CardContent>
                 </Card>
               </div>
@@ -490,7 +490,7 @@ export default function MarketersAdminPage() {
                               {new Date(order.createdAt).toLocaleDateString('ar-SD')}
                             </TableCell>
                             <TableCell>{formatCurrency(order.finalAmount)}</TableCell>
-                            <TableCell className="text-green-600 font-bold">{formatCurrency(order.marketerCommission)}</TableCell>
+                            <TableCell className="text-success font-bold">{formatCurrency(order.marketerCommission)}</TableCell>
                           </TableRow>
                         ))
                       ) : (

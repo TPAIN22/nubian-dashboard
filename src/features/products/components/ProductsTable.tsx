@@ -574,7 +574,7 @@ export function ProductsTable({
               {formatOriginalPrice(product)}
             </span>
             {percentage > 0 && (
-              <Badge className="bg-red-100 text-red-800">خصم {percentage}%</Badge>
+              <Badge className="bg-danger-soft text-danger">خصم {percentage}%</Badge>
             )}
           </div>
         )
@@ -602,7 +602,7 @@ export function ProductsTable({
                 .reduce((sum, v) => sum + (v.stock || 0), 0)
             : (product.stock ?? 0)
         return (
-          <div className={`text-right ${stock < 10 ? "text-red-600 font-bold" : ""}`}>
+          <div className={`text-right ${stock < 10 ? "text-danger font-bold" : ""}`}>
             {stock}
           </div>
         )
@@ -746,7 +746,7 @@ export function ProductsTable({
 
               <Link href={`/admin/products-advanced/${product._id}`}>
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                  <Eye className="mr-2 h-4 w-4" />
+                  <Eye className="me-2 h-4 w-4" />
                   عرض التفاصيل
                 </DropdownMenuItem>
               </Link>
@@ -762,7 +762,7 @@ export function ProductsTable({
                   <DropdownMenuItem
                     onClick={() => router.push(`/admin/products-advanced/${product._id}/edit`)}
                   >
-                    <Edit className="mr-2 h-4 w-4" />
+                    <Edit className="me-2 h-4 w-4" />
                     تعديل المنتج
                   </DropdownMenuItem>
 
@@ -770,9 +770,9 @@ export function ProductsTable({
                     <AlertDialogTrigger asChild>
                       <DropdownMenuItem
                         onSelect={(e) => e.preventDefault()}
-                        className="text-red-600"
+                        className="text-danger"
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
+                        <Trash2 className="me-2 h-4 w-4" />
                         حذف المنتج (حذف مؤقت)
                       </DropdownMenuItem>
                     </AlertDialogTrigger>
@@ -807,7 +807,7 @@ export function ProductsTable({
                     onClick={() => handleRestore(product._id)}
                     disabled={restoringId === product._id}
                   >
-                    <RotateCcw className="mr-2 h-4 w-4" />
+                    <RotateCcw className="me-2 h-4 w-4" />
                     {restoringId === product._id ? "جارٍ الاستعادة..." : "استعادة المنتج"}
                   </DropdownMenuItem>
 
@@ -815,9 +815,9 @@ export function ProductsTable({
                     <AlertDialogTrigger asChild>
                       <DropdownMenuItem
                         onSelect={(e) => e.preventDefault()}
-                        className="text-red-600"
+                        className="text-danger"
                       >
-                        <AlertTriangle className="mr-2 h-4 w-4" />
+                        <AlertTriangle className="me-2 h-4 w-4" />
                         حذف نهائي
                       </DropdownMenuItem>
                     </AlertDialogTrigger>
@@ -1081,6 +1081,7 @@ export function ProductsTable({
                size="icon" 
                variant="outline" 
                className="glass-button w-10 h-10 shrink-0"
+               aria-label="بحث"
                onClick={handleSearch}
              >
                <Search className="h-4 w-4" />
@@ -1121,7 +1122,7 @@ export function ProductsTable({
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" size="sm" disabled={bulkDeleting}>
-                    <Trash2 className="mr-2 h-4 w-4" />
+                    <Trash2 className="me-2 h-4 w-4" />
                     حذف المحدد ({selectedRowsCount})
                   </Button>
                 </AlertDialogTrigger>
@@ -1172,7 +1173,7 @@ export function ProductsTable({
 
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="mr-2 h-4 w-4" />
+            <Download className="me-2 h-4 w-4" />
             تصدير
           </Button>
 
@@ -1184,7 +1185,7 @@ export function ProductsTable({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
-                الأعمدة <ChevronDown className="ml-2 h-4 w-4" />
+                الأعمدة <ChevronDown className="ms-2 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
 

@@ -34,13 +34,13 @@ export default function Step3Financials() {
         {/* IBAN */}
         <div>
           <Label htmlFor="iban" className="font-semibold block mb-1.5">
-            رقم الحساب البنكي الدولي (الآيبان) <span className="text-red-500">*</span>
+            رقم الحساب البنكي الدولي (الآيبان) <span className="text-danger">*</span>
           </Label>
           <Input
             id="iban"
             placeholder="مثال: SD12..."
             {...register('iban')}
-            className={`font-mono uppercase tracking-wider text-left ${errors.iban ? 'border-red-500' : ''}`}
+            className={`font-mono uppercase tracking-wider text-left ${errors.iban ? 'border-danger' : ''}`}
             onChange={(e) => {
               // Auto-uppercase the input
               e.target.value = e.target.value.toUpperCase()
@@ -49,7 +49,7 @@ export default function Step3Financials() {
             dir="ltr"
           />
           {errors.iban ? (
-            <p className="text-sm text-red-500 mt-1">{errors.iban.message}</p>
+            <p className="text-sm text-danger mt-1">{errors.iban.message}</p>
           ) : (
             <p className="text-xs text-muted-foreground mt-1.5">
               تأكد من كتابة الآيبان بشكل صحيح بدون مسافات.

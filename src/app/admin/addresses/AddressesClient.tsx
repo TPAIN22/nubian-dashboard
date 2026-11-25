@@ -74,9 +74,9 @@ const CONFIDENCE_TEXT: Record<string, string> = {
 };
 
 const CONFIDENCE_CLASS: Record<string, string> = {
-  high: "text-emerald-600",
-  medium: "text-amber-600",
-  low: "text-red-600",
+  high: "text-success",
+  medium: "text-warning",
+  low: "text-danger",
 };
 
 /** `undefined` means "no filter"; the Select needs a concrete sentinel value. */
@@ -375,7 +375,7 @@ function AddressCard({
           ) : null}
 
           {row.isLegacy ? (
-            <Badge variant="outline" className="text-amber-600">
+            <Badge variant="outline" className="text-warning">
               عنوان قديم
             </Badge>
           ) : null}

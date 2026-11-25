@@ -176,7 +176,7 @@ export default function Step4StoreProfile() {
         {/* Logo Upload */}
         <div>
           <Label className="font-semibold block mb-2">
-            شعار المتجر <span className="text-red-500">*</span>
+            شعار المتجر <span className="text-danger">*</span>
           </Label>
           <input
             type="file"
@@ -187,7 +187,7 @@ export default function Step4StoreProfile() {
           />
           <div
             onClick={() => !isUploading && fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-colors ${logoUrl ? 'border-green-500 bg-green-50/50' : 'border-border cursor-pointer hover:bg-muted/50'}`}
+            className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-colors ${logoUrl ? 'border-success bg-success-soft' : 'border-border cursor-pointer hover:bg-muted/50'}`}
           >
             {isUploading ? (
               <>
@@ -213,7 +213,7 @@ export default function Step4StoreProfile() {
                     <X className="w-3 h-3" />
                   </button>
                 </div>
-                <p className="text-sm text-green-700 font-medium flex items-center gap-1">
+                <p className="text-sm text-success font-medium flex items-center gap-1">
                   <Check className="w-4 h-4" /> تم رفع الشعار
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">اضغط لتغيير الصورة</p>
@@ -229,7 +229,7 @@ export default function Step4StoreProfile() {
             )}
           </div>
           {errors.logoUrl && (
-            <p className="text-sm text-red-500 mt-1.5">{errors.logoUrl.message as string}</p>
+            <p className="text-sm text-danger mt-1.5">{errors.logoUrl.message as string}</p>
           )}
         </div>
 
@@ -245,7 +245,7 @@ export default function Step4StoreProfile() {
           />
           <div
             onClick={() => !isBannerUploading && bannerInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl overflow-hidden transition-colors ${banner ? 'border-green-500' : 'border-border cursor-pointer hover:bg-muted/50'}`}
+            className={`border-2 border-dashed rounded-xl overflow-hidden transition-colors ${banner ? 'border-success' : 'border-border cursor-pointer hover:bg-muted/50'}`}
           >
             {isBannerUploading ? (
               <div className="aspect-video flex flex-col items-center justify-center text-center">
@@ -254,7 +254,7 @@ export default function Step4StoreProfile() {
               </div>
             ) : banner ? (
               <div className="relative group aspect-video">
-                <img src={banner} alt="Store cover" className="w-full h-full object-cover" />
+                <img src={banner} alt="غلاف المتجر" className="w-full h-full object-cover" />
                 <button
                   type="button"
                   onClick={(e) => {
@@ -281,7 +281,7 @@ export default function Step4StoreProfile() {
         {/* Product Samples Upload */}
         <div className="bg-muted/30 border border-border p-4 rounded-xl">
           <Label className="font-semibold block mb-1">
-            عينات من منتجاتك <span className="text-red-500">*</span>
+            عينات من منتجاتك <span className="text-danger">*</span>
           </Label>
           <p className="text-xs text-muted-foreground mb-4">
             يرجى رفع 3 صور على الأقل لمنتجاتك للمراجعة.
@@ -302,7 +302,7 @@ export default function Step4StoreProfile() {
                 key={index}
                 className="relative group aspect-square border-2 border-border rounded-lg overflow-hidden bg-background"
               >
-                <img src={url} alt={`Sample ${index + 1}`} className="w-full h-full object-cover" />
+                <img src={url} alt={`عينة ${index + 1}`} className="w-full h-full object-cover" />
                 <button
                   type="button"
                   onClick={() => removeSample(index)}
@@ -334,19 +334,19 @@ export default function Step4StoreProfile() {
             )}
           </div>
           {errors.productSamples && (
-            <p className="text-sm text-red-500 mt-1">{errors.productSamples.message as string}</p>
+            <p className="text-sm text-danger mt-1">{errors.productSamples.message as string}</p>
           )}
         </div>
 
         {/* City Settings */}
         <div>
           <Label htmlFor="city" className="font-semibold">
-            المدينة الرئيسية <span className="text-red-500">*</span>
+            المدينة الرئيسية <span className="text-danger">*</span>
           </Label>
           <select
             id="city"
             {...register('city')}
-            className={`flex h-10 w-full mt-1.5 items-center justify-between rounded-md border bg-background text-foreground px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${errors.city ? 'border-red-500' : 'border-input'}`}
+            className={`flex h-10 w-full mt-1.5 items-center justify-between rounded-md border bg-background text-foreground px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${errors.city ? 'border-danger' : 'border-input'}`}
           >
             <option value="">اختر مدينتك...</option>
             {SUDAN_CITIES.map((c) => (
@@ -355,14 +355,14 @@ export default function Step4StoreProfile() {
               </option>
             ))}
           </select>
-          {errors.city && <p className="text-sm text-red-500 mt-1">{errors.city.message}</p>}
+          {errors.city && <p className="text-sm text-danger mt-1">{errors.city.message}</p>}
         </div>
 
         {/* Description */}
         <div>
           <div className="flex justify-between items-end mb-1.5">
             <Label htmlFor="description" className="font-semibold">
-              وصف المتجر <span className="text-red-500">*</span>
+              وصف المتجر <span className="text-danger">*</span>
             </Label>
             <Button
               type="button"
@@ -373,9 +373,9 @@ export default function Step4StoreProfile() {
               className="text-xs h-7 py-0 px-2"
             >
               {isAiLoading ? (
-                <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                <Loader2 className="w-3 h-3 animate-spin me-1" />
               ) : (
-                <Sparkles className="w-3 h-3 mr-1" />
+                <Sparkles className="w-3 h-3 me-1" />
               )}
               اقتراح فئات
             </Button>
@@ -385,7 +385,7 @@ export default function Step4StoreProfile() {
             rows={4}
             placeholder="أخبر العملاء عن طبيعة متجرك وما تبيعه..."
             {...register('description')}
-            className={`resize-none ${errors.description ? 'border-red-500' : ''}`}
+            className={`resize-none ${errors.description ? 'border-danger' : ''}`}
             onBlur={() => {
               if (
                 description?.length > 15 &&
@@ -397,14 +397,14 @@ export default function Step4StoreProfile() {
             }}
           />
           {errors.description && (
-            <p className="text-sm text-red-500 mt-1">{errors.description.message}</p>
+            <p className="text-sm text-danger mt-1">{errors.description.message}</p>
           )}
         </div>
 
         {/* Categories */}
         <div className="bg-muted/30 border border-border p-4 rounded-xl">
           <Label className="font-semibold block mb-2">
-            فئات المتجر <span className="text-red-500">*</span>
+            فئات المتجر <span className="text-danger">*</span>
           </Label>
 
           {/* Selected Categories Tags */}
@@ -429,7 +429,7 @@ export default function Step4StoreProfile() {
           {/* AI Suggested Tags */}
           {suggestedCategories.length > 0 && (
             <div className="mb-3 pt-2 border-t border-gray-200">
-              <p className="text-xs text-blue-600 font-medium mb-1.5">
+              <p className="text-xs text-info font-medium mb-1.5">
                 اقتراحات الذكاء الاصطناعي (اضغط للإضافة):
               </p>
               <div className="flex flex-wrap gap-2">
@@ -440,7 +440,7 @@ export default function Step4StoreProfile() {
                       type="button"
                       key={sc}
                       onClick={() => addCategory(sc)}
-                      className="text-xs px-2 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100"
+                      className="text-xs px-2 py-1 bg-info-soft border border-info/30 text-info rounded-lg hover:bg-info-soft"
                     >
                       + {sc}
                     </button>
@@ -467,7 +467,7 @@ export default function Step4StoreProfile() {
             </Button>
           </div>
           {errors.categories && (
-            <p className="text-sm text-red-500 mt-1">{errors.categories.message}</p>
+            <p className="text-sm text-danger mt-1">{errors.categories.message}</p>
           )}
         </div>
       </div>

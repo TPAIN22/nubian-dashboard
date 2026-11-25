@@ -178,7 +178,7 @@ export function Step3_VariantMatrix({ state, onChange }: Step3Props) {
                                                 <div className="space-y-1">
                                                     <Input
                                                         type="number"
-                                                        className={`text-center ${variant.stock === 0 ? 'border-red-300 bg-red-50' : ''}`}
+                                                        className={`text-center ${variant.stock === 0 ? 'border-danger/30 bg-danger-soft' : ''}`}
                                                         value={variant.stock}
                                                         onChange={(e) => updateVariantStock(variant, e.target.value)}
                                                         min={0}

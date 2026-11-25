@@ -31,7 +31,7 @@ export function Step1_BasicInfo({ state, onChange, categories }: Step1Props) {
                 <CardContent className="space-y-4">
                     {/* Name */}
                     <div className="space-y-2">
-                        <Label htmlFor="name">اسم المنتج <span className="text-red-500">*</span></Label>
+                        <Label htmlFor="name">اسم المنتج <span className="text-danger">*</span></Label>
                         <Input
                             id="name"
                             placeholder="مثال: قميص قطني فاخر"
@@ -42,7 +42,7 @@ export function Step1_BasicInfo({ state, onChange, categories }: Step1Props) {
 
                     {/* Description */}
                     <div className="space-y-2">
-                        <Label htmlFor="description">وصف المنتج <span className="text-red-500">*</span></Label>
+                        <Label htmlFor="description">وصف المنتج <span className="text-danger">*</span></Label>
                         <Textarea
                             id="description"
                             placeholder="وصف تفصيلي للمنتج..."
@@ -54,7 +54,7 @@ export function Step1_BasicInfo({ state, onChange, categories }: Step1Props) {
 
                     {/* Category */}
                     <div className="space-y-2">
-                        <Label htmlFor="category">الفئة <span className="text-red-500">*</span></Label>
+                        <Label htmlFor="category">الفئة <span className="text-danger">*</span></Label>
                         <Select
                             value={state.category}
                             onValueChange={(value) => onChange({ category: value })}
@@ -85,7 +85,7 @@ export function Step1_BasicInfo({ state, onChange, categories }: Step1Props) {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>صور المنتج العامة <span className="text-red-500">*</span></CardTitle>
+                    <CardTitle>صور المنتج العامة <span className="text-danger">*</span></CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-2">
@@ -126,14 +126,14 @@ export function Step1_BasicInfo({ state, onChange, categories }: Step1Props) {
             </Card>
 
             {state.productType === 'simple' && (
-                <Card className="border-blue-200 bg-blue-50/50">
+                <Card className="border-info/30 bg-info-soft">
                     <CardHeader>
-                        <CardTitle className="text-blue-700">بيانات المنتج البسيط</CardTitle>
+                        <CardTitle className="text-info">بيانات المنتج البسيط</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="price">السعر (د.إ) <span className="text-red-500">*</span></Label>
+                                <Label htmlFor="price">السعر (د.إ) <span className="text-danger">*</span></Label>
                                 <Input
                                     id="price"
                                     type="number"
@@ -144,7 +144,7 @@ export function Step1_BasicInfo({ state, onChange, categories }: Step1Props) {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="stock">المخزون <span className="text-red-500">*</span></Label>
+                                <Label htmlFor="stock">المخزون <span className="text-danger">*</span></Label>
                                 <Input
                                     id="stock"
                                     type="number"

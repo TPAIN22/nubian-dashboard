@@ -34,6 +34,14 @@ const baseUrl = "https://nubian-sd.com";
 
 export const revalidate = 300;
 
+// An empty list opts this route into on-demand ISR: nothing is built ahead of
+// time, but each product page is cached after its first render and refreshed
+// every `revalidate` seconds. Without it the route builds as dynamic (ƒ) and
+// `revalidate` above only caches the fetches, not the rendered page.
+export async function generateStaticParams() {
+  return [];
+}
+
 type Params = { params: Promise<{ productId: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
@@ -137,7 +145,7 @@ export default async function ProductPage({ params }: Params) {
     <>
       <ProductSchema product={product} />
 
-      <Container className="pt-8 md:pt-12">
+      <Container className="pt-6 md:pt-8">
         <Breadcrumbs
           items={[
             { label: "الرئيسية", href: routes.home() },
@@ -150,7 +158,7 @@ export default async function ProductPage({ params }: Params) {
         />
       </Container>
 
-      <Container className="pt-8 pb-16 md:pt-12 md:pb-24">
+      <Container className="pt-6 pb-14 md:pt-8 md:pb-20">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-16">
           {/* Gallery: a static stack, not a carousel. Every photograph is
               visible at once and nothing needs JavaScript to reach. */}
@@ -158,7 +166,7 @@ export default async function ProductPage({ params }: Params) {
             <StoreImage
               src={product.images[0]}
               alt={product.name}
-              className="aspect-[4/5] w-full"
+              className="bg-sf-well aspect-[4/5] w-full rounded-3xl"
               sizes="(min-width: 1024px) 52vw, 100vw"
               priority
               transformWidth={1100}
@@ -171,7 +179,7 @@ export default async function ProductPage({ params }: Params) {
                     <StoreImage
                       src={image}
                       alt={`${product.name} — صورة ${index + 2}`}
-                      className="aspect-square w-full"
+                      className="aspect-square w-full rounded-2xl"
                       sizes="(min-width: 1024px) 17vw, 31vw"
                       transformWidth={420}
                     />
@@ -183,30 +191,33 @@ export default async function ProductPage({ params }: Params) {
 
           {/* Detail column. Sticky on desktop so a long gallery does not leave
               the price scrolled off the screen. */}
-          <div className="lg:sticky lg:top-28 lg:self-start">
+          <div className="lg:sticky lg:top-36 lg:self-start">
             {product.category && (
               <Link
                 href={routes.category(product.category.id)}
-                className="sf-focus sf-eyebrow hover:text-sf-ink inline-block py-1 transition-colors"
+                className="sf-focus bg-sf-tint text-sf-accent hover:bg-sf-tint-strong inline-flex rounded-full px-3 py-1 text-[0.8125rem] font-semibold transition-colors"
               >
                 {product.category.name}
               </Link>
             )}
 
-            <h1 className="sf-title text-sf-ink mt-3 text-[1.75rem] md:text-[2.25rem]">
+            <h1 className="sf-title mt-4 text-[1.625rem] md:text-[2rem]">
               {product.name}
             </h1>
 
-            <Price price={product.price} size="lg" className="mt-6" />
+            <Price price={product.price} size="lg" className="mt-5" />
 
             <p className="sf-meta mt-3">
               {inStock ? (
                 product.stock !== null && product.stock <= 5 ? (
-                  <span className="text-sf-accent font-medium">
+                  <span className="text-sf-sale font-semibold">
                     بقي <bdi>{product.stock}</bdi> في المخزون
                   </span>
                 ) : (
-                  "متوفر"
+                  <span className="text-sf-accent inline-flex items-center gap-1.5 font-semibold">
+                    <span className="bg-sf-accent h-1.5 w-1.5 rounded-full" aria-hidden="true" />
+                    متوفر
+                  </span>
                 )
               ) : (
                 <span className="font-medium">نفدت الكمية</span>
@@ -214,7 +225,7 @@ export default async function ProductPage({ params }: Params) {
             </p>
 
             {product.store && (
-              <div className="border-sf-rule mt-7 flex items-center gap-3 border-y py-5">
+              <div className="sf-card mt-7 flex items-center gap-3 p-4">
                 {product.store.logo && (
                   <StoreImage
                     src={product.store.logo}
@@ -247,7 +258,7 @@ export default async function ProductPage({ params }: Params) {
                       {values.map((value) => (
                         <span
                           key={value}
-                          className="border-sf-rule text-sf-ink inline-flex h-8 items-center rounded-[3px] border px-3 text-[0.8125rem]"
+                          className="border-sf-rule bg-card text-sf-ink inline-flex h-9 items-center rounded-lg border px-3.5 text-[0.8125rem] font-medium"
                         >
                           <bdi>{value}</bdi>
                         </span>
@@ -258,8 +269,8 @@ export default async function ProductPage({ params }: Params) {
               </dl>
             )}
 
-            <div className="mt-9">
-              <StoreButtonExternal href={PLAY_STORE_URL} size="lg" className="w-full sm:w-auto">
+            <div className="bg-sf-well mt-8 rounded-2xl p-5">
+              <StoreButtonExternal href={PLAY_STORE_URL} size="lg" className="w-full">
                 اطلب عبر التطبيق
               </StoreButtonExternal>
               <p className="sf-meta mt-3">
@@ -268,8 +279,8 @@ export default async function ProductPage({ params }: Params) {
             </div>
 
             {product.description && (
-              <div className="border-sf-rule mt-10 border-t pt-8">
-                <h2 className="sf-product-name text-base">تفاصيل المنتج</h2>
+              <div className="border-sf-rule mt-8 border-t pt-7">
+                <h2 className="sf-heading">تفاصيل المنتج</h2>
                 {/* `whitespace-pre-line` preserves the paragraph breaks
                     merchants type; the text is plain, never HTML. */}
                 <p className="sf-body mt-3 whitespace-pre-line">{product.description}</p>
@@ -280,7 +291,7 @@ export default async function ProductPage({ params }: Params) {
       </Container>
 
       {related.length > 0 && product.category && (
-        <Section aria-labelledby="related-heading" divided>
+        <Section aria-labelledby="related-heading" divided className="mt-4">
           <SectionHeading
             id="related-heading"
             title={`المزيد من ${product.category.name}`}

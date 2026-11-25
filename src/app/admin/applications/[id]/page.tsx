@@ -17,7 +17,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft, CheckCircle2, XCircle, Edit3, AlertCircle, ChevronLeft, ChevronRight, X, Download } from "lucide-react";
+import { Loader2, ArrowRight, CheckCircle2, XCircle, Edit3, AlertCircle, ChevronLeft, ChevronRight, X, Download } from "lucide-react";
 import Link from 'next/link';
 
 export default function ApplicationDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -130,8 +130,8 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
     <div className="p-8 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/admin/applications')}>
-            <ArrowLeft className="w-5 h-5" />
+          <Button variant="ghost" size="icon" aria-label="العودة إلى الطلبات" onClick={() => router.push('/admin/applications')}>
+            <ArrowRight className="w-5 h-5" />
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-foreground">{app.storeName}</h1>
@@ -146,8 +146,8 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
             app.status === 'rejected' ? 'destructive' : 
             app.status === 'needs_revision' ? 'outline' : 'secondary'
           } className={`text-sm px-3 py-1 ${
-            app.status === 'needs_revision' ? 'border-yellow-500 text-yellow-600' : 
-            app.status === 'suspended' ? 'border-red-500 text-red-600 bg-red-500/10' : ''
+            app.status === 'needs_revision' ? 'border-warning text-warning' : 
+            app.status === 'suspended' ? 'border-danger text-danger bg-danger-soft' : ''
           }`}>
             Status: {app.status.toUpperCase().replace('_', ' ')}
           </Badge>
@@ -155,7 +155,7 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
           {app.status === 'approved' && (
             <Button 
               variant="outline" 
-              className="border-red-500 text-red-600 hover:bg-red-500/10 gap-2"
+              className="border-danger text-danger hover:bg-danger-soft gap-2"
               onClick={() => {
                 setTargetStatus('suspended');
                 setNotes("");
@@ -185,7 +185,7 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
                 variant="outline" 
                 onClick={() => openStatusDialog('needs_revision')}
                 disabled={isUpdating}
-                className="gap-2 border-yellow-600/50 text-yellow-600 hover:bg-yellow-600/10 dark:text-yellow-400 dark:border-yellow-400/30 dark:hover:bg-yellow-400/10"
+                className="gap-2 border-warning/30 text-warning hover:bg-warning-soft"
               >
                 {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Edit3 className="w-4 h-4" />}
                 Request Revision
@@ -251,7 +251,7 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
               disabled={isUpdating || (targetStatus !== 'suspended' && !notes.trim())}
               onClick={() => updateStatus(targetStatus!, notes)}
             >
-              {isUpdating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isUpdating && <Loader2 className="w-4 h-4 me-2 animate-spin" />}
               {targetStatus === 'needs_revision' ? 'Send Request' : 
                targetStatus === 'suspended' ? 'Confirm Suspension' : 'Confirm Rejection'}
             </Button>
@@ -260,21 +260,21 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
       </Dialog>
 
       {app.status === 'needs_revision' && app.revisionNotes && (
-        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+        <div className="bg-warning-soft border border-warning/30 rounded-xl p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-warning mt-0.5" />
           <div>
-            <h4 className="font-bold text-yellow-800 dark:text-yellow-300">Revision Notes Sent:</h4>
-            <p className="text-sm text-yellow-700 dark:text-yellow-200/80">{app.revisionNotes}</p>
+            <h4 className="font-bold text-warning">Revision Notes Sent:</h4>
+            <p className="text-sm text-warning">{app.revisionNotes}</p>
           </div>
         </div>
       )}
 
       {app.status === 'rejected' && app.rejectionReason && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-start gap-3">
-          <XCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" />
+        <div className="bg-danger-soft border border-danger/30 rounded-xl p-4 flex items-start gap-3">
+          <XCircle className="w-5 h-5 text-danger mt-0.5" />
           <div>
-            <h4 className="font-bold text-red-800 dark:text-red-400">Rejection Reason:</h4>
-            <p className="text-sm text-red-700 dark:text-red-300/80">{app.rejectionReason}</p>
+            <h4 className="font-bold text-danger">Rejection Reason:</h4>
+            <p className="text-sm text-danger">{app.rejectionReason}</p>
           </div>
         </div>
       )}
@@ -362,7 +362,7 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
                   onClick={() => setViewerIndex(-2)}
                   className="group relative w-24 h-24 rounded-xl border border-border p-1 bg-background shadow-sm cursor-pointer hover:ring-2 hover:ring-primary transition-all"
                 >
-                  <img src={app.logoUrl} alt="Store Logo" className="w-full h-full object-cover rounded-lg" />
+                  <img src={app.logoUrl} alt="شعار المتجر" className="w-full h-full object-cover rounded-lg" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
                     <span className="text-white text-[10px] font-medium px-2 py-0.5 bg-black/50 rounded-full backdrop-blur-sm">View Full</span>
                   </div>
@@ -380,7 +380,7 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
                   onClick={() => setViewerIndex(-3)}
                   className="group relative aspect-video w-full max-w-xs rounded-xl border border-border bg-background shadow-sm cursor-pointer hover:ring-2 hover:ring-primary transition-all overflow-hidden"
                 >
-                  <img src={app.banner} alt="Store Cover" className="w-full h-full object-cover" />
+                  <img src={app.banner} alt="غلاف المتجر" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <span className="text-white text-[10px] font-medium px-2 py-0.5 bg-black/50 rounded-full backdrop-blur-sm">View Full</span>
                   </div>
@@ -404,7 +404,7 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
                     onClick={() => setViewerIndex(i)}
                     className="group relative aspect-square rounded-xl border border-border overflow-hidden bg-muted cursor-pointer hover:ring-2 hover:ring-primary transition-all shadow-sm"
                   >
-                    <img src={url} alt={`Sample ${i+1}`} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                    <img src={url} alt={`عينة ${i + 1}`} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <span className="text-white text-xs font-medium px-2 py-1 bg-black/40 rounded-full backdrop-blur-sm">View Full</span>
                     </div>

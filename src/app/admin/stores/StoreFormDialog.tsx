@@ -176,7 +176,7 @@ export function StoreFormDialog({ store }: { store?: Store }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="storeName">اسم المتجر <span className="text-red-500">*</span></Label>
+            <Label htmlFor="storeName">اسم المتجر <span className="text-danger">*</span></Label>
             <Input
               id="storeName"
               required
@@ -188,7 +188,7 @@ export function StoreFormDialog({ store }: { store?: Store }) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="ownerName">اسم المالك <span className="text-red-500">*</span></Label>
+              <Label htmlFor="ownerName">اسم المالك <span className="text-danger">*</span></Label>
               <Input
                 id="ownerName"
                 required
@@ -198,7 +198,7 @@ export function StoreFormDialog({ store }: { store?: Store }) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">البريد الإلكتروني <span className="text-red-500">*</span></Label>
+              <Label htmlFor="email">البريد الإلكتروني <span className="text-danger">*</span></Label>
               <Input
                 id="email"
                 type="email"
@@ -222,7 +222,7 @@ export function StoreFormDialog({ store }: { store?: Store }) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="city">المدينة <span className="text-red-500">*</span></Label>
+              <Label htmlFor="city">المدينة <span className="text-danger">*</span></Label>
               <Input
                 id="city"
                 required
@@ -249,7 +249,7 @@ export function StoreFormDialog({ store }: { store?: Store }) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">وصف المتجر <span className="text-red-500">*</span></Label>
+            <Label htmlFor="description">وصف المتجر <span className="text-danger">*</span></Label>
             <Textarea
               id="description"
               required

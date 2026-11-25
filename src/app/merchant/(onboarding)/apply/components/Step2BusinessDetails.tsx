@@ -27,7 +27,7 @@ export default function Step2BusinessDetails() {
         {/* Merchant Type Selector */}
         <div>
           <Label className="font-semibold block mb-3">
-            أسجل كـ: <span className="text-red-500">*</span>
+            أسجل كـ: <span className="text-danger">*</span>
           </Label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label
@@ -81,16 +81,16 @@ export default function Step2BusinessDetails() {
         {/* National ID */}
         <div>
           <Label htmlFor="nationalId" className="font-semibold">
-            الرقم الوطني / رقم الجواز <span className="text-red-500">*</span>
+            الرقم الوطني / رقم الجواز <span className="text-danger">*</span>
           </Label>
           <Input
             id="nationalId"
             placeholder="أدخل رقم الهوية الخاص بك"
             {...register('nationalId')}
-            className={`mt-1.5 ${errors.nationalId ? 'border-red-500' : ''}`}
+            className={`mt-1.5 ${errors.nationalId ? 'border-danger' : ''}`}
           />
           {errors.nationalId && (
-            <p className="text-sm text-red-500 mt-1">{errors.nationalId.message}</p>
+            <p className="text-sm text-danger mt-1">{errors.nationalId.message}</p>
           )}
         </div>
 
@@ -98,16 +98,16 @@ export default function Step2BusinessDetails() {
         {merchantType === 'business' && (
           <div className="animate-in slide-in-from-top-2 fade-in">
             <Label htmlFor="crNumber" className="font-semibold">
-              رقم السجل التجاري (CR) <span className="text-red-500">*</span>
+              رقم السجل التجاري (CR) <span className="text-danger">*</span>
             </Label>
             <Input
               id="crNumber"
               placeholder="مثال: 1010101010"
               {...register('crNumber')}
-              className={`mt-1.5 ${errors.crNumber ? 'border-red-500' : ''}`}
+              className={`mt-1.5 ${errors.crNumber ? 'border-danger' : ''}`}
             />
             {errors.crNumber && (
-              <p className="text-sm text-red-500 mt-1">{errors.crNumber.message}</p>
+              <p className="text-sm text-danger mt-1">{errors.crNumber.message}</p>
             )}
           </div>
         )}

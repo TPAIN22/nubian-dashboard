@@ -96,11 +96,11 @@ export function QueueHealthGrid({
                   </div>
                   <span aria-label={`Status: ${tone}`}>
                     {tone === 'success' ? (
-                      <CheckCircle2 className="size-4 text-emerald-500" />
+                      <CheckCircle2 className="size-4 text-success" />
                     ) : tone === 'warning' ? (
-                      <Loader2 className="size-4 text-amber-500" />
+                      <Loader2 className="size-4 text-warning" />
                     ) : (
-                      <AlertTriangle className="size-4 text-red-500" />
+                      <AlertTriangle className="size-4 text-danger" />
                     )}
                   </span>
                 </div>
@@ -154,8 +154,8 @@ function Stat({
       <dd
         className={cn(
           'font-semibold tabular-nums',
-          emphasize === 'danger' && 'text-red-600 dark:text-red-400',
-          emphasize === 'warning' && 'text-amber-600 dark:text-amber-400',
+          emphasize === 'danger' && 'text-danger',
+          emphasize === 'warning' && 'text-warning',
         )}
       >
         {formatNumber(value)}

@@ -14,9 +14,9 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const SPACE = {
-  tight: "py-12 md:py-16",
-  default: "py-16 md:py-24",
-  loose: "py-20 md:py-32",
+  tight: "py-10 md:py-14",
+  default: "py-14 md:py-20",
+  loose: "py-20 md:py-28",
 } as const;
 
 interface SectionProps {
@@ -61,7 +61,7 @@ export function Container({
   className?: string;
 }) {
   return (
-    <div className={cn("mx-auto w-full max-w-[1320px] px-5 md:px-8 lg:px-12", className)}>
+    <div className={cn("mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-8", className)}>
       {children}
     </div>
   );
@@ -92,22 +92,22 @@ export function SectionHeading({
   return (
     <div
       className={cn(
-        "mb-10 flex flex-col gap-5 md:mb-14 md:flex-row md:items-end md:justify-between",
+        "mb-8 flex flex-col gap-4 md:mb-10 md:flex-row md:items-end md:justify-between",
         className,
       )}
     >
       <div className="max-w-2xl">
-        {eyebrow && <p className="sf-eyebrow mb-2.5">{eyebrow}</p>}
+        {eyebrow && <p className="sf-eyebrow mb-2">{eyebrow}</p>}
         <Heading id={id} className="sf-title">
           {title}
         </Heading>
-        {description && <p className="sf-body mt-3">{description}</p>}
+        {description && <p className="sf-body mt-2">{description}</p>}
       </div>
 
       {action && (
         <Link
           href={action.href}
-          className="sf-focus text-sf-ink hover:text-sf-accent border-sf-rule-strong hover:border-sf-accent inline-flex shrink-0 items-center gap-2 self-start border-b pt-1.5 pb-2 text-sm font-medium transition-colors md:self-auto"
+          className="sf-focus text-sf-accent hover:text-sf-accent-hover group/action inline-flex shrink-0 items-center gap-1.5 self-start py-2 text-sm font-semibold transition-colors md:self-auto"
         >
           {action.label}
           {/* Chevron points along the reading direction: left in RTL. The
@@ -116,7 +116,7 @@ export function SectionHeading({
           <svg
             viewBox="0 0 16 16"
             aria-hidden="true"
-            className="h-3.5 w-3.5 rtl:rotate-180"
+            className="h-3.5 w-3.5 transition-transform group-hover/action:-translate-x-0.5 rtl:rotate-180"
             fill="none"
             stroke="currentColor"
             strokeWidth="1.5"

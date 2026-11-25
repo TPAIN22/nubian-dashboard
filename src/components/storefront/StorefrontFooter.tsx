@@ -29,7 +29,7 @@ import {
 
 /** `inline-block py-1.5` gives each footer link a 31px target, not a 19px one. */
 const LINK =
-  "sf-focus text-muted-foreground hover:text-sf-ink inline-block py-1.5 text-sm transition-colors";
+  "sf-focus text-sf-ink-soft hover:text-sf-accent inline-block py-2 text-sm transition-colors";
 
 const COMPANY_LINKS = [
   { label: "من نحن", href: "/about" },
@@ -64,13 +64,13 @@ export async function StorefrontFooter() {
   const categories = visibleCategories(await getCategories(), 6);
 
   return (
-    <footer className="border-sf-rule bg-background border-t">
+    <footer className="bg-sf-well text-sf-ink border-sf-rule mt-8 border-t">
       <Container>
-        <div className="grid gap-12 py-16 md:grid-cols-12 md:gap-8 md:py-20">
+        <div className="grid gap-12 py-14 md:grid-cols-12 md:gap-8 md:py-16">
           {/* Brand column */}
           <div className="md:col-span-4 lg:col-span-5">
             <StorefrontLogo />
-            <p className="sf-body mt-5 max-w-sm text-[0.9375rem]">
+            <p className="text-sf-ink-soft mt-5 max-w-sm text-[0.9375rem] leading-relaxed">
               سوق إلكتروني سوداني يجمع تجاراً موثوقين في مكان واحد — من الأزياء
               والعطور إلى الإلكترونيات والمستلزمات اليومية.
             </p>
@@ -79,7 +79,7 @@ export async function StorefrontFooter() {
               href={PLAY_STORE_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="sf-focus border-sf-rule-strong text-sf-ink hover:border-sf-ink mt-7 inline-flex h-11 items-center gap-2.5 rounded-[3px] border px-5 text-sm font-medium transition-colors"
+              className="sf-focus bg-sf-ink text-background mt-7 inline-flex h-11 items-center gap-2.5 rounded-xl px-5 text-sm font-semibold transition-opacity hover:opacity-90"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="currentColor">
                 <path d="M3.6 2.2a1 1 0 0 1 1.05.08l12.1 8.1a1 1 0 0 1 0 1.66l-12.1 8.1A1 1 0 0 1 3 19.3V3.08a1 1 0 0 1 .6-.88Z" />
@@ -95,7 +95,7 @@ export async function StorefrontFooter() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`نوبيان على ${social.name}`}
-                    className="sf-focus border-sf-rule text-muted-foreground hover:border-sf-ink hover:text-sf-ink inline-flex h-10 w-10 items-center justify-center rounded-full border transition-colors"
+                    className="sf-focus border-sf-rule bg-card text-sf-ink-soft hover:border-sf-accent hover:text-sf-accent inline-flex h-10 w-10 items-center justify-center rounded-full border transition-colors"
                   >
                     <svg
                       viewBox="0 0 24 24"
@@ -117,10 +117,10 @@ export async function StorefrontFooter() {
           {/* Shop column — hidden entirely if the taxonomy is unreachable. */}
           {categories.length > 0 && (
             <nav aria-labelledby="footer-shop" className="md:col-span-3 lg:col-span-2">
-              <h2 id="footer-shop" className="text-sf-ink mb-5 text-sm font-semibold">
+              <h2 id="footer-shop" className="sf-heading mb-3 text-sm">
                 تسوّق
               </h2>
-              <ul className="space-y-1">
+              <ul>
                 <li>
                   <Link href={routes.shop()} className={LINK}>
                     كل المنتجات
@@ -138,10 +138,10 @@ export async function StorefrontFooter() {
           )}
 
           <nav aria-labelledby="footer-company" className="md:col-span-3 lg:col-span-2">
-            <h2 id="footer-company" className="text-sf-ink mb-5 text-sm font-semibold">
+            <h2 id="footer-company" className="sf-heading mb-3 text-sm">
               نوبيان
             </h2>
-            <ul className="space-y-1">
+            <ul>
               {COMPANY_LINKS.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className={LINK}>
@@ -153,8 +153,8 @@ export async function StorefrontFooter() {
           </nav>
 
           <div className="md:col-span-2 lg:col-span-3">
-            <h2 className="text-sf-ink mb-5 text-sm font-semibold">المساعدة</h2>
-            <ul className="space-y-1">
+            <h2 className="sf-heading mb-3 text-sm">المساعدة</h2>
+            <ul>
               {POLICY_LINKS.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className={LINK}>
@@ -176,8 +176,8 @@ export async function StorefrontFooter() {
           </div>
         </div>
 
-        <div className="border-sf-rule flex flex-col-reverse items-center justify-between gap-5 border-t py-7 sm:flex-row">
-          <p className="sf-meta">
+        <div className="border-sf-rule flex flex-col-reverse items-center justify-between gap-5 border-t py-6 sm:flex-row">
+          <p className="text-sf-ink-soft text-[0.8125rem]">
             © {new Date().getFullYear()} نوبيان. جميع الحقوق محفوظة.
           </p>
         </div>

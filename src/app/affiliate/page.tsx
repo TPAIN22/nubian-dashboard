@@ -113,7 +113,7 @@ export default function AffiliateDashboard() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => window.open(`https://www.nubian-sd.com/?ref=${profile?.code}`, '_blank')}>
-            <IconExternalLink size={18} className="ml-2" /> معاينة المتجر
+            <IconExternalLink size={18} className="me-2" /> معاينة المتجر
           </Button>
         </div>
       </div>

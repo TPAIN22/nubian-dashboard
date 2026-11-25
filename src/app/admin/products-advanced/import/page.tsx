@@ -397,13 +397,13 @@ export default function ProductImportPage() {
         <div className="flex gap-2">
           <a href="/api/admin/products/import/template.csv" download>
             <Button variant="outline" size="sm">
-              <IconDownload className="w-4 h-4 ml-2" />
+              <IconDownload className="w-4 h-4 me-2" />
               قالب CSV
             </Button>
           </a>
           <a href="/api/admin/products/import/template.xlsx" download>
             <Button variant="outline" size="sm">
-              <IconDownload className="w-4 h-4 ml-2" />
+              <IconDownload className="w-4 h-4 me-2" />
               قالب Excel
             </Button>
           </a>
@@ -486,13 +486,13 @@ export default function ProductImportPage() {
                 className={cn(
                   'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors',
                   isDataDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/30 hover:border-primary/50',
-                  dataFile && 'border-green-500 bg-green-500/5'
+                  dataFile && 'border-success bg-success-soft'
                 )}
               >
                 <input {...getDataInputProps()} />
                 {dataFile ? (
                   <div className="space-y-2">
-                    <IconCheck className="w-10 h-10 mx-auto text-green-500" />
+                    <IconCheck className="w-10 h-10 mx-auto text-success" />
                     <p className="font-medium">{dataFile.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {(dataFile.size / 1024).toFixed(1)} KB
@@ -505,7 +505,7 @@ export default function ProductImportPage() {
                         setDataFile(null);
                       }}
                     >
-                      <IconTrash className="w-4 h-4 ml-1" />
+                      <IconTrash className="w-4 h-4 me-1" />
                       إزالة
                     </Button>
                   </div>
@@ -535,13 +535,13 @@ export default function ProductImportPage() {
                 className={cn(
                   'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors',
                   isZipDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/30 hover:border-primary/50',
-                  zipFile && 'border-green-500 bg-green-500/5'
+                  zipFile && 'border-success bg-success-soft'
                 )}
               >
                 <input {...getZipInputProps()} />
                 {zipFile ? (
                   <div className="space-y-2">
-                    <IconCheck className="w-10 h-10 mx-auto text-green-500" />
+                    <IconCheck className="w-10 h-10 mx-auto text-success" />
                     <p className="font-medium">{zipFile.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {(zipFile.size / 1024 / 1024).toFixed(2)} MB
@@ -554,7 +554,7 @@ export default function ProductImportPage() {
                         setZipFile(null);
                       }}
                     >
-                      <IconTrash className="w-4 h-4 ml-1" />
+                      <IconTrash className="w-4 h-4 me-1" />
                       إزالة
                     </Button>
                   </div>
@@ -578,13 +578,13 @@ export default function ProductImportPage() {
             >
               {isLoading ? (
                 <>
-                  <IconLoader2 className="w-5 h-5 ml-2 animate-spin" />
+                  <IconLoader2 className="w-5 h-5 me-2 animate-spin" />
                   جاري التحليل...
                 </>
               ) : (
                 <>
                   تحليل الملف
-                  <IconFileSpreadsheet className="w-5 h-5 mr-2" />
+                  <IconFileSpreadsheet className="w-5 h-5 ms-2" />
                 </>
               )}
             </Button>
@@ -605,13 +605,13 @@ export default function ProductImportPage() {
             </Card>
             <Card>
               <CardContent className="pt-6">
-                <div className="text-2xl font-bold text-green-600">{parseResult.validRows}</div>
+                <div className="text-2xl font-bold text-success">{parseResult.validRows}</div>
                 <p className="text-sm text-muted-foreground">صفوف صالحة</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6">
-                <div className="text-2xl font-bold text-red-600">{parseResult.invalidRows}</div>
+                <div className="text-2xl font-bold text-danger">{parseResult.invalidRows}</div>
                 <p className="text-sm text-muted-foreground">صفوف غير صالحة</p>
               </CardContent>
             </Card>
@@ -629,13 +629,13 @@ export default function ProductImportPage() {
 
           {/* Warnings */}
           {parseResult.warnings.length > 0 && (
-            <Card className="border-yellow-500/50 bg-yellow-500/5">
+            <Card className="border-warning/30 bg-warning-soft">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-3">
-                  <IconAlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <IconAlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-medium text-yellow-800">تحذيرات</p>
-                    <ul className="mt-2 space-y-1 text-sm text-yellow-700">
+                    <p className="font-medium text-warning">تحذيرات</p>
+                    <ul className="mt-2 space-y-1 text-sm text-warning">
                       {parseResult.warnings.map((w, i) => (
                         <li key={i}>• {w}</li>
                       ))}
@@ -648,13 +648,13 @@ export default function ProductImportPage() {
 
           {/* Duplicate SKUs */}
           {parseResult.duplicateSkus.length > 0 && (
-            <Card className="border-red-500/50 bg-red-500/5">
+            <Card className="border-danger/30 bg-danger-soft">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-3">
-                  <IconX className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <IconX className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-medium text-red-800">SKU مكررة</p>
-                    <p className="mt-1 text-sm text-red-700">
+                    <p className="font-medium text-danger">SKU مكررة</p>
+                    <p className="mt-1 text-sm text-danger">
                       {parseResult.duplicateSkus.join(', ')}
                     </p>
                   </div>
@@ -687,18 +687,18 @@ export default function ProductImportPage() {
                     {parseResult.preview.map((row) => (
                       <TableRow
                         key={row.rowIndex}
-                        className={cn(!row.isValid && 'bg-red-500/5')}
+                        className={cn(!row.isValid && 'bg-danger-soft')}
                       >
                         <TableCell>{row.rowIndex + 1}</TableCell>
                         <TableCell>
                           {row.isValid ? (
                             <Badge variant="default" className="bg-green-600">
-                              <IconCheck className="w-3 h-3 ml-1" />
+                              <IconCheck className="w-3 h-3 me-1" />
                               صالح
                             </Badge>
                           ) : (
                             <Badge variant="destructive">
-                              <IconX className="w-3 h-3 ml-1" />
+                              <IconX className="w-3 h-3 me-1" />
                               خطأ
                             </Badge>
                           )}
@@ -710,7 +710,7 @@ export default function ProductImportPage() {
                         <TableCell>{row.images.length}</TableCell>
                         <TableCell className="max-w-[300px]">
                           {row.errors.length > 0 && (
-                            <ul className="text-xs text-red-600 space-y-0.5">
+                            <ul className="text-xs text-danger space-y-0.5">
                               {row.errors.slice(0, 3).map((e, i) => (
                                 <li key={i}>• {e.field}: {e.message}</li>
                               ))}
@@ -731,7 +731,7 @@ export default function ProductImportPage() {
           {/* Actions */}
           <div className="flex justify-between">
             <Button variant="outline" onClick={handleReset}>
-              <IconRefresh className="w-4 h-4 ml-2" />
+              <IconRefresh className="w-4 h-4 me-2" />
               البدء من جديد
             </Button>
             <Button
@@ -741,13 +741,13 @@ export default function ProductImportPage() {
             >
               {isLoading ? (
                 <>
-                  <IconLoader2 className="w-5 h-5 ml-2 animate-spin" />
+                  <IconLoader2 className="w-5 h-5 me-2 animate-spin" />
                   جاري الاستيراد...
                 </>
               ) : (
                 <>
                   استيراد {parseResult.validRows} منتج
-                  <IconUpload className="w-5 h-5 mr-2" />
+                  <IconUpload className="w-5 h-5 ms-2" />
                 </>
               )}
             </Button>
@@ -779,15 +779,15 @@ export default function ProductImportPage() {
           {/* Summary */}
           <Card className={cn(
             commitResult.failedCount === 0
-              ? 'border-green-500/50 bg-green-500/5'
-              : 'border-yellow-500/50 bg-yellow-500/5'
+              ? 'border-success/30 bg-success-soft'
+              : 'border-warning/30 bg-warning-soft'
           )}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 {commitResult.failedCount === 0 ? (
-                  <IconCheck className="w-12 h-12 text-green-600" />
+                  <IconCheck className="w-12 h-12 text-success" />
                 ) : (
-                  <IconAlertTriangle className="w-12 h-12 text-yellow-600" />
+                  <IconAlertTriangle className="w-12 h-12 text-warning" />
                 )}
                 <div>
                   <h3 className="text-xl font-semibold">
@@ -813,13 +813,13 @@ export default function ProductImportPage() {
             </Card>
             <Card>
               <CardContent className="pt-6 text-center">
-                <div className="text-3xl font-bold text-green-600">{commitResult.insertedCount}</div>
+                <div className="text-3xl font-bold text-success">{commitResult.insertedCount}</div>
                 <p className="text-sm text-muted-foreground">منتجات جديدة</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6 text-center">
-                <div className="text-3xl font-bold text-blue-600">{commitResult.updatedCount}</div>
+                <div className="text-3xl font-bold text-info">{commitResult.updatedCount}</div>
                 <p className="text-sm text-muted-foreground">تم تحديثها</p>
               </CardContent>
             </Card>
@@ -831,7 +831,7 @@ export default function ProductImportPage() {
             </Card>
             <Card>
               <CardContent className="pt-6 text-center">
-                <div className="text-3xl font-bold text-red-600">{commitResult.failedCount}</div>
+                <div className="text-3xl font-bold text-danger">{commitResult.failedCount}</div>
                 <p className="text-sm text-muted-foreground">فشلت</p>
               </CardContent>
             </Card>
@@ -856,11 +856,11 @@ export default function ProductImportPage() {
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => handleDownloadFailures('csv')}>
-                    <IconDownload className="w-4 h-4 ml-1" />
+                    <IconDownload className="w-4 h-4 me-1" />
                     CSV
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => handleDownloadFailures('json')}>
-                    <IconDownload className="w-4 h-4 ml-1" />
+                    <IconDownload className="w-4 h-4 me-1" />
                     JSON
                   </Button>
                 </div>
@@ -882,7 +882,7 @@ export default function ProductImportPage() {
                           <TableCell>{failure.rowIndex + 1}</TableCell>
                           <TableCell className="font-mono text-sm">{failure.sku}</TableCell>
                           <TableCell>{failure.name}</TableCell>
-                          <TableCell className="text-red-600">{failure.reason}</TableCell>
+                          <TableCell className="text-danger">{failure.reason}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -895,7 +895,7 @@ export default function ProductImportPage() {
           {/* Actions */}
           <div className="flex justify-center">
             <Button size="lg" onClick={handleReset}>
-              <IconRefresh className="w-5 h-5 ml-2" />
+              <IconRefresh className="w-5 h-5 me-2" />
               استيراد جديد
             </Button>
           </div>

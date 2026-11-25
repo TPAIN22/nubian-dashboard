@@ -1455,7 +1455,7 @@ function BasicInfoStep({ categories, onUpload, addCategoryPath, showMerchantPick
                                         <FileUploaderContent className="flex flex-row flex-wrap gap-2 pt-2">
                                             {field.value.map((url: string, i: number) => (
                                                 <FileUploaderItem key={i} index={i} className="w-20 h-20 p-0 border rounded-lg overflow-hidden group relative">
-                                                    <img src={url} className="w-full h-full object-cover" />
+                                                    <img src={url} alt={`صورة المنتج ${i + 1}`} className="w-full h-full object-cover" />
                                                     {i === 0 && (
                                                         <div className="absolute bottom-0 left-0 right-0 bg-primary/90 text-[10px] text-white text-center py-0.5 font-bold shadow-sm pointer-events-none">الرئيسية</div>
                                                     )}
@@ -1552,7 +1552,8 @@ function VariantSetupStep({ generate }: { generate: () => void }) {
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="absolute -top-3 -left-3 bg-destructive text-white rounded-full w-8 h-8 hover:bg-destructive/90 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                                    className="absolute -top-3 -left-3 bg-destructive text-white rounded-full w-8 h-8 hover:bg-destructive/90 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity shadow-lg"
+                                    aria-label="حذف الخاصية"
                                     onClick={() => remove(idx)}
                                 >
                                     <Trash2 className="w-4 h-4" />
@@ -1795,7 +1796,7 @@ function VariantImagesStep({ onUpload }: { onUpload: any }) {
                             <FileUploaderContent className="flex flex-row flex-wrap gap-2 pt-2">
                                 {(colorImages[color] || []).map((url: string, i: number) => (
                                     <FileUploaderItem key={i} index={i} className="w-16 h-16 p-0 border rounded-md overflow-hidden group relative">
-                                        <img src={url} className="w-full h-full object-cover" />
+                                        <img src={url} alt={`صورة اللون ${color} ${i + 1}`} className="w-full h-full object-cover" />
                                         {i === 0 && (
                                             <div className="absolute bottom-0 left-0 right-0 bg-primary/90 text-[10px] text-white text-center py-0.5 font-bold shadow-sm pointer-events-none">الرئيسية</div>
                                         )}
@@ -1858,7 +1859,7 @@ function DiscountSection({
         setValue("discount", { ...discount, [key]: value }, { shouldValidate: true, shouldDirty: true });
 
     return (
-        <Card className="border-amber-200/60">
+        <Card className="border-warning/30">
             <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                     <div>
@@ -2016,9 +2017,9 @@ function DiscountSection({
                     )}
 
                     {discount.isActive && !inactiveReason && (
-                        <div className="flex items-start gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-3">
-                            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                            <p className="text-sm text-emerald-700">
+                        <div className="flex items-start gap-2 rounded-lg border border-success/30 bg-success-soft p-3">
+                            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                            <p className="text-sm text-success">
                                 العرض فعّال — سيرى العميل السعر المخفَّض.
                             </p>
                         </div>
@@ -2325,9 +2326,9 @@ function ReviewStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: boole
 
     return (
         <div className="space-y-8 animate-in zoom-in-95 duration-500">
-            <Card className="border-green-100 bg-green-50/20">
+            <Card className="border-success/30 bg-success-soft">
                 <CardHeader className="text-center">
-                    <CheckCircle2 className="w-12 h-12 mx-auto text-green-500 mb-2" />
+                    <CheckCircle2 className="w-12 h-12 mx-auto text-success mb-2" />
                     <CardTitle className="text-2xl font-bold">مراجعة المنتج النهائي</CardTitle>
                     <CardDescription>تأكد من كافة التفاصيل قبل الحفظ النهائي</CardDescription>
                 </CardHeader>
@@ -2351,11 +2352,11 @@ function ReviewStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: boole
                         {data.productType === 'with_variants' ? (
                             <>
                                 <div className="flex justify-between border-b pb-2"><span>عدد الخيارات:</span> <span className="font-bold">{data.attributes.length}</span></div>
-                                <div className="flex justify-between"><span>إجمالي المتغيرات:</span> <span className="font-bold text-green-600">{data.variants.length}</span></div>
+                                <div className="flex justify-between"><span>إجمالي المتغيرات:</span> <span className="font-bold text-success">{data.variants.length}</span></div>
                             </>
                         ) : (
                             <>
-                                <div className="flex justify-between border-b pb-2"><span>السعر:</span> <span className="font-bold text-green-600 font-mono">{money(Number(data.merchantPrice))}</span></div>
+                                <div className="flex justify-between border-b pb-2"><span>السعر:</span> <span className="font-bold text-success font-mono">{money(Number(data.merchantPrice))}</span></div>
                                 <div className="flex justify-between"><span>المخزون:</span> <span className="font-bold">{data.stock}</span></div>
                             </>
                         )}
@@ -2420,7 +2421,7 @@ function ReviewStep({ canAuthorDiscounts = false }: { canAuthorDiscounts?: boole
                 <CardHeader><CardTitle>الصور</CardTitle></CardHeader>
                 <CardContent className="flex flex-wrap gap-4">
                     {data.images.map((img: string, i: number) => (
-                        <img key={i} src={img} className="w-24 h-24 object-cover rounded-lg border shadow-sm hover:scale-105 transition-transform" />
+                        <img key={i} src={img} alt={`صورة المنتج ${i + 1}`} className="w-24 h-24 object-cover rounded-lg border shadow-sm hover:scale-105 transition-transform" />
                     ))}
                 </CardContent>
             </Card>

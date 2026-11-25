@@ -62,7 +62,7 @@ export default function NotFound() {
               خطأ 404 · Page not found
             </span>
 
-            <h1 className="mt-8 text-[7rem] md:text-[12rem] font-black leading-none tracking-tighter bg-gradient-to-b from-primary via-primary/80 to-primary/40 bg-clip-text text-transparent select-none">
+            <h1 className="mt-8 text-[7rem] md:text-[12rem] font-black leading-none tracking-tight text-primary/70 select-none">
               404
             </h1>
 
@@ -85,7 +85,7 @@ export default function NotFound() {
                   className="w-full sm:w-auto h-12 px-7 rounded-full bg-foreground text-background hover:bg-foreground/90 text-base font-medium transition-all group"
                 >
                   العودة للرئيسية
-                  <IconArrowLeft size={18} className="mr-2 transition-transform group-hover:-translate-x-1" />
+                  <IconArrowLeft size={18} className="ms-2 transition-transform group-hover:-translate-x-1" />
                 </Button>
               </Link>
               <Link href="/contact" className="w-full sm:w-auto">

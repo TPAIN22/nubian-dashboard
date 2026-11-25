@@ -36,21 +36,21 @@ export function StoreCard({ store, className }: StoreCardProps) {
     <Link
       href={routes.store(store.id)}
       className={cn(
-        "sf-focus group bg-sf-well hover:bg-sf-sand flex items-center gap-4 rounded-[2px] p-4 transition-colors md:gap-5 md:p-5",
+        "sf-focus sf-card sf-card-hover group flex items-center gap-4 p-4 md:p-5",
         className,
       )}
     >
       <StoreImage
         src={store.logo}
         alt=""
-        className="size-16 shrink-0 md:size-[72px]"
+        className="border-sf-rule size-14 shrink-0 rounded-xl border bg-white md:size-16"
         sizes="72px"
         transformWidth={160}
         fit="contain"
       />
 
       <div className="min-w-0 flex-1">
-        <h3 className="sf-product-name group-hover:text-sf-accent truncate text-base transition-colors">
+        <h3 className="sf-heading group-hover:text-sf-accent truncate text-base transition-colors">
           {store.name}
         </h3>
         {store.city && <p className="sf-meta mt-1 truncate">{store.city}</p>}

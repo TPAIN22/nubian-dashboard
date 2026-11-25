@@ -28,11 +28,18 @@ here, so the page never depends on a third-party URL at runtime.
 
 | File | Used in | Unsplash page | Photographer | Size |
 |---|---|---|---|---|
-| `amber-light.jpg` | Opening frame (LCP) | https://unsplash.com/photos/MLV5zTSzj98 | Simply Mersah (@simplymersah) | 1800×3199 |
-| `bottle-shadow.jpg` | Departments · عطور | https://unsplash.com/photos/RUPxcOsyQI4 | mae black (@maeblack) | 1800×2700 |
-| `rail-shadow.jpg` | Departments · ملابس | https://unsplash.com/photos/giTULmSIQ6E | Ivy (@ivyesque) | 2400×1485 |
-| `sandals-wall.jpg` | Departments · أحذية | https://unsplash.com/photos/LyJAczPSwo0 | DCL "650" (@dclmister) | 1800×2250 |
-| `palm-plaster.jpg` | Closing frame | https://unsplash.com/photos/yhtATNbV05g | Mavi Atlas (@maviatlas) | 1800×2811 |
+| `amber-light.webp` | Opening frame (LCP) | https://unsplash.com/photos/MLV5zTSzj98 | Simply Mersah (@simplymersah) | 1800×3199 |
+| `bottle-shadow.webp` | Departments · عطور | https://unsplash.com/photos/RUPxcOsyQI4 | mae black (@maeblack) | 1800×2700 |
+| `rail-shadow.webp` | Departments · ملابس | https://unsplash.com/photos/giTULmSIQ6E | Ivy (@ivyesque) | 1800×1114 |
+| `sandals-wall.webp` | Departments · أحذية | https://unsplash.com/photos/LyJAczPSwo0 | DCL "650" (@dclmister) | 1800×2250 |
+| `palm-plaster.webp` | Closing frame | https://unsplash.com/photos/yhtATNbV05g | Mavi Atlas (@maviatlas) | 1800×2811 |
+
+Each still ships as `<name>.webp` (1800px wide, q80) plus `<name>-828.webp`
+(q78), encoded once with sharp from the Unsplash originals; `storyLoader` in
+`src/lib/storefront/image.ts` picks between them. They deliberately bypass
+`/_next/image`: re-encoding these on the server on a cold cache pushed the
+production instance past its memory limit. To replace one, re-encode both
+sizes the same way rather than dropping in a raw JPG.
 
 Crops are set in code (`objectPosition`), not baked into the files:
 
@@ -51,7 +58,7 @@ Crops are set in code (`objectPosition`), not baked into the files:
   were recognisable designer bottles (Chanel, Dior, Gucci, YSL) and were
   rejected for that reason alone.
 - No identifiable faces. The Unsplash License grants no model release;
-  `sandals-wall.jpg` shows feet and trousers only.
+  `sandals-wall` shows feet and trousers only.
 - No false place claims. A strong shopfront still (Ting Chen, `c78aSqTEJUo`)
   was rejected after its page placed it in Chiang Mai, Thailand — pairing it
   with copy about Sudanese merchants would have implied something untrue.

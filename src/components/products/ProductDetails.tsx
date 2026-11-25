@@ -225,7 +225,7 @@ export function ProductDetails({ product, showActions = false, onEdit, onToggleA
                     {formatOriginalPrice(product)}
                   </p>
                   {discountPct > 0 && (
-                    <Badge className="mt-2 bg-red-100 text-red-800">
+                    <Badge className="mt-2 bg-danger-soft text-danger">
                       خصم {discountPct}%
                     </Badge>
                   )}
@@ -415,12 +415,12 @@ export function ProductDetails({ product, showActions = false, onEdit, onToggleA
             >
               {copied ? (
                 <>
-                  <Check className="h-4 w-4 ml-2" />
+                  <Check className="h-4 w-4 me-2" />
                   تم النسخ
                 </>
               ) : (
                 <>
-                  <Copy className="h-4 w-4 ml-2" />
+                  <Copy className="h-4 w-4 me-2" />
                   نسخ المعرف
                 </>
               )}

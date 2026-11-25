@@ -292,7 +292,7 @@ export default function BannerForm({ banner, onClose, onSuccess }: BannerFormPro
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                  <Loader2 className="w-4 h-4 me-2 animate-spin" />
                   {isEditing ? "جاري التحديث..." : "جاري الإضافة..."}
                 </>
               ) : (

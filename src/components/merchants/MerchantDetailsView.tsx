@@ -56,11 +56,11 @@ interface Product extends PricedProduct {
 
 /** Keyed by the model's lowercase status enum — the badge used to hardcode green. */
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
-  pending: { label: "قيد المراجعة", className: "bg-yellow-100 text-yellow-800" },
-  approved: { label: "موافق عليه", className: "bg-green-100 text-green-800" },
-  rejected: { label: "مرفوض", className: "bg-red-100 text-red-800" },
-  needs_revision: { label: "يحتاج تعديل", className: "bg-blue-100 text-blue-800" },
-  suspended: { label: "معلق", className: "bg-orange-100 text-orange-800" },
+  pending: { label: "قيد المراجعة", className: "bg-warning-soft text-warning" },
+  approved: { label: "موافق عليه", className: "bg-success-soft text-success" },
+  rejected: { label: "مرفوض", className: "bg-danger-soft text-danger" },
+  needs_revision: { label: "يحتاج تعديل", className: "bg-info-soft text-info" },
+  suspended: { label: "معلق", className: "bg-warning-soft text-warning" },
 };
 
 interface MerchantDetailsViewProps {
@@ -374,7 +374,7 @@ function ProductCard({ product, onUpdate, getToken }: ProductCardProps) {
             <div className="mt-3 flex flex-col gap-2">
               <Link href={`/admin/products`}>
                 <Button variant="outline" size="sm" className="w-full">
-                  <Eye className="h-4 w-4 ml-2" />
+                  <Eye className="h-4 w-4 me-2" />
                   عرض التفاصيل
                 </Button>
               </Link>
@@ -382,7 +382,7 @@ function ProductCard({ product, onUpdate, getToken }: ProductCardProps) {
               <div className="grid grid-cols-2 gap-2">
                 <Link href={`/admin/products`}>
                   <Button variant="outline" size="sm" className="w-full">
-                    <Edit className="h-4 w-4 ml-1" />
+                    <Edit className="h-4 w-4 me-1" />
                     تعديل
                   </Button>
                 </Link>
@@ -439,7 +439,7 @@ function ProductCard({ product, onUpdate, getToken }: ProductCardProps) {
                 onClick={() => setDeleteDialogOpen(true)}
                 disabled={isDeleting || isToggling}
               >
-                <Trash2 className="h-4 w-4 ml-2" />
+                <Trash2 className="h-4 w-4 me-2" />
                 حذف
               </Button>
             </div>
