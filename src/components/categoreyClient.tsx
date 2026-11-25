@@ -173,11 +173,11 @@ export default function CategoryListClient({ categories: initialCategories }: Ca
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => handleEditCategory(category._id)}>
-                        <Edit className="mr-2 h-4 w-4" />
+                        <Edit className="me-2 h-4 w-4" />
                         <span>تعديل</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => openDeleteDialog(category)} className="text-red-600">
-                        <Trash2 className="mr-2 h-4 w-4" />
+                        <Trash2 className="me-2 h-4 w-4" />
                         <span>حذف</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>

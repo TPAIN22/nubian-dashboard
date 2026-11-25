@@ -245,7 +245,7 @@ export function SimpleImageUpload({ value, onChange }: SimpleImageUploadProps) {
               <Upload className="h-8 w-8 text-gray-400 mb-3" />
               <p className="text-gray-600 mb-1">اسحب وأفلت صورة، أو</p>
               <div className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200 transition-colors">
-                <Plus className="w-4 h-4 mr-1" />
+                <Plus className="w-4 h-4 me-1" />
                 اختر صورة
               </div>
             </div>

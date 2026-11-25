@@ -110,9 +110,9 @@ export function FailedJobsTable({ queue }: { queue: QueueShortName }) {
             disabled={retry.isPending || (jobs.length === 0 && !hasSelection)}
           >
             {retry.isPending ? (
-              <Loader2 className="mr-1 size-4 animate-spin" />
+              <Loader2 className="me-1 size-4 animate-spin" />
             ) : (
-              <RotateCw className="mr-1 size-4" />
+              <RotateCw className="me-1 size-4" />
             )}
             {hasSelection ? `Retry ${selectedIds.length}` : 'Retry all'}
           </Button>
@@ -123,7 +123,7 @@ export function FailedJobsTable({ queue }: { queue: QueueShortName }) {
             disabled={drain.isPending || total === 0}
             className="text-destructive hover:text-destructive"
           >
-            <Trash2 className="mr-1 size-4" />
+            <Trash2 className="me-1 size-4" />
             Drain old
           </Button>
         </div>
@@ -212,7 +212,7 @@ export function FailedJobsTable({ queue }: { queue: QueueShortName }) {
                             onClick={() => handleRetry([job.id])}
                             disabled={retry.isPending}
                           >
-                            <RotateCw className="mr-1 size-3.5" />
+                            <RotateCw className="me-1 size-3.5" />
                             Retry
                           </Button>
                         </TableCell>

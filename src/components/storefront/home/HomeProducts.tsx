@@ -29,14 +29,14 @@ export function HomeProducts({ products }: { products: StorefrontProduct[] }) {
   if (featured.length === 0) return null;
 
   return (
-    <Section aria-labelledby="featured-heading" divided>
+    <Section aria-labelledby="featured-heading">
       <SectionHeading
         id="featured-heading"
-        eyebrow="مختارات"
-        title="الأكثر رواجاً الآن"
+        eyebrow="رائج الآن"
+        title="الأكثر طلباً على نوبيان"
         action={{ label: "تصفّح كل المنتجات", href: routes.shop() }}
       />
-      <ProductGrid products={featured} />
+      <ProductGrid products={featured} priorityCount={0} />
     </Section>
   );
 }
@@ -46,7 +46,7 @@ export function HomeNewArrivals({ products }: { products: StorefrontProduct[] })
   if (arrivals.length === 0) return null;
 
   return (
-    <Section aria-labelledby="arrivals-heading" divided>
+    <Section aria-labelledby="arrivals-heading">
       <SectionHeading
         id="arrivals-heading"
         eyebrow="جديد"

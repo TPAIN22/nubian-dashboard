@@ -74,11 +74,11 @@ export type Merchant = {
 const normalizeStatus = (status?: string): string => (status ?? "").toLowerCase();
 
 const STATUS_BADGES: Record<string, { label: string; className: string }> = {
-  pending: { label: "قيد المراجعة", className: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300" },
-  approved: { label: "موافق عليه", className: "bg-green-500/15 text-green-700 dark:text-green-300" },
-  rejected: { label: "مرفوض", className: "bg-red-500/15 text-red-700 dark:text-red-300" },
-  needs_revision: { label: "يحتاج تعديل", className: "bg-blue-500/15 text-blue-700 dark:text-blue-300" },
-  suspended: { label: "معلق", className: "bg-orange-500/15 text-orange-700 dark:text-orange-300" },
+  pending: { label: "قيد المراجعة", className: "bg-warning-soft text-warning" },
+  approved: { label: "موافق عليه", className: "bg-success-soft text-success" },
+  rejected: { label: "مرفوض", className: "bg-danger-soft text-danger" },
+  needs_revision: { label: "يحتاج تعديل", className: "bg-info-soft text-info" },
+  suspended: { label: "معلق", className: "bg-warning-soft text-warning" },
 };
 
 // Separate component for merchant actions to fix React hooks rules
@@ -233,7 +233,7 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                  <Ban className="h-4 w-4 ml-2" />
+                  <Ban className="h-4 w-4 me-2" />
                   تعليق التاجر
                 </DropdownMenuItem>
               </AlertDialogTrigger>
@@ -263,7 +263,7 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
-                  <Trash2 className="h-4 w-4 ml-2" />
+                  <Trash2 className="h-4 w-4 me-2" />
                   حذف التاجر
                 </DropdownMenuItem>
               </AlertDialogTrigger>
@@ -296,7 +296,7 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button size="sm" variant="default" className="h-8">
-                <Check className="h-4 w-4 mr-1" />
+                <Check className="h-4 w-4 me-1" />
                 موافقة
               </Button>
             </AlertDialogTrigger>
@@ -319,7 +319,7 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button size="sm" variant="destructive" className="h-8">
-                <X className="h-4 w-4 mr-1" />
+                <X className="h-4 w-4 me-1" />
                 رفض
               </Button>
             </AlertDialogTrigger>
@@ -395,7 +395,7 @@ function MerchantActions({ merchant }: { merchant: Merchant }) {
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
-                    <Trash2 className="h-4 w-4 ml-2" />
+                    <Trash2 className="h-4 w-4 me-2" />
                     حذف التاجر
                   </DropdownMenuItem>
                 </AlertDialogTrigger>
@@ -653,7 +653,7 @@ export function MerchantsTable({ merchants }: { merchants: Merchant[] }) {
               {statusFilter === "all"
                 ? "جميع الحالات"
                 : STATUS_BADGES[statusFilter]?.label ?? statusFilter}
-              <ChevronDown className="mr-2 h-4 w-4" />
+              <ChevronDown className="ms-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
@@ -668,7 +668,7 @@ export function MerchantsTable({ merchants }: { merchants: Merchant[] }) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
-              إخفاء/إظهار <ChevronDown className="mr-2 h-4 w-4" />
+              إخفاء/إظهار <ChevronDown className="ms-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

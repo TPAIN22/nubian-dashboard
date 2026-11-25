@@ -119,7 +119,7 @@ export function NotificationDetailDrawer({
 
               {notification.lastError ? (
                 <Section title="Error" tone="danger">
-                  <p className="rounded-lg bg-red-500/10 p-3 text-xs text-red-700 dark:text-red-300">
+                  <p className="rounded-lg bg-danger-soft p-3 text-xs text-danger">
                     {notification.lastError}
                   </p>
                 </Section>
@@ -147,7 +147,7 @@ export function NotificationDetailDrawer({
                     onClick={() => onMarkRead(notification._id)}
                     disabled={isMarking}
                   >
-                    <Check className="mr-1 size-4" />
+                    <Check className="me-1 size-4" />
                     Mark as read
                   </Button>
                 ) : null}
@@ -174,7 +174,7 @@ function Section({
       <h3
         className={
           tone === 'danger'
-            ? 'text-xs font-semibold uppercase tracking-wide text-red-600 dark:text-red-400'
+            ? 'text-xs font-semibold uppercase tracking-wide text-danger'
             : 'text-xs font-semibold uppercase tracking-wide text-muted-foreground'
         }
       >

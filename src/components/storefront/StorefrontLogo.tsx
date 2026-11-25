@@ -17,9 +17,12 @@ import { cn } from "@/lib/utils";
 export function StorefrontLogo({
   className,
   priority = false,
+  inverse = false,
 }: {
   className?: string;
   priority?: boolean;
+  /** On the dark footer ground. */
+  inverse?: boolean;
 }) {
   return (
     <Link
@@ -30,12 +33,17 @@ export function StorefrontLogo({
       <Image
         src="/logo.png"
         alt=""
-        width={32}
-        height={32}
+        width={36}
+        height={36}
         priority={priority}
-        className="h-8 w-8 object-contain"
+        className="h-9 w-9 object-contain"
       />
-      <span className="text-sf-ink text-[1.3rem] leading-none font-bold tracking-tight">
+      <span
+        className={cn(
+          "sf-heading text-[1.35rem] leading-none font-bold",
+          inverse ? "text-sf-inverse-foreground" : "text-sf-ink",
+        )}
+      >
         نوبيان
       </span>
     </Link>

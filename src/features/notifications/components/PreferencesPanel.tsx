@@ -232,12 +232,12 @@ export function PreferencesPanel() {
         <Button onClick={() => update.mutate(draft)} disabled={update.isPending}>
           {update.isPending ? (
             <>
-              <Loader2 className="mr-1 size-4 animate-spin" />
+              <Loader2 className="me-1 size-4 animate-spin" />
               Saving…
             </>
           ) : (
             <>
-              <Save className="mr-1 size-4" />
+              <Save className="me-1 size-4" />
               Save preferences
             </>
           )}

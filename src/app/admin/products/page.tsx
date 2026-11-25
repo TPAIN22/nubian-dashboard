@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
+import Link from 'next/link';
+import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog';
 
 import { formatCurrency } from "@/lib/currency";
 
@@ -43,6 +45,8 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchProducts = async () => {
     try {
@@ -78,6 +82,29 @@ export default function AdminProductsPage() {
     }
   };
 
+  // Soft delete through the same backend route the main products table uses
+  // (DELETE /products/:id); the product stays restorable from that table.
+  const handleDelete = async () => {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/products/${encodeURIComponent(pendingDelete._id)}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message || `HTTP ${res.status}`);
+      }
+      toast.success('تم حذف المنتج');
+      setPendingDelete(null);
+      fetchProducts();
+    } catch (error) {
+      toast.error('تعذّر حذف المنتج', {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(search.toLowerCase()) || 
     p.merchantId.storeName.toLowerCase().includes(search.toLowerCase())
@@ -91,9 +118,9 @@ export default function AdminProductsPage() {
           <p className="text-muted-foreground">مراقبة وتعديل المنتجات المعروضة في السوق.</p>
         </div>
         <div className="relative w-72">
-          <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute start-3 top-3 w-4 h-4 text-muted-foreground" />
           <Input 
-            className="pl-9" 
+            className="ps-9" 
             placeholder="بحث عن منتج أو متجر..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -152,14 +179,19 @@ export default function AdminProductsPage() {
                     </TableCell>
                     <TableCell className="text-end">
                        <div className="flex items-center gap-2 justify-end">
-                          <Button variant="ghost" size="icon" title="عرض"><Eye className="w-4 h-4" /></Button>
+                          <Button asChild variant="ghost" size="icon" title="عرض">
+                            <Link href={`/admin/products-advanced/${p._id}`} aria-label={`عرض ${p.name}`}>
+                              <Eye className="w-4 h-4" />
+                            </Link>
+                          </Button>
                           {p.isFlagged ? (
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="text-green-600" 
+                              className="text-success" 
                               onClick={() => handleModerate(p._id, 'unflag')}
                               title="إلغاء الحظر"
+                              aria-label="إلغاء حظر المنتج"
                             >
                               <CheckCircle2 className="w-4 h-4" />
                             </Button>
@@ -167,14 +199,24 @@ export default function AdminProductsPage() {
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="text-amber-600" 
+                              className="text-warning" 
                               onClick={() => handleModerate(p._id, 'flag')}
                               title="حظر المنتج"
+                              aria-label="حظر المنتج"
                             >
                               <ShieldAlert className="w-4 h-4" />
                             </Button>
                           )}
-                          <Button variant="ghost" size="icon" className="text-red-600"><Trash2 className="w-4 h-4" /></Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-danger"
+                            title="حذف"
+                            aria-label={`حذف ${p.name}`}
+                            onClick={() => setPendingDelete(p)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                        </div>
                     </TableCell>
                   </TableRow>
@@ -184,6 +226,17 @@ export default function AdminProductsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => { if (!open && !deleting) setPendingDelete(null); }}
+        title="حذف المنتج؟"
+        description={pendingDelete ? `سيُخفى «${pendingDelete.name}» من السوق. يمكن استعادته لاحقاً من قائمة المنتجات.` : ""}
+        confirmText="حذف"
+        variant="destructive"
+        loading={deleting}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

@@ -1,43 +1,32 @@
 /**
- * Nubian homepage — one afternoon, from the first frame to the last.
+ * Nubian homepage — premium minimal.
  *
- * Art direction: hard Sudanese daylight on objects. Every campaign still is
- * shot in raking sun with long shadows on stone, plaster and cloth, and
- * carries the same warm grade (`.sf-grade`). That is the light the strongest
- * merchant photography in the catalogue already uses, which is what lets the
- * campaign hand over to real products without a change of world. See
- * `public/story/ASSETS.md` for every asset and why it was chosen.
- *
- *   Opening      sand     an amber bottle in the sun; the promise; the CTA
- *   Departments  ink      pinned, three frames, each a live department
- *   ——— handover ————————————————————————————————————————————————————————
- *   Shelf        white    the live feed, every product at one honest scale
- *   Index        sand     every department, typographic
- *   Collection · Arrivals · Stores · Assurance · Partners
- *   Closing      plaster  a palm's shadow; the one thing left — the app
- *
- * The story is a way into the shop, never a gate: the opening is not pinned,
- * its first scroll moves the page, and the sticky header carries search and
- * department navigation at every scroll position.
+ *   Hero         tinted panel: statement, two actions, three facts, one still
+ *   Departments  square photo tiles (rail on a phone, six-up on desktop)
+ *   Trending     the live product feed, eight cards
+ *   Collection   admin-curated collection(s), banner card or grid
+ *   Arrivals     only when the backend fills it
+ *   Stores       approved merchants
+ *   Assurance    four checkable reasons to shop here
+ *   App          the one dark band: order in the Android app
+ *   Partner      doors for merchants and marketers
  *
  * Server-rendered from one pass over the public feed; data-driven sections
- * hide themselves when their data is empty. Motion is CSS scroll-timelines
- * only (see the STORY block in globals.css) — no animation library.
+ * hide themselves when their data is empty.
  */
 
 import type { Metadata } from "next";
 
-import { StoryOpening } from "@/components/storefront/story/StoryOpening";
-import { StoryDiscovery } from "@/components/storefront/story/StoryDiscovery";
-import { StoryProductShowcase } from "@/components/storefront/story/StoryProductShowcase";
-import { StoryClosing } from "@/components/storefront/story/StoryClosing";
+import { HomeHero } from "@/components/storefront/home/HomeHero";
 import { HomeCategories } from "@/components/storefront/home/HomeCategories";
-import { HomeNewArrivals } from "@/components/storefront/home/HomeProducts";
+import { HomeProducts, HomeNewArrivals } from "@/components/storefront/home/HomeProducts";
 import { HomeCollections } from "@/components/storefront/home/HomeCollections";
 import { HomeStores } from "@/components/storefront/home/HomeStores";
 import { HomeAssurance } from "@/components/storefront/home/HomeAssurance";
+import { HomeAppBanner } from "@/components/storefront/home/HomeAppBanner";
 import { HomePartner } from "@/components/storefront/home/HomePartner";
 import { HomeStructuredData } from "@/components/StructuredData";
+import { visibleCategories } from "@/components/storefront/CategoryTile";
 import { getCategories, getHomeFeed } from "@/lib/storefront/api";
 
 const baseUrl = "https://nubian-sd.com";
@@ -88,21 +77,15 @@ export default async function Page() {
     <>
       <HomeStructuredData />
 
-      {/* Campaign */}
-      <StoryOpening />
-      <StoryDiscovery categories={categories} />
-
-      {/* Handover: from here down is the catalogue. */}
-      <StoryProductShowcase products={feed.products} />
+      <HomeHero departmentCount={visibleCategories(categories, 99).length} />
       <HomeCategories categories={categories} />
+      <HomeProducts products={feed.products} />
       <HomeCollections collections={feed.collections} />
       <HomeNewArrivals products={feed.newArrivals} />
       <HomeStores stores={feed.stores} />
       <HomeAssurance />
+      <HomeAppBanner />
       <HomePartner />
-
-      {/* The last frame. */}
-      <StoryClosing />
 
       {/* SEO brand glossary - visually hidden, indexable by search engines.
           NOTE: aria-hidden removed so the H1 still contributes to the accessibility tree.

@@ -60,8 +60,8 @@ export function StatCard({
               className={cn(
                 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium',
                 trend.direction === 'up'
-                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300'
-                  : 'bg-red-500/10 text-red-600 dark:text-red-300',
+                  ? 'bg-success-soft text-success'
+                  : 'bg-danger-soft text-danger',
               )}
             >
               {trend.direction === 'up' ? (

@@ -208,7 +208,7 @@ export function MerchantDetailsDialog({ merchant }: MerchantDetailsDialogProps) 
               
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">الحالة:</span>
-                <Badge className="bg-green-100 text-green-800">
+                <Badge className="bg-success-soft text-success">
                   موافق عليه
                 </Badge>
               </div>
@@ -317,7 +317,7 @@ function ProductCard({ product }: { product: Product }) {
             <div className="mt-3">
               <Link href={`/admin/products-advanced/${product._id}`}>
                 <Button variant="outline" size="sm" className="w-full">
-                  <Eye className="h-4 w-4 ml-2" />
+                  <Eye className="h-4 w-4 me-2" />
                   عرض التفاصيل الكاملة
                 </Button>
               </Link>

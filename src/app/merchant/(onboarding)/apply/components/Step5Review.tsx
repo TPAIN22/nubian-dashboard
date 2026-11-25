@@ -108,7 +108,7 @@ export default function Step5Review() {
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                 {data.productSamples?.map((url, i) => (
                   <div key={i} className="aspect-square rounded-md border overflow-hidden">
-                    <img src={url} alt={`Sample ${i + 1}`} className="w-full h-full object-cover" />
+                    <img src={url} alt={`عينة ${i + 1}`} className="w-full h-full object-cover" />
                   </div>
                 ))}
               </div>
@@ -142,7 +142,7 @@ export default function Step5Review() {
           </div>
         </label>
         {errors.agreedToTerms && (
-          <p className="text-sm text-red-500 mt-2 pr-7">{errors.agreedToTerms.message}</p>
+          <p className="text-sm text-danger mt-2 pr-7">{errors.agreedToTerms.message}</p>
         )}
       </div>
     </div>

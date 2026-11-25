@@ -44,7 +44,7 @@ export function HeaderAccount({ className }: { className?: string }) {
       {/* A fixed-size placeholder while Clerk resolves: without it the header's
           end cluster reflows the moment auth state lands. */}
       {!isLoaded ? (
-        <div className="bg-sf-well h-8 w-24 animate-pulse rounded-[3px]" aria-hidden="true" />
+        <div className="bg-sf-well h-8 w-24 animate-pulse rounded-full" aria-hidden="true" />
       ) : (
         <>
           <SignedOut>

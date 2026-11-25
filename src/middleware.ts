@@ -63,12 +63,16 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(new URL(newPath, req.url));
   }
 
-  // Define protected business/admin routes
+  // Define protected business/admin routes. Match whole path segments: a bare
+  // startsWith("/dashboard") also caught the public /dashboards page (listed in
+  // the sitemap) and sent every signed-out visitor and crawler to /sign-in.
+  const underSegment = (base: string) =>
+    url.pathname === base || url.pathname.startsWith(`${base}/`);
   const isBusinessRoute =
-    url.pathname.startsWith("/admin") ||
-    url.pathname.startsWith("/dashboard") ||
-    url.pathname.startsWith("/management") ||
-    url.pathname.startsWith("/merchant");
+    underSegment("/admin") ||
+    underSegment("/dashboard") ||
+    underSegment("/management") ||
+    underSegment("/merchant");
 
   // If not a protected route, allow through
   if (!isBusinessRoute) {

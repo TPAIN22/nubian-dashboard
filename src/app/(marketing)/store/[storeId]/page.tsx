@@ -76,18 +76,20 @@ export default async function StorePage({ params, searchParams }: Params) {
   return (
     <>
       {store.banner && (
-        <StoreImage
-          src={store.banner}
-          alt=""
-          className="aspect-[16/9] w-full md:aspect-[4/1]"
-          sizes="100vw"
-          priority
-          transformWidth={1800}
-          quality={84}
-        />
+        <Container className="pt-4 md:pt-6">
+          <StoreImage
+            src={store.banner}
+            alt=""
+            className="aspect-[16/9] w-full rounded-3xl md:aspect-[4/1]"
+            sizes="100vw"
+            priority
+            transformWidth={1800}
+            quality={84}
+          />
+        </Container>
       )}
 
-      <Container className="pt-8 pb-10 md:pt-12 md:pb-14">
+      <Container className="pt-6 pb-8 md:pt-8 md:pb-10">
         <Breadcrumbs
           items={[
             { label: "الرئيسية", href: routes.home() },
@@ -101,14 +103,14 @@ export default async function StorePage({ params, searchParams }: Params) {
             <StoreImage
               src={store.logo}
               alt=""
-              className="border-sf-rule size-16 shrink-0 rounded-full border md:size-20"
+              className="border-sf-rule size-16 shrink-0 rounded-2xl border bg-white md:size-20"
               sizes="80px"
               transformWidth={192}
             />
           )}
           <div className="min-w-0">
             <p className="sf-eyebrow mb-1">متجر على نوبيان</p>
-            <h1 className="sf-title text-sf-ink text-[1.75rem] md:text-[2.25rem]">
+            <h1 className="sf-title text-[1.625rem] md:text-[2rem]">
               {store.name}
             </h1>
             {store.city && <p className="sf-meta mt-1.5">{store.city}</p>}

@@ -33,7 +33,7 @@ export default function NotFound() {
             خطأ 404 · Page not found
           </span>
 
-          <h1 className="mt-8 text-[6rem] md:text-[10rem] font-black leading-none tracking-tighter bg-gradient-to-b from-primary via-primary/80 to-primary/40 bg-clip-text text-transparent select-none">
+          <h1 className="mt-8 text-[6rem] md:text-[10rem] font-black leading-none tracking-tight text-primary/70 select-none">
             404
           </h1>
 
@@ -58,7 +58,7 @@ export default function NotFound() {
                 العودة للرئيسية
                 <IconArrowLeft
                   size={18}
-                  className="mr-2 transition-transform group-hover:-translate-x-1"
+                  className="ms-2 transition-transform group-hover:-translate-x-1"
                 />
               </Button>
             </Link>

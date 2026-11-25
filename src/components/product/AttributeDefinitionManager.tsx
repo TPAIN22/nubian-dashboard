@@ -78,7 +78,7 @@ export function AttributeDefinitionManager({ attributes, onChange }: AttributeDe
       <div className="flex justify-between items-center">
         <Label className="text-base font-semibold">خصائص المنتج (Attributes)</Label>
         <Button type="button" onClick={addAttribute} size="sm" variant="outline">
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-4 h-4 me-2" />
           إضافة خاصية
         </Button>
       </div>
@@ -217,7 +217,7 @@ export function AttributeDefinitionManager({ attributes, onChange }: AttributeDe
                       }
                     }}
                   >
-                    <Plus className="w-4 h-4 mr-1" />
+                    <Plus className="w-4 h-4 me-1" />
                     إضافة
                   </Button>
                 </div>
@@ -270,7 +270,7 @@ export function AttributeDefinitionManager({ attributes, onChange }: AttributeDe
             onClick={() => removeAttribute(index)}
             className="w-full md:w-auto"
           >
-            <Trash2 className="w-4 h-4 mr-2" />
+            <Trash2 className="w-4 h-4 me-2" />
             حذف الخاصية
           </Button>
         </div>

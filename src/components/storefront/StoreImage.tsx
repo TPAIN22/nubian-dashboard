@@ -50,7 +50,7 @@ interface StoreImageProps {
 function ImageFallback({ label }: { label: string }) {
   return (
     <div
-      className="absolute inset-0 grid place-items-center bg-sf-well"
+      className="bg-sf-well absolute inset-0 grid place-items-center"
       role="img"
       aria-label={label}
     >

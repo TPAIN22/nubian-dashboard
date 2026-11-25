@@ -425,7 +425,7 @@ export default function CouponForm({ coupon, onSuccess, onCancel }: CouponFormPr
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">الخصم:</span>
-                <span className="text-green-600 font-semibold">
+                <span className="text-success font-semibold">
                   -{formatCurrency(discountPreview.discountAmount)}
                 </span>
               </div>

@@ -245,7 +245,7 @@ export default function CurrenciesClient() {
                                     ))}
                                 </div>
                                 {fxRates.missingCurrencies?.length > 0 && (
-                                    <p className="text-sm text-amber-600">
+                                    <p className="text-sm text-warning">
                                         عملات غير متوفرة: {fxRates.missingCurrencies.join(', ')}
                                     </p>
                                 )}
@@ -266,7 +266,7 @@ export default function CurrenciesClient() {
                             العملات ({currencies.length})
                         </CardTitle>
                         <Button onClick={() => openDialog()} size="sm">
-                            <IconPlus className="h-4 w-4 mr-1" />
+                            <IconPlus className="h-4 w-4 me-1" />
                             إضافة عملة
                         </Button>
                     </CardHeader>
@@ -303,12 +303,12 @@ export default function CurrenciesClient() {
                                         <span>{currency.roundingStrategy}</span>
                                     </div>
                                     {currency.allowManualRate && currency.manualRate && (
-                                        <p className="mt-1 text-xs text-amber-600">
+                                        <p className="mt-1 text-xs text-warning">
                                             Manual Rate: {currency.manualRate}
                                         </p>
                                     )}
                                     {currency.marketMarkupAdjustment !== 0 && (
-                                        <p className={`mt-1 text-xs ${currency.marketMarkupAdjustment && currency.marketMarkupAdjustment > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        <p className={`mt-1 text-xs ${currency.marketMarkupAdjustment && currency.marketMarkupAdjustment > 0 ? 'text-success' : 'text-danger'}`}>
                                             Market Adj: {currency.marketMarkupAdjustment && currency.marketMarkupAdjustment > 0 ? '+' : ''}{currency.marketMarkupAdjustment}%
                                         </p>
                                     )}

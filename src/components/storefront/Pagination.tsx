@@ -23,7 +23,7 @@ interface PaginationProps {
 }
 
 const LINK =
-  "sf-focus border-sf-rule-strong text-sf-ink hover:border-sf-ink hover:bg-sf-well inline-flex h-11 items-center gap-2 rounded-[3px] border px-5 text-sm font-medium transition-colors";
+  "sf-focus border-sf-rule-strong text-sf-ink hover:border-sf-ink hover:bg-sf-well inline-flex h-11 items-center gap-2 rounded-xl border bg-card px-5 text-sm font-medium transition-colors";
 
 function Chevron({ back }: { back: boolean }) {
   return (

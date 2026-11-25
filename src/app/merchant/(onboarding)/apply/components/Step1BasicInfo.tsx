@@ -53,14 +53,14 @@ export default function Step1BasicInfo() {
         {/* Store Name with AI */}
         <div>
           <Label htmlFor="storeName" className="font-semibold">
-            اسم المتجر <span className="text-red-500">*</span>
+            اسم المتجر <span className="text-danger">*</span>
           </Label>
           <div className="flex mt-1.5 gap-2">
             <Input
               id="storeName"
               placeholder="مثال: إلكترونيات أم درمان"
               {...register('storeName')}
-              className={errors.storeName ? 'border-red-500' : ''}
+              className={errors.storeName ? 'border-danger' : ''}
             />
             <Button
               type="button"
@@ -78,7 +78,7 @@ export default function Step1BasicInfo() {
             </Button>
           </div>
           {errors.storeName && (
-            <p className="text-sm text-red-500 mt-1">{errors.storeName.message}</p>
+            <p className="text-sm text-danger mt-1">{errors.storeName.message}</p>
           )}
         </div>
 
@@ -109,16 +109,16 @@ export default function Step1BasicInfo() {
         {/* Owner Name */}
         <div>
           <Label htmlFor="ownerName" className="font-semibold">
-            الاسم الكامل للمالك <span className="text-red-500">*</span>
+            الاسم الكامل للمالك <span className="text-danger">*</span>
           </Label>
           <Input
             id="ownerName"
             placeholder="مثال: أحمد علي"
             {...register('ownerName')}
-            className={`mt-1.5 ${errors.ownerName ? 'border-red-500' : ''}`}
+            className={`mt-1.5 ${errors.ownerName ? 'border-danger' : ''}`}
           />
           {errors.ownerName && (
-            <p className="text-sm text-red-500 mt-1">{errors.ownerName.message}</p>
+            <p className="text-sm text-danger mt-1">{errors.ownerName.message}</p>
           )}
         </div>
 
@@ -126,30 +126,30 @@ export default function Step1BasicInfo() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="phone" className="font-semibold">
-              رقم الهاتف <span className="text-red-500">*</span>
+              رقم الهاتف <span className="text-danger">*</span>
             </Label>
             <Input
               id="phone"
               type="tel"
               placeholder="+249..."
               {...register('phone')}
-              className={`mt-1.5 text-left md:text-right ${errors.phone ? 'border-red-500' : ''}`}
+              className={`mt-1.5 text-left md:text-right ${errors.phone ? 'border-danger' : ''}`}
             />
-            {errors.phone && <p className="text-sm text-red-500 mt-1">{errors.phone.message}</p>}
+            {errors.phone && <p className="text-sm text-danger mt-1">{errors.phone.message}</p>}
           </div>
 
           <div>
             <Label htmlFor="email" className="font-semibold">
-              البريد الإلكتروني <span className="text-red-500">*</span>
+              البريد الإلكتروني <span className="text-danger">*</span>
             </Label>
             <Input
               id="email"
               type="email"
               placeholder="ahmed@example.com"
               {...register('email')}
-              className={`mt-1.5 text-left md:text-right ${errors.email ? 'border-red-500' : ''}`}
+              className={`mt-1.5 text-left md:text-right ${errors.email ? 'border-danger' : ''}`}
             />
-            {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>}
+            {errors.email && <p className="text-sm text-danger mt-1">{errors.email.message}</p>}
           </div>
         </div>
       </div>

@@ -71,7 +71,7 @@ export function Step4_ColorImages({ state, onChange }: Step4Props) {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-2">
-                                <Label>صور اللون {color} <span className="text-red-500">*</span></Label>
+                                <Label>صور اللون {color} <span className="text-danger">*</span></Label>
                                 <ImageUpload
                                     initialUrls={state.colorImages[color] || []}
                                     onUploadComplete={(urls) => handleImagesChange(color, urls)}

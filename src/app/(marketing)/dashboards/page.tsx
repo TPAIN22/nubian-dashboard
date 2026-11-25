@@ -117,14 +117,13 @@ export default function DashboardsPage() {
     <main className="relative z-10">
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-28 pb-16 px-4 sm:px-6 lg:px-8">
-        <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10"></div>
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 rounded-full mb-6 border border-primary/20">
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary/10 dark:bg-primary/15 rounded-full mb-6 border border-primary/20">
               <Sparkles className="w-4 h-4 text-primary animate-pulse" />
               <span className="text-sm font-semibold text-primary">لوحات التحكم المتقدمة</span>
             </div>
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-primary mb-6 bg-gradient-to-r from-primary via-primary/90 to-primary/80 bg-clip-text drop-shadow-sm">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-primary mb-6">
               لوحات التحكم
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed font-medium">
@@ -147,13 +146,13 @@ export default function DashboardsPage() {
                 className="group relative overflow-hidden border-2 hover:border-amber-500 transition-all duration-300 hover:shadow-2xl cursor-pointer bg-card"
                 onClick={() => handleDashboardClick('admin')}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <CardHeader className="relative pb-4">
                   <div className="flex items-start justify-between mb-4">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                    <div className="w-16 h-16 rounded-2xl bg-nubian-secondary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
                       <Shield className="w-8 h-8 text-white" />
                     </div>
-                    <div className="px-3 py-1 bg-purple-100 dark:bg-purple-900/20 rounded-full">
+                    <div className="px-3 py-1 bg-nubian-secondary/10 dark:bg-success-soft rounded-full">
                       <span className="text-xs font-semibold text-green-700 dark:text-green-600">إدارة</span>
                     </div>
                   </div>
@@ -165,28 +164,28 @@ export default function DashboardsPage() {
                 <CardContent className="relative space-y-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                      <Package className="w-5 h-5 text-purple-600" />
+                      <Package className="w-5 h-5 text-nubian-secondary dark:text-success" />
                       <div>
                         <p className="text-xs text-muted-foreground">المنتجات</p>
                         <p className="text-sm font-semibold text-foreground">أضف، عدّل، احذف</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                      <Users className="w-5 h-5 text-purple-600" />
+                      <Users className="w-5 h-5 text-nubian-secondary dark:text-success" />
                       <div>
                         <p className="text-xs text-muted-foreground">التجار</p>
                         <p className="text-sm font-semibold text-foreground">راقب ووافق</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                      <BarChart3 className="w-5 h-5 text-purple-600" />
+                      <BarChart3 className="w-5 h-5 text-nubian-secondary dark:text-success" />
                       <div>
                         <p className="text-xs text-muted-foreground">الطلبات</p>
                         <p className="text-sm font-semibold text-foreground">تتبع وإدارة</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                      <TrendingUp className="w-5 h-5 text-purple-600" />
+                      <TrendingUp className="w-5 h-5 text-nubian-secondary dark:text-success" />
                       <div>
                         <p className="text-xs text-muted-foreground">التقارير</p>
                         <p className="text-sm font-semibold text-foreground">عرض وتحليل</p>
@@ -196,7 +195,7 @@ export default function DashboardsPage() {
 
                   <div className="pt-4 border-t border-slate-200">
                     <Button
-                      className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg group-hover:shadow-xl transition-all duration-300 h-12 text-base font-semibold"
+                      className="w-full bg-nubian-secondary hover:bg-nubian-secondary/90 text-white shadow-lg group-hover:shadow-xl transition-all duration-300 h-12 text-base font-semibold"
                       onClick={(e) => {
                         e.stopPropagation()
                         handleDashboardClick('admin')
@@ -221,14 +220,14 @@ export default function DashboardsPage() {
             >
               <div
                 className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                  isMerchantApproved ? 'bg-gradient-to-br from-amber-500/5 to-orange-500/5' : 'bg-gradient-to-br from-orange-500/5 to-red-500/5'
+                  isMerchantApproved ? 'bg-primary/5' : 'bg-warning-soft'
                 }`}
               ></div>
               <CardHeader className="relative pb-4">
                 <div className="flex items-start justify-between mb-4">
                   <div
                     className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 ${
-                      isMerchantApproved ? 'bg-gradient-to-br from-amber-500 to-orange-600' : 'bg-gradient-to-br from-orange-500 to-red-600'
+                      isMerchantApproved ? 'bg-primary' : 'bg-orange-600'
                     }`}
                   >
                     <Store className="w-8 h-8 text-white" />
@@ -288,7 +287,7 @@ export default function DashboardsPage() {
 
                     <div className="pt-4 border-t border-slate-200">
                       <Button
-                        className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg group-hover:shadow-xl transition-all duration-300 h-12 text-base font-semibold"
+                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg group-hover:shadow-xl transition-all duration-300 h-12 text-base font-semibold"
                         onClick={(e) => {
                           e.stopPropagation()
                           handleDashboardClick('merchant')
@@ -304,7 +303,7 @@ export default function DashboardsPage() {
                 ) : (
                   <>
                     <div className="space-y-4">
-                      <div className="flex items-start gap-4 p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 rounded-lg border border-amber-200 dark:border-amber-800">
+                      <div className="flex items-start gap-4 p-4 bg-warning-soft rounded-lg border border-warning/30">
                         <Zap className="w-6 h-6 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                         <div>
                           <h3 className="font-semibold text-foreground mb-1">ابدأ البيع الآن</h3>
@@ -336,7 +335,7 @@ export default function DashboardsPage() {
 
                     <div className="pt-4 border-t border-slate-200">
                       <Button
-                        className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg group-hover:shadow-xl transition-all duration-300 h-12 text-base font-semibold"
+                        className="w-full bg-orange-600 hover:bg-orange-700 text-white shadow-lg group-hover:shadow-xl transition-all duration-300 h-12 text-base font-semibold"
                         onClick={(e) => {
                           e.stopPropagation()
                           handleDashboardClick('merchant')
@@ -357,21 +356,21 @@ export default function DashboardsPage() {
           {/* Info Section */}
           <div className="mt-16 grid md:grid-cols-3 gap-6">
             <div className="text-center p-6 bg-card rounded-xl border border-border shadow-sm">
-              <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 mx-auto mb-4 bg-nubian-secondary rounded-xl flex items-center justify-center">
                 <Globe className="w-6 h-6 text-white" />
               </div>
               <h3 className="font-bold text-foreground mb-2">كل شيء في مكان واحد</h3>
               <p className="text-sm text-muted-foreground">أدر كل شيء بسهولة</p>
             </div>
             <div className="text-center p-6 bg-card rounded-xl border border-border shadow-sm">
-              <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 mx-auto mb-4 bg-nubian-secondary rounded-xl flex items-center justify-center">
                 <Zap className="w-6 h-6 text-white" />
               </div>
               <h3 className="font-bold text-foreground mb-2">سريع وسهل</h3>
               <p className="text-sm text-muted-foreground">تجربة سلسة وسريعة</p>
             </div>
             <div className="text-center p-6 bg-card rounded-xl border border-border shadow-sm">
-              <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 mx-auto mb-4 bg-nubian-secondary rounded-xl flex items-center justify-center">
                 <Shield className="w-6 h-6 text-white" />
               </div>
               <h3 className="font-bold text-foreground mb-2">آمن ومحمي</h3>

@@ -25,6 +25,11 @@ const baseUrl = "https://nubian-sd.com";
 
 export const revalidate = 300;
 
+// Empty list = on-demand ISR; see shop/[productId]/page.tsx.
+export async function generateStaticParams() {
+  return [];
+}
+
 type Params = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
@@ -65,15 +70,17 @@ export default async function CollectionPage({ params }: Params) {
       {/* The cover runs full-bleed above the masthead: a collection is the one
           place on the storefront where the art direction leads. */}
       {collection.image && (
-        <StoreImage
-          src={collection.image}
-          alt=""
-          className="aspect-[16/9] w-full md:aspect-[3/1]"
-          sizes="100vw"
-          priority
-          transformWidth={1800}
-          quality={84}
-        />
+        <Container className="pt-4 md:pt-6">
+          <StoreImage
+            src={collection.image}
+            alt=""
+            className="aspect-[16/9] w-full rounded-3xl md:aspect-[3/1]"
+            sizes="100vw"
+            priority
+            transformWidth={1800}
+            quality={84}
+          />
+        </Container>
       )}
 
       <PageIntro

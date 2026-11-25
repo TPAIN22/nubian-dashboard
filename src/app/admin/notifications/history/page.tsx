@@ -101,7 +101,7 @@ export default function NotificationHistoryPage() {
             onClick={handleExport}
             disabled={notifications.length === 0}
           >
-            <Download className="mr-1 size-4" />
+            <Download className="me-1 size-4" />
             Export CSV
           </Button>
         </div>

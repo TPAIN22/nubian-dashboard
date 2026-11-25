@@ -38,13 +38,13 @@ export function CategoryTile({
       <StoreImage
         src={category.image}
         alt={`تصفح قسم ${category.name}`}
-        className="aspect-[3/4] w-full"
+        className="aspect-square w-full rounded-2xl"
         sizes={sizes}
         priority={priority}
         transformWidth={520}
         imageClassName="transition-transform duration-500 ease-out group-hover:scale-[1.04]"
       />
-      <h3 className="sf-product-name group-hover:text-sf-accent mt-3 transition-colors">
+      <h3 className="sf-product-name group-hover:text-sf-accent mt-2.5 text-center transition-colors">
         {category.name}
       </h3>
     </Link>

@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Production runs the slimmer standalone server (see
+  // scripts/start-standalone.cjs for the measured memory difference).
+  // `npm run build` copies public/ and .next/static into it via postbuild.
+  output: "standalone",
   // Enable compression for better performance
   compress: true,
   

@@ -36,7 +36,7 @@ export function SearchForm({
       <svg
         viewBox="0 0 20 20"
         aria-hidden="true"
-        className="text-muted-foreground pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 start-3.5"
+        className="text-muted-foreground pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 start-4"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.6"
@@ -54,7 +54,7 @@ export function SearchForm({
         placeholder="ابحث عن منتج أو متجر"
         autoComplete="off"
         autoFocus={autoFocus}
-        className="border-sf-rule bg-card text-sf-ink placeholder:text-muted-foreground focus-visible:border-sf-accent focus-visible:ring-sf-accent/25 h-11 w-full rounded-[3px] border ps-10 pe-3 text-sm outline-none transition-colors focus-visible:ring-2"
+        className="bg-sf-well text-sf-ink placeholder:text-muted-foreground focus-visible:bg-card focus-visible:border-sf-accent focus-visible:ring-sf-accent/20 h-11 w-full rounded-full border border-transparent ps-11 pe-4 text-sm outline-none transition-colors hover:border-sf-rule focus-visible:ring-4"
       />
     </form>
   );

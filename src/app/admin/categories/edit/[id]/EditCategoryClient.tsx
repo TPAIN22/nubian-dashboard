@@ -196,7 +196,7 @@ export default function EditCategoryClient({ categoryId }: { categoryId: string 
     return (
       <div className="min-h-screen bg-gradient-to-br p-4 text-flt flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-500 mb-4">لم يتم العثور على الفئة</p>
+          <p className="text-danger mb-4">لم يتم العثور على الفئة</p>
           <Button onClick={handleCancel}>العودة إلى قائمة الفئات</Button>
         </div>
       </div>

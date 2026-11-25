@@ -81,7 +81,7 @@ export function Step2_VariantSetup({ state, onChange }: Step2Props) {
                     <p className="text-muted-foreground">أضف خيارات مثل اللون والمقاس لإنشاء المتغيرات.</p>
                 </div>
                 <Button onClick={addAttribute} variant="outline">
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Plus className="w-4 h-4 me-2" />
                     إضافة خيار
                 </Button>
             </div>
@@ -93,6 +93,7 @@ export function Step2_VariantSetup({ state, onChange }: Step2Props) {
                             variant="ghost"
                             size="icon"
                             className="absolute top-2 left-2 text-destructive"
+                            aria-label="حذف الخاصية"
                             onClick={() => removeAttribute(index)}
                         >
                             <Trash2 className="w-4 h-4" />
@@ -127,7 +128,7 @@ export function Step2_VariantSetup({ state, onChange }: Step2Props) {
                                             <Badge key={optIdx} variant="secondary" className="px-3 py-1">
                                                 {opt}
                                                 <button
-                                                    className="ml-2 hover:text-red-500"
+                                                    className="ml-2 hover:text-danger"
                                                     onClick={() => {
                                                         const newOptions = attr.options?.filter((_, i) => i !== optIdx);
                                                         updateAttribute(index, { options: newOptions });
@@ -148,7 +149,7 @@ export function Step2_VariantSetup({ state, onChange }: Step2Props) {
             {state.attributes.length > 0 && (
                 <div className="flex justify-end pt-4">
                     <Button onClick={handleGenerate} size="lg">
-                        <Plus className="w-4 h-4 mr-2" />
+                        <Plus className="w-4 h-4 me-2" />
                         إنشاء / تحديث المتغيرات ({state.variants.length} حالياً)
                     </Button>
                 </div>

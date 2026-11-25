@@ -38,7 +38,7 @@ export function MobileNav({ categories }: MobileNavProps) {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger
-        className="sf-focus text-sf-ink -ms-2 inline-flex h-11 w-11 items-center justify-center lg:hidden"
+        className="sf-focus text-sf-ink hover:bg-sf-well -ms-2 inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors lg:hidden"
         aria-label="فتح القائمة"
       >
         <svg
@@ -64,14 +64,14 @@ export function MobileNav({ categories }: MobileNavProps) {
         className="storefront-theme bg-background border-sf-rule w-[86vw] gap-0 overflow-y-auto p-0 sm:max-w-sm [&>button]:right-auto [&>button]:left-4"
       >
         <SheetHeader className="border-sf-rule border-b px-6 py-5">
-          <SheetTitle className="sf-product-name text-base">التصفح</SheetTitle>
+          <SheetTitle className="sf-heading text-base">التصفح</SheetTitle>
         </SheetHeader>
 
         <nav className="flex flex-col px-6 py-6" aria-label="قائمة التنقل">
           <Link
             href={routes.shop()}
             onClick={close}
-            className="sf-focus text-sf-ink hover:text-sf-accent py-3 text-lg font-medium transition-colors"
+            className="sf-focus text-sf-ink hover:bg-sf-well -mx-3 rounded-lg px-3 py-3 text-lg font-semibold transition-colors"
           >
             كل المنتجات
           </Link>
@@ -86,7 +86,7 @@ export function MobileNav({ categories }: MobileNavProps) {
                   key={category.id}
                   href={routes.category(category.id)}
                   onClick={close}
-                  className="sf-focus text-sf-ink hover:text-sf-accent py-2.5 text-base transition-colors"
+                  className="sf-focus text-sf-ink hover:bg-sf-well -mx-3 rounded-lg px-3 py-2.5 text-base transition-colors"
                 >
                   {category.name}
                 </Link>
@@ -99,7 +99,7 @@ export function MobileNav({ categories }: MobileNavProps) {
               <Link
                 href="/sign-in"
                 onClick={close}
-                className="sf-focus text-sf-ink hover:text-sf-accent py-2.5 text-base transition-colors"
+                className="sf-focus text-sf-ink hover:bg-sf-well -mx-3 rounded-lg px-3 py-2.5 text-base transition-colors"
               >
                 تسجيل الدخول
               </Link>
@@ -108,7 +108,7 @@ export function MobileNav({ categories }: MobileNavProps) {
               <Link
                 href="/merchant/dashboard"
                 onClick={close}
-                className="sf-focus text-sf-ink hover:text-sf-accent py-2.5 text-base transition-colors"
+                className="sf-focus text-sf-ink hover:bg-sf-well -mx-3 rounded-lg px-3 py-2.5 text-base transition-colors"
               >
                 لوحة التحكم
               </Link>
@@ -116,14 +116,14 @@ export function MobileNav({ categories }: MobileNavProps) {
             <Link
               href="/merchant/apply"
               onClick={close}
-              className="sf-focus text-sf-ink hover:text-sf-accent py-2.5 text-base transition-colors"
+              className="sf-focus text-sf-ink hover:bg-sf-well -mx-3 rounded-lg px-3 py-2.5 text-base transition-colors"
             >
               بِع على نوبيان
             </Link>
             <Link
               href="/contact"
               onClick={close}
-              className="sf-focus text-sf-ink hover:text-sf-accent py-2.5 text-base transition-colors"
+              className="sf-focus text-sf-ink hover:bg-sf-well -mx-3 rounded-lg px-3 py-2.5 text-base transition-colors"
             >
               تواصل معنا
             </Link>
@@ -134,7 +134,7 @@ export function MobileNav({ categories }: MobileNavProps) {
             target="_blank"
             rel="noopener noreferrer"
             onClick={close}
-            className="sf-focus bg-sf-ink text-background hover:bg-primary hover:text-primary-foreground mt-7 inline-flex h-12 items-center justify-center rounded-[3px] text-sm font-medium transition-colors"
+            className="sf-focus bg-primary text-primary-foreground hover:bg-sf-accent-hover mt-7 inline-flex h-12 items-center justify-center rounded-xl text-sm font-semibold transition-colors"
           >
             حمّل تطبيق نوبيان
           </a>

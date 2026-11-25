@@ -53,7 +53,7 @@ export function CTASection() {
         {/* Main Heading */}
         <h2 className="mx-auto max-w-4xl text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-zinc-900 mb-6 leading-tight">
           <span>جاهز لتبدأ رحلتك مع</span>
-          <span className="block mt-2 bg-gradient-to-r from-amber-600 via-orange-500 to-amber-600 bg-clip-text text-transparent bg-[length:200%_auto]">
+          <span className="block mt-2 text-amber-700">
             نوبيان؟
           </span>
         </h2>

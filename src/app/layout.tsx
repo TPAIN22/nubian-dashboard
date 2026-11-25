@@ -28,7 +28,7 @@ if (typeof window === 'undefined') {
 }
 
 
-import { Outfit, Inter, IBM_Plex_Sans_Arabic, Reem_Kufi } from 'next/font/google'
+import { Outfit, Inter, IBM_Plex_Sans_Arabic, Alexandria } from 'next/font/google'
 
 const outfit = Outfit({
   subsets: ['latin', 'latin-ext'],
@@ -49,12 +49,13 @@ const ibmPlexArabic = IBM_Plex_Sans_Arabic({
   display: 'swap',
 })
 
-// Storefront display face: headlines only (see `.sf-display` / `.sf-title`).
-// A geometric Kufic gives the storefront a voice of its own; body copy stays
-// on Plex, which is the more legible of the two at reading sizes.
-const reemKufi = Reem_Kufi({
+// Storefront heading face (see `.sf-display` / `.sf-title` / `.sf-heading`).
+// A clean geometric sans drawn for Arabic and Latin together; body copy stays
+// on Plex, the more legible of the two at reading sizes.
+const alexandria = Alexandria({
   subsets: ['arabic', 'latin'],
-  variable: '--font-reem-kufi',
+  weight: ['500', '600', '700'],
+  variable: '--font-alexandria',
   display: 'swap',
 })
 
@@ -194,7 +195,7 @@ export default function RootLayout({
       <html lang="ar" dir="rtl" suppressHydrationWarning className="overflow-x-clip">
         <head>
         </head>
-        <body className={`${outfit.variable} ${inter.variable} ${ibmPlexArabic.variable} ${reemKufi.variable} antialiased`}>
+        <body className={`${outfit.variable} ${inter.variable} ${ibmPlexArabic.variable} ${alexandria.variable} antialiased`}>
           <QueryProvider>
             <ErrorBoundary>
               <StructuredData />

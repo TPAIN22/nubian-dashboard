@@ -1,11 +1,9 @@
 /**
  * Storefront call-to-action.
  *
- * A separate primitive from `components/ui/button` on purpose. That one
- * defaults to `rounded-full` and a gold fill, which is right for the console's
- * dense forms and wrong for an editorial page where a row of pills reads as a
- * toolbar. These are near-square, ink-filled, and there are exactly two:
- * one primary, one quiet.
+ * A separate primitive from `components/ui/button`, which is styled for the
+ * console. Storefront buttons are emerald-filled (primary), hairline (outline)
+ * or light-on-dark (inverse), with a 12px radius.
  *
  * Renders an `<a>` — every storefront CTA is navigation, not a form action.
  */
@@ -15,27 +13,27 @@ import type { ComponentProps, ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
-const BASE =
-  "sf-focus inline-flex items-center justify-center gap-2 rounded-[3px] px-7 text-sm font-medium transition-colors duration-200 whitespace-nowrap";
-
 /**
- * Hover on the filled variants lands on Nubian gold. The label has to flip to
- * black at the same time: #FAFAF7 on #D4AF37 is 2.1:1, black on #D4AF37 is
- * 10.0:1. `--primary-foreground` is that black, in both themes.
+ * Buttons step up on hover and press in on click — the one motion every
+ * storefront control shares. Transform only, so it stays on the compositor;
+ * `motion-reduce` keeps the colour change and drops the movement.
  */
+const BASE =
+  "sf-focus inline-flex items-center justify-center gap-2 rounded-xl px-6 text-sm font-semibold whitespace-nowrap transition-[color,background-color,border-color,translate,scale] duration-200 ease-out hover:-translate-y-px active:translate-y-0 active:scale-[0.98] motion-reduce:transition-colors motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100";
+
 const VARIANTS = {
   primary:
-    "bg-sf-ink text-background hover:bg-primary hover:text-primary-foreground",
+    "bg-primary text-primary-foreground hover:bg-sf-accent-hover shadow-[0_1px_2px_rgba(0,0,0,0.08)]",
   outline:
-    "border border-sf-rule-strong text-sf-ink hover:border-sf-ink hover:bg-sf-well",
+    "border border-sf-rule-strong bg-card text-sf-ink hover:border-sf-ink/40 hover:bg-sf-well",
   /** For use on the inverted (dark) bands. */
   inverse:
-    "bg-sf-inverse-foreground text-sf-inverse hover:bg-primary hover:text-primary-foreground",
+    "bg-sf-inverse-foreground text-sf-inverse hover:bg-white",
 } as const;
 
 const SIZES = {
   default: "h-11",
-  lg: "h-13 px-9 text-[0.9375rem]",
+  lg: "h-12 px-8 text-[0.9375rem]",
 } as const;
 
 interface StoreButtonProps extends Omit<ComponentProps<typeof Link>, "children"> {

@@ -438,7 +438,7 @@ export function OrderDetailsDrawer({ order, open, onOpenChange, onChanged }: Pro
                             }
                           />
                         ) : (
-                          <p className="text-xs text-amber-600 dark:text-amber-400">
+                          <p className="text-xs text-warning">
                             لا توجد إحداثيات لهذا الطلب (عنوان قديم)
                           </p>
                         )}
@@ -510,7 +510,7 @@ export function OrderDetailsDrawer({ order, open, onOpenChange, onChanged }: Pro
                           : "الخصم"
                       }
                       value={
-                        <span className="text-red-600 dark:text-red-400">
+                        <span className="text-danger">
                           −{formatMoney(totals.discount, currency)}
                         </span>
                       }
@@ -554,7 +554,7 @@ export function OrderDetailsDrawer({ order, open, onOpenChange, onChanged }: Pro
                 </Section>
 
                 {canApproveReject ? (
-                  <section className="space-y-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                  <section className="space-y-3 rounded-lg border border-warning/30 bg-warning-soft p-3">
                     <SectionTitle>مراجعة تحويل بنكك</SectionTitle>
                     <div className="space-y-2">
                       <Label htmlFor="rejectReason" className="text-xs">
